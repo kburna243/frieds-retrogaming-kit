@@ -2,6 +2,7 @@
 _bestand/
 references/
 .omc/
+.claude/
 
 # Runtime output
 *.log

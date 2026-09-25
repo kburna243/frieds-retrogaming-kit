@@ -174,3 +174,86 @@ function Get-LightgunTaskByProgram {
         }
     }
 }
+
+# --- INI files (DemulShooter config.ini, Supermodel.ini, DuckStation/PCSX2 settings) ---------------------------
+# Section '' = the keys before the first section (DemulShooter has no sections). Section and key names are
+# compared case-insensitively and trimmed (Supermodel names its section "[ Global ]").
+
+function Read-LightgunIniLine([string] $Path) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return }
+    $info = Get-KitFileEncoding -Path $Path
+    $bytes = [IO.File]::ReadAllBytes($Path)
+    $text = [Text.Encoding]::GetEncoding($info.CodePage).GetString($bytes, $info.BomLength, $bytes.Length - $info.BomLength)
+    $text -split '\r?\n'
+}
+
+# Section -> ordered key/value table.
+function Read-LightgunIni {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [string] $Path)
+    $ini = [ordered]@{ '' = [ordered]@{} }
+    $section = ''
+    foreach ($l in Read-LightgunIniLine $Path) {
+        if ($l -match '^\s*\[(.*)\]\s*$') { $section = $Matches[1].Trim(); if (-not $ini.Contains($section)) { $ini[$section] = [ordered]@{} }; continue }
+        if ($l -match '^\s*([^=;#\[][^=]*?)\s*=\s*(.*?)\s*$' -and -not $ini[$section].Contains($Matches[1])) { $ini[$section][$Matches[1]] = $Matches[2] }
+    }
+    $ini
+}
+
+# Changes (Name, Old, New, Action Add|Change) that bring -Values into -Section.
+function Get-LightgunIniPlan {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [string] $Path, [AllowEmptyString()] [string] $Section = '', [Parameter(Mandatory)] [Collections.IDictionary] $Values)
+    $ini = Read-LightgunIni -Path $Path
+    $have = if ($ini.Contains($Section.Trim())) { $ini[$Section.Trim()] } else { @{} }
+    foreach ($k in $Values.Keys) {
+        $old = if ($have.Contains($k)) { $have[$k] } else { $null }
+        if ($old -cne [string]$Values[$k]) { [pscustomobject]@{ File = $Path; Name = $k; Old = $old; New = [string]$Values[$k]; Action = $(if ($null -eq $old) { 'Add' } else { 'Change' }) } }
+    }
+}
+
+# Writes the plan: a value is changed in its line, a missing key goes to the end of its section (a missing
+# section to the end of the file). Encoding, BOM and line ends stay; backup first. Returns the change count.
+function Set-LightgunIniValue {
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory)] [string] $Path, [AllowEmptyString()] [string] $Section = '', [Parameter(Mandatory)] [Collections.IDictionary] $Values)
+    $plan = @(Get-LightgunIniPlan -Path $Path -Section $Section -Values $Values)
+    if (-not $plan) { return 0 }
+    if (-not $PSCmdlet.ShouldProcess($Path, "$($plan.Count) INI value(s)")) { return 0 }
+    $exists = Test-Path -LiteralPath $Path -PathType Leaf
+    $info = if ($exists) { Get-KitFileEncoding -Path $Path } else { [pscustomobject]@{ CodePage = 65001; BomLength = 0 } }
+    $bytes = if ($exists) { [IO.File]::ReadAllBytes($Path) } else { [byte[]]@() }
+    $nl = if ($exists -and [Text.Encoding]::GetEncoding($info.CodePage).GetString($bytes).Contains("`r`n")) { "`r`n" } else { "`n" }
+    $lines = New-Object Collections.Generic.List[string]
+    foreach ($l in Read-LightgunIniLine $Path) { $lines.Add($l) }
+    if ($lines.Count -and $lines[$lines.Count - 1] -eq '') { $lines.RemoveAt($lines.Count - 1) }
+    $want = $Section.Trim()
+    foreach ($c in $plan) {
+        # Lines start+1 .. end-1 belong to the section (start = -1: the part before the first header).
+        $found = $want -eq ''; $start = -1; $end = $lines.Count
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -notmatch '^\s*\[(.*)\]\s*$') { continue }
+            if ($found) { $end = $i; break }
+            if ([string]::Equals($Matches[1].Trim(), $want, [StringComparison]::OrdinalIgnoreCase)) { $found = $true; $start = $i }
+        }
+        $line = '{0} = {1}' -f $c.Name, $c.New
+        if (-not $found) { $lines.Add("[$Section]"); $lines.Add($line); continue }
+        $done = $false
+        for ($i = $start + 1; $i -lt $end; $i++) {
+            if ($lines[$i] -match '^\s*([^=;#\[][^=]*?)\s*=' -and [string]::Equals($Matches[1], $c.Name, [StringComparison]::OrdinalIgnoreCase)) {
+                $lines[$i] = '{0} = {1}' -f $Matches[1], $c.New; $done = $true; break
+            }
+        }
+        if ($done) { continue }
+        $at = $end
+        while ($at -gt $start + 1 -and $lines[$at - 1].Trim() -eq '') { $at-- } # before the blank lines that end the section
+        $lines.Insert($at, $line)
+    }
+    if ($exists) { Assert-LightgunProcessesClosed; $null = Backup-LightgunFile -Path $Path }
+    $body = [Text.Encoding]::GetEncoding($info.CodePage).GetBytes((($lines -join $nl) + $nl))
+    $out = [byte[]](@($bytes | Select-Object -First $info.BomLength) + $body)
+    $tmp = "$Path.tmp"
+    [IO.File]::WriteAllBytes($tmp, $out)
+    if ($exists) { [IO.File]::Replace($tmp, $Path, [NullString]::Value) } else { Move-Item -LiteralPath $tmp -Destination $Path }
+    $plan.Count
+}

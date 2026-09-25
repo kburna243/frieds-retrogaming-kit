@@ -65,28 +65,50 @@ function Read-LightgunXml([string] $Path) {
     $settings.XmlResolver = $null
     $reader = [Xml.XmlReader]::Create($Path, $settings)
     try { $doc.Load($reader) } finally { $reader.Dispose() }
+    # XmlDocument collapses <a></a> into <a />; TeknoParrot writes both forms. A second pass notes the empty
+    # elements with an end tag (document order) so a saved file keeps them byte for byte.
+    $full = New-Object Collections.Generic.List[int]
+    $reader = [Xml.XmlReader]::Create($Path, $settings)
+    try {
+        $i = -1; $open = -1
+        while ($reader.Read()) {
+            if ($reader.NodeType -eq 'Element') { $i++; $open = if ($reader.IsEmptyElement) { -1 } else { $i }; continue }
+            if ($reader.NodeType -eq 'EndElement' -and $open -ge 0) { $full.Add($open) }
+            $open = -1
+        }
+    } finally { $reader.Dispose() }
+    if ($full.Count) {
+        $elements = $doc.SelectNodes('//*')
+        foreach ($k in $full) { if ($elements[$k].ChildNodes.Count -eq 0) { $elements[$k].IsEmpty = $false } }
+    }
     $doc
 }
 
-# UTF-8 without BOM (as RetroBat writes it), whitespace exactly as in the document, via temp file + replace.
+# The file's own encoding (as RetroBat and TeknoParrot write it: UTF-8, with a BOM only when the file had one,
+# UTF-16 LE when the file was UTF-16), whitespace exactly as in the document, via temp file + replace.
 # The XML parser turns CRLF into LF; a file that used CRLF gets CRLF back. The XML declaration is copied
 # verbatim from the file (the writer would rewrite its quotes and add an encoding).
 function Save-LightgunXml([Xml.XmlDocument] $Doc, [string] $Path) {
+    $raw = [IO.File]::ReadAllBytes($Path)
+    $encoding = New-Object Text.UTF8Encoding $false
+    $preamble = [byte[]]@()
+    if ($raw.Length -ge 3 -and $raw[0] -eq 0xEF -and $raw[1] -eq 0xBB -and $raw[2] -eq 0xBF) { $preamble = [byte[]](0xEF, 0xBB, 0xBF) }
+    elseif ($raw.Length -ge 2 -and $raw[0] -eq 0xFF -and $raw[1] -eq 0xFE) { $encoding = New-Object Text.UnicodeEncoding ($false, $false); $preamble = [byte[]](0xFF, 0xFE) }
     $original = [IO.File]::ReadAllText($Path)
     $settings = New-Object Xml.XmlWriterSettings
-    $settings.Encoding = New-Object Text.UTF8Encoding $false
+    $settings.Encoding = $encoding
     $settings.Indent = $false
     $settings.OmitXmlDeclaration = $true
     if ($original.Contains("`r`n")) { $settings.NewLineHandling = 'Replace'; $settings.NewLineChars = "`r`n" }
     else { $settings.NewLineHandling = 'None' }
     $declaration = ''
     if ($original.TrimStart([char]0xFEFF).StartsWith('<?xml')) { $declaration = $original.TrimStart([char]0xFEFF).Substring(0, $original.TrimStart([char]0xFEFF).IndexOf('?>') + 2) }
-    $copy = $Doc.Clone()
-    if ($copy.FirstChild -is [Xml.XmlDeclaration]) { $null = $copy.RemoveChild($copy.FirstChild) }
+    # Node by node without the declaration (a Clone() would lose which empty elements had an end tag).
+    $settings.ConformanceLevel = 'Fragment'
     $buffer = New-Object IO.MemoryStream
     $writer = [Xml.XmlWriter]::Create($buffer, $settings)
-    try { $copy.Save($writer) } finally { $writer.Dispose() }
-    $bytes = [Text.Encoding]::UTF8.GetBytes($declaration) + $buffer.ToArray()
+    try { foreach ($n in $Doc.ChildNodes) { if ($n -isnot [Xml.XmlDeclaration]) { $n.WriteTo($writer) } } } finally { $writer.Dispose() }
+    $bytes = [byte[]]($preamble + $encoding.GetBytes($declaration) + $buffer.ToArray())
     $tmp = "$Path.tmp"
     [IO.File]::WriteAllBytes($tmp, $bytes)
     [IO.File]::Replace($tmp, $Path, [NullString]::Value)
@@ -96,14 +118,18 @@ function Get-EsSettingElement([Xml.XmlDocument] $Doc) {
     @($Doc.DocumentElement.ChildNodes | Where-Object { $_.NodeType -eq 'Element' -and $_.HasAttribute('name') })
 }
 
-# Changes (Name, Old, New, Action Add|Change) that es_settings.cfg needs.
+# Changes (Name, Old, New, Action Add|Change|Remove) that es_settings.cfg needs. -Target: wanted values (default:
+# the kit's system settings), -Remove: names that must go (TeknoParrot leftovers of a build creator).
 function Get-LightgunEsSettingsPlan {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $Path)
+    param([Parameter(Mandatory)] [string] $Path, [Collections.IDictionary] $Target = (Get-LightgunEsSettingsTarget), [string[]] $Remove = @())
     $doc = Read-LightgunXml $Path
     $byName = @{}
     foreach ($e in Get-EsSettingElement $doc) { $byName[$e.GetAttribute('name')] = $e }
-    $target = Get-LightgunEsSettingsTarget
+    foreach ($name in $Remove | Sort-Object -Unique) {
+        if ($byName.ContainsKey($name)) { [pscustomobject]@{ File = $Path; Name = $name; Old = $byName[$name].GetAttribute('value'); New = $null; Action = 'Remove' } }
+    }
+    $target = $Target
     foreach ($name in $target.Keys) {
         $want = $target[$name]
         if ($byName.ContainsKey($name)) {
@@ -116,14 +142,20 @@ function Get-LightgunEsSettingsPlan {
 # Writes the plan into es_settings.cfg (backup first, guarded programs closed). Returns the change count.
 function Set-LightgunEsSettings {
     [CmdletBinding(SupportsShouldProcess)]
-    param([Parameter(Mandatory)] [string] $Path)
-    $plan = @(Get-LightgunEsSettingsPlan -Path $Path)
+    param([Parameter(Mandatory)] [string] $Path, [Collections.IDictionary] $Target = (Get-LightgunEsSettingsTarget), [string[]] $Remove = @())
+    $plan = @(Get-LightgunEsSettingsPlan -Path $Path -Target $Target -Remove $Remove)
     if (-not $plan) { return 0 }
     if (-not $PSCmdlet.ShouldProcess($Path, "$($plan.Count) setting(s)")) { return 0 }
     $doc = Read-LightgunXml $Path
     $root = $doc.DocumentElement
     foreach ($c in $plan) {
         $existing = @(Get-EsSettingElement $doc | Where-Object { $_.GetAttribute('name') -ceq $c.Name }) | Select-Object -First 1
+        if ($c.Action -eq 'Remove') {
+            # The element and the indentation in front of it.
+            if ($existing.PreviousSibling -and $existing.PreviousSibling.NodeType -eq 'Whitespace') { $null = $root.RemoveChild($existing.PreviousSibling) }
+            $null = $root.RemoveChild($existing)
+            continue
+        }
         if ($existing) { $existing.SetAttribute('value', $c.New); continue }
         $new = $doc.CreateElement('string')
         $new.SetAttribute('name', $c.Name)
@@ -171,12 +203,14 @@ function Get-LightgunEsOverride {
 }
 
 # Games of the gun systems whose gamelist.xml hard-wires an <emulator>/<core> OTHER than the kit's choice for
-# the system (reported only; an entry that names the same emulator changes nothing).
+# the system (reported only; an entry that names the same emulator changes nothing). -AllSystems: every
+# roms\<system>\gamelist.xml (systems without a kit choice report every hard-wired entry).
 function Get-LightgunGamelistOverride {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $RetroBatRoot)
+    param([Parameter(Mandatory)] [string] $RetroBatRoot, [switch] $AllSystems)
     $target = Get-LightgunEsSettingsTarget
-    foreach ($s in $script:LightgunGunSystems) {
+    $systems = if ($AllSystems) { @(Get-ChildItem -LiteralPath (Join-Path $RetroBatRoot 'roms') -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.Name }) } else { $script:LightgunGunSystems }
+    foreach ($s in $systems) {
         $wantEmu = if ($target.Contains("$s.emulator")) { $target["$s.emulator"] } else { $null }
         $wantCore = if ($target.Contains("$s.core")) { $target["$s.core"] } else { $null }
         $file = Join-Path $RetroBatRoot "roms\$s\gamelist.xml"
