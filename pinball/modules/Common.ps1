@@ -68,3 +68,22 @@ function Get-PinballDatabasePath {
     param([Parameter(Mandatory)] [string] $Root)
     Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball\PinUPSystem\PUPDatabase.db'
 }
+
+# Checked again by every executing step (the state file is user-writable, only a hint): a folder on a local
+# drive letter (no UNC, no network drive) that contains the build database (-NoDatabase: not yet, step 4).
+# Returns $null or the reason.
+function Get-PinballRootProblem {
+    [CmdletBinding()]
+    param(
+        [AllowEmptyString()] [string] $Root,
+        [switch] $NoDatabase
+    )
+    if (-not $Root) { return Get-KitText 'Pinball.Step.RunTargetFirst' }
+    try { $r = ConvertTo-PinballRoot $Root } catch { return $_.Exception.Message }
+    if ($r -notmatch '^[A-Za-z]:') { return Get-KitText 'Pinball.Target.LocalOnly' -f $r }
+    $drive = New-Object IO.DriveInfo ($r.Substring(0, 1))
+    if ($drive.DriveType -notin 'Fixed', 'Removable') { return Get-KitText 'Pinball.Target.LocalOnly' -f $r }
+    $db = Get-PinballDatabasePath -Root $r
+    if (-not $NoDatabase -and -not (Test-Path -LiteralPath $db -PathType Leaf)) { return Get-KitText 'Pinball.Detect.NotABuild' -f $r, $db }
+    $null
+}

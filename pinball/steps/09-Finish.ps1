@@ -8,11 +8,15 @@
     Overrides single file locations as in step 8 (tests).
 .PARAMETER RegistryKeys
     Registry keys to back up (default: Future Pinball, VPinMAME, B2S, Visual Pinball below HKCU\Software).
+.PARAMETER Approve
+    { param($text) ... } returning $true to run RunWindowsStartup.bat shown with SHA256 and signature status.
+    The wizard passes its dialog; without it the console asks.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string] $Root,
     [switch] $EnableAutostart,
+    [scriptblock] $Approve,
     [string] $BackupDir,
     [hashtable] $Paths = @{},
     [string[]] $RegistryKeys,
@@ -29,9 +33,12 @@ if (-not $Root) { $Root = Get-KitStateValue -Path $StatePath -Key 'TargetRoot' }
 if (-not $Root) { Write-KitLog (Get-KitText 'Pinball.Step.RunTargetFirst') -Level Warn }
 if (-not $BackupDir) { $BackupDir = Join-Path (Split-Path -Parent $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($StatePath)) 'backups' }
 
+$rootProblem = if ($Root) { Get-PinballRootProblem -Root $Root }
+if ($rootProblem) { Write-KitLog $rootProblem -Level Warn }
+
 $setArgs = @{ Paths = $Paths }
 if ($PSBoundParameters.ContainsKey('RegistryKeys')) { $setArgs.RegistryKeys = $RegistryKeys }
-$set = if ($Root) { Get-PinballFinishBackupSet -Root $Root @setArgs }
+$set = if ($Root -and -not $rootProblem) { Get-PinballFinishBackupSet -Root $Root @setArgs }
 if ($set) { Write-KitLog (Get-KitText 'Pinball.Finish.Plan' -f $set.Files.Count, $set.Registry.Count, $BackupDir) }
 
 $backup = New-KitStep -Name 'pinball-9-backup' `
@@ -42,17 +49,17 @@ $backup = New-KitStep -Name 'pinball-9-backup' `
     } `
     -Verify {
         $zip = [string](Get-KitStateValue -Path $StatePath -Key 'FinishBackup')
-        [bool]$zip -and (Test-Path -LiteralPath $zip) -and [bool](Get-KitBackupManifest -Path $zip)
+        -not $rootProblem -and [bool]$zip -and (Test-Path -LiteralPath $zip) -and [bool](Get-KitBackupManifest -Path $zip)
     }
 Invoke-KitStep -Step $backup -StatePath $StatePath -WhatIf:$WhatIfPreference
 
 if ($EnableAutostart) {
-    $bat = if ($Root) { Find-PinballStartupBat -Root $Root }
+    $bat = if ($Root -and -not $rootProblem) { Find-PinballStartupBat -Root $Root }
     if (-not $bat) { Write-KitLog (Get-KitText 'Pinball.Finish.NoStartupBat') -Level Warn }
     $autostart = New-KitStep -Name 'pinball-9-autostart' `
         -Test { [bool]$bat } `
         -Invoke {
-            $code = Invoke-PinballBat -Path $bat -Confirm:$false
+            $code = Invoke-PinballBat -Path $bat -Approve $Approve
             if ($code -ne 0) { throw (Get-KitText 'Pinball.FpBam.BatFailed' -f $bat, $code) }
             Set-KitStateValue -Path $StatePath -Key 'AutostartDone' -Value $true
         } `

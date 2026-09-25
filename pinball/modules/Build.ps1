@@ -59,7 +59,8 @@ function Measure-PinballFolder {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string[]] $Path)
     # Same folders robocopy excludes (NAS metadata, recycle bin), so source and target sizes compare.
-    $m = Get-ChildItem -LiteralPath $Path -Recurse -File -Force -ErrorAction SilentlyContinue |
+    # Junctions are skipped like robocopy /XJ does.
+    $m = Get-KitFileTree -Path $Path |
         Where-Object { $_.FullName -notmatch '\\(@eaDir|@tmp|System Volume Information|\$RECYCLE\.BIN)\\' } |
         Measure-Object -Property Length -Sum
     [pscustomobject]@{ Files = [long]$m.Count; Bytes = [long]$(if ($m.Sum) { $m.Sum } else { 0 }) }
@@ -98,9 +99,12 @@ function Test-PinballTarget {
     $source = ConvertTo-PinballRoot $SourceRoot
     $result = [pscustomobject]@{ TargetRoot = $target; IsValid = $false; Reason = ''; SameAsSource = $false; FreeBytes = [long]0; RequiredBytes = [long]0 }
     if ($target -notmatch '^[A-Za-z]:') { $result.Reason = Get-KitText 'Pinball.Target.LocalOnly' -f $target; return $result }
+    # The root ends up in .bat and .ini files of the build: & % ^ ! and quotes would change their meaning.
+    if (($target + '\') -notmatch '^[A-Za-z]:\\[A-Za-z0-9 _.\-\\()]*$') { $result.Reason = Get-KitText 'Pinball.Target.BadChars' -f $target; return $result }
 
     $drive = New-Object IO.DriveInfo ($target.Substring(0, 1))
     if (-not $drive.IsReady) { $result.Reason = Get-KitText 'Pinball.Target.NoDrive' -f $drive.Name; return $result }
+    if ($drive.DriveType -notin 'Fixed', 'Removable') { $result.Reason = Get-KitText 'Pinball.Target.LocalOnly' -f $target; return $result }
     $result.FreeBytes = $drive.AvailableFreeSpace
 
     if ([string]::Equals($target, $source, [StringComparison]::OrdinalIgnoreCase)) {

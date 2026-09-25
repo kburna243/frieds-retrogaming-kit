@@ -49,23 +49,118 @@ function Save-KitDownload {
     Get-Item -LiteralPath $dest
 }
 
-# IsTrusted only when the signature is Valid AND the signer subject contains the expected publisher.
+# Downloads land in %ProgramData%\RetroCabinetKit\downloads, never in a folder the user can change.
+function Get-KitDownloadDir {
+    [CmdletBinding()]
+    param([string] $Base = (Join-Path $env:ProgramData 'RetroCabinetKit'))
+    Join-Path $Base 'downloads'
+}
+
+# Creates <Base> and <Base>\downloads with an ACL for Administrators and SYSTEM only (inheritance off). As
+# administrator the owner becomes Administrators, so a folder a user created there beforehand loses its
+# owner rights. Links (junctions) are refused. Returns the downloads folder.
+function Initialize-KitDownloadDir {
+    [CmdletBinding()]
+    param([string] $Base = (Join-Path $env:ProgramData 'RetroCabinetKit'))
+    $admin = Test-KitAdmin
+    # A fresh object per folder: after one SetAccessControl the object counts as unchanged and writes nothing.
+    $newAcl = {
+        $acl = New-Object Security.AccessControl.DirectorySecurity
+        $acl.SetAccessRuleProtection($true, $false)
+        foreach ($sid in 'S-1-5-32-544', 'S-1-5-18') {
+            $id = New-Object Security.Principal.SecurityIdentifier $sid
+            $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule ($id, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow')))
+        }
+        if ($admin) { $acl.SetOwner((New-Object Security.Principal.SecurityIdentifier 'S-1-5-32-544')) }
+        $acl
+    }
+    $full = Resolve-FullPath $Base
+    $dirs = @($full, (Get-KitDownloadDir -Base $full))
+    foreach ($d in $dirs) {
+        if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+        if ((Get-Item -LiteralPath $d -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw (Get-KitText 'Path.ReparsePoint' -f $d) }
+    }
+    # Deepest first: once the base is locked, a non-administrator (tests) could not reach the child any more.
+    foreach ($d in $dirs[1], $dirs[0]) { (Get-Item -LiteralPath $d -Force).SetAccessControl((& $newAcl)) }
+    $dirs[1]
+}
+
+# Common name (SimpleName) and O= of the signer certificate.
+function Get-CertificateNames([Security.Cryptography.X509Certificates.X509Certificate2] $Certificate) {
+    if (-not $Certificate) { return @('', '') }
+    $o = [regex]::Match($Certificate.Subject, '(?:^|,)\s*O=(?:"((?:[^"]|"")*)"|([^,]*))')
+    $org = if (-not $o.Success) { '' } elseif ($o.Groups[1].Success) { $o.Groups[1].Value.Replace('""', '"') } else { $o.Groups[2].Value.Trim() }
+    @($Certificate.GetNameInfo([Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false), $org)
+}
+
+# IsTrusted only when the signature is Valid AND the signer's CN is exactly one of -ExpectedPublisher AND its
+# O is exactly -ExpectedOrganization (default: the first expected publisher). Windows' own files are signed
+# as CN=Microsoft Windows, O=Microsoft Corporation; redistributables as CN=O=Microsoft Corporation.
 function Test-KitSignature {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string] $Path,
-        [Parameter(Mandatory)] [string] $ExpectedPublisher
+        [Parameter(Mandatory)] [string[]] $ExpectedPublisher,
+        [string] $ExpectedOrganization
     )
+    if (-not $ExpectedOrganization) { $ExpectedOrganization = $ExpectedPublisher[0] }
     $signature = Get-AuthenticodeSignature -LiteralPath (Resolve-FullPath $Path)
     $subject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { '' }
-    $match   = $subject.IndexOf($ExpectedPublisher, [StringComparison]::OrdinalIgnoreCase) -ge 0
+    $names   = Get-CertificateNames $signature.SignerCertificate
+    $match   = [bool](@($ExpectedPublisher | Where-Object { [string]::Equals($_, $names[0], [StringComparison]::OrdinalIgnoreCase) }).Count) -and
+               [string]::Equals($ExpectedOrganization, $names[1], [StringComparison]::OrdinalIgnoreCase)
     $result  = [pscustomobject]@{
         Path           = $signature.Path
         Status         = [string]$signature.Status
         Subject        = $subject
+        Publisher      = $names[0]
+        Organization   = $names[1]
         PublisherMatch = $match
         IsTrusted      = ($signature.Status -eq 'Valid') -and $match
     }
     if (-not $result.IsTrusted) { Write-KitLog (Get-KitText 'Signature.NotTrusted' -f $result.Path, $result.Status, $subject) -Level Warn }
     $result
+}
+
+# One row per file that is about to be run or registered: path, SHA256 and Authenticode status. Read-only.
+function Get-KitFilePlan {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [string[]] $Path)
+    foreach ($p in $Path) {
+        $full = Resolve-FullPath $p
+        $signature = Get-AuthenticodeSignature -LiteralPath $full
+        [pscustomobject]@{
+            Path      = $full
+            Sha256    = (Get-FileHash -LiteralPath $full -Algorithm SHA256).Hash
+            Signature = [string]$signature.Status
+            Signer    = (Get-CertificateNames $signature.SignerCertificate)[0]
+        }
+    }
+}
+
+# $true while the file still has the hash that was shown and confirmed (nothing was swapped in between).
+function Test-KitFilePlanHash {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Row)
+    (Test-Path -LiteralPath $Row.Path -PathType Leaf) -and (Get-FileHash -LiteralPath $Row.Path -Algorithm SHA256).Hash -eq $Row.Sha256
+}
+
+# Shows the plan (log) and asks for confirmation: -Approve { param($text) ... } returns $true/$false (the
+# wizard passes its dialog); without -Approve the console asks. There is no silent way around it.
+function Confirm-KitPlan {
+    [CmdletBinding()]
+    param(
+        [string[]] $Lines = @(),
+        [object[]] $FilePlan = @(),
+        [scriptblock] $Approve
+    )
+    $all = @($Lines)
+    if ($FilePlan) {
+        $all += Get-KitText 'Plan.Intro'
+        $all += @(foreach ($f in $FilePlan) { Get-KitText 'Plan.File' -f $f.Path, $f.Sha256, $f.Signature, $f.Signer })
+    }
+    foreach ($l in $all) { Write-KitLog $l }
+    $text = $all -join [Environment]::NewLine
+    if ($Approve) { return [bool](& $Approve $text | Select-Object -Last 1) }
+    $PSCmdlet.ShouldContinue($text, (Get-KitText 'Ui.Confirm.Title'))
 }

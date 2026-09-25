@@ -19,6 +19,13 @@ Describe 'Robocopy arguments and exit codes' {
         $a -contains '/NFL' | Should Be $false
     }
 
+    It 'refuses exclusion names that are no plain file names (they come from the state file)' {
+        foreach ($bad in '/MOV', 'a"b', 'sub\x.ini', 'C:x', '*.ini', 'a|b') {
+            { Get-PinballRobocopyArgument -Source 'S:\x' -Destination 'T:\x' -Update -ExcludeFiles $bad } | Should Throw
+        }
+        { Get-PinballRobocopyArgument -Source 'S:\x' -Destination 'T:\x' -Update -ExcludeFiles 'Table (1990) [v2].ini', 'PUPDatabase.db' } | Should Not Throw
+    }
+
     It 'maps exit codes 0-7 to ok and 8+ to failure' {
         foreach ($c in 0..7) { (Get-PinballRobocopyResult $c).Ok | Should Be $true }
         foreach ($c in 8, 9, 16) { (Get-PinballRobocopyResult $c).Ok | Should Be $false }

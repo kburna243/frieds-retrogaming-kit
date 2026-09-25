@@ -9,6 +9,12 @@ Describe 'Sqlite basics' {
     & $newDb -Path $dbPath
     $db = Open-KitSqlite -Path $dbPath
 
+    It 'opens every connection with trusted_schema off' {
+        (@(Invoke-KitSqlQuery -Connection $db -Sql 'PRAGMA trusted_schema'))[0].trusted_schema | Should Be 0
+        $ro = Open-KitSqlite -Path $dbPath -ReadOnly
+        try { (@(Invoke-KitSqlQuery -Connection $ro -Sql 'PRAGMA trusted_schema'))[0].trusted_schema | Should Be 0 } finally { Close-KitSqlite $ro }
+    }
+
     It 'lists tables and columns' {
         (Get-KitSqlTable -Connection $db) -join ',' | Should Be 'Emulators,GlobalSettings'
         ((Get-KitSqlColumn -Connection $db -Table 'Emulators') | ForEach-Object { $_.Name }) -join ',' | Should Be 'EMUID,EmuName,DirGames,LaunchScript'

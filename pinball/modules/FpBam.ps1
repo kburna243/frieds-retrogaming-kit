@@ -63,24 +63,31 @@ function Find-PinballBamBat {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $Root)
     $fp = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball\FuturePinball'
-    Get-ChildItem -LiteralPath $fp -Recurse -File -Filter $script:PinballBamBatName -ErrorAction SilentlyContinue |
-        Select-Object -First 1 -ExpandProperty FullName
+    Get-KitFileTree -Path $fp -Filter $script:PinballBamBatName | Select-Object -First 1 -ExpandProperty FullName
 }
 
 function Find-PinballInstallGuide {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $Root)
     $fp = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball\FuturePinball'
-    Get-ChildItem -LiteralPath $fp -Recurse -File -Filter '*.pdf' -ErrorAction SilentlyContinue |
+    Get-KitFileTree -Path $fp -Filter '*.pdf' |
         Where-Object { $_.Name -match 'install' -and $_.Name -match 'guide' } |
         Select-Object -First 1 -ExpandProperty FullName
 }
 
+# A batch file of the build (BAM setup, Popper autostart) runs only after its plan (path, SHA256, signature
+# status) was confirmed, and only while it still has the confirmed hash. Declined -> throws.
 function Invoke-PinballBat {
     [CmdletBinding(SupportsShouldProcess)]
-    param([Parameter(Mandatory)] [string] $Path)
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [scriptblock] $Approve
+    )
     $cmd = Get-PinballBatCommand -Path $Path
     if (-not $PSCmdlet.ShouldProcess($Path, 'cmd /c "<bat>" < nul')) { return }
+    $plan = Get-KitFilePlan -Path $Path
+    if (-not (Confirm-KitPlan -FilePlan @($plan) -Approve $Approve)) { throw (Get-KitText 'Plan.Declined') }
     Assert-PinballProcessesClosed
+    if (-not (Test-KitFilePlanHash -Row $plan)) { throw (Get-KitText 'Plan.Changed' -f $Path) }
     Invoke-PinballProcess $cmd.FilePath $cmd.Arguments $cmd.WorkingDirectory
 }

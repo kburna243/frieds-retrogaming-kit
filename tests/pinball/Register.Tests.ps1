@@ -63,6 +63,81 @@ Describe 'Register plan (step 6)' {
     }
 }
 
+Describe 'Register plan confirmation and unblocking (nothing is registered)' {
+    Set-KitCulture -Culture 'en-US'
+    $dir = Join-Path $TestDrive 'Build'
+    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    $inPlan = Join-Path $dir 'InPlan.dll'
+    $other = Join-Path $dir 'Other.dll'
+    function New-Blocked([string] $Path) { [IO.File]::WriteAllBytes($Path, [byte[]](1, 2, 3)); Set-Content -LiteralPath $Path -Stream 'Zone.Identifier' -Value "[ZoneTransfer]`r`nZoneId=3" }
+    function Test-Blocked([string] $Path) { [bool](Get-Item -LiteralPath $Path -Stream * | Where-Object { $_.Stream -eq 'Zone.Identifier' }) }
+    New-Blocked $inPlan
+    New-Blocked $other
+    $plan = @([pscustomobject]@{ Title = 'Test DLL'; Kind = 'Process'; FilePath = (Join-Path $env:SystemRoot 'System32\regsvr32.exe'); Arguments = "/s `"$inPlan`""
+                                 WorkingDirectory = $dir; Requires = $inPlan; Optional = $false })
+
+    It 'shows path and SHA256 of the build file and registers nothing when declined' {
+        Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { throw 'must not start' }
+        $script:shown = $null
+        { Invoke-PinballRegisterPlan -Root $TestDrive -Plan $plan -Approve { param($t) $script:shown = $t; $false } } | Should Throw
+        $script:shown | Should Match ([regex]::Escape($inPlan))
+        $script:shown | Should Match (Get-FileHash -LiteralPath $inPlan -Algorithm SHA256).Hash
+        $script:shown | Should Match 'signature: \w+'
+        Test-Blocked $inPlan | Should Be $true
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 0
+    }
+
+    It 'after confirmation unblocks only the files of the plan' {
+        Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { [pscustomobject]@{ ExitCode = 0 } }
+        $rows = @(Invoke-PinballRegisterPlan -Root $TestDrive -Plan $plan -Approve { $true })
+        $rows[0].Result | Should Be 'Ok'
+        Test-Blocked $inPlan | Should Be $false
+        Test-Blocked $other | Should Be $true
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 1
+    }
+}
+
+Describe 'Folder rights of the build (analysis on a TEMP folder only)' {
+    $me = [Security.Principal.WindowsIdentity]::GetCurrent().User
+    function New-AclFolder([string] $Name, [hashtable] $Extra = @{}) {
+        $d = Join-Path $TestDrive $Name
+        New-Item -ItemType Directory -Path $d -Force | Out-Null
+        $acl = New-Object Security.AccessControl.DirectorySecurity
+        $acl.SetAccessRuleProtection($true, $false)
+        $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule ($me, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow')))
+        foreach ($sid in $Extra.Keys) {
+            $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule ((New-Object Security.Principal.SecurityIdentifier $sid), $Extra[$sid], 'ContainerInherit, ObjectInherit', 'None', 'Allow')))
+        }
+        (Get-Item -LiteralPath $d).SetAccessControl($acl)
+        $d
+    }
+
+    It 'finds no risk when only the owner has access and when Users may only read' {
+        @(Get-PinballFolderAclRisk -Path (New-AclFolder 'own')).Count | Should Be 0
+        @(Get-PinballFolderAclRisk -Path (New-AclFolder 'read' @{ 'S-1-5-32-545' = 'ReadAndExecute'; 'S-1-5-11' = 'Read' })).Count | Should Be 0
+    }
+
+    It 'warns about Everyone, Users and Authenticated Users with write or modify rights' {
+        $r = @(Get-PinballFolderAclRisk -Path (New-AclFolder 'open' @{ 'S-1-1-0' = 'Modify'; 'S-1-5-32-545' = 'Write'; 'S-1-5-11' = 'AppendData' }))
+        ($r | ForEach-Object { $_.Sid } | Sort-Object) -join ',' | Should Be 'S-1-1-0,S-1-5-11,S-1-5-32-545'
+    }
+
+    It 'builds the icacls hardening command and refuses anything but a user SID' {
+        $sid = $me.Value
+        (Get-PinballHardeningArgument -Path 'E:\Games\vPinball' -UserSid $sid) -join ' ' |
+            Should BeExactly "E:\Games\vPinball /inheritance:r /grant:r *S-1-5-32-544:(OI)(CI)F *S-1-5-18:(OI)(CI)F *${sid}:(OI)(CI)M *S-1-5-32-545:(OI)(CI)RX /C /Q"
+        { Get-PinballHardeningArgument -Path 'E:\x' -UserSid 'S-1-1-0' } | Should Throw
+        { Get-PinballHardeningArgument -Path 'E:\x' -UserSid "$sid /grant *S-1-1-0:F" } | Should Throw
+    }
+
+    It 'hardens only as administrator on a real build, never without asking' {
+        # Without administrator rights (or, elevated, without a build) it stops before asking or running icacls.
+        Set-KitCulture -Culture 'en-US'
+        { Protect-PinballBuildFolder -Root (Join-Path $TestDrive 'NoBuild') -UserSid $me.Value -Approve { throw 'must not ask' } } |
+            Should Throw $(if (Test-KitAdmin) { 'No build found' } else { 'administrator rights' })
+    }
+}
+
 Describe 'COM verification against a test classes key' {
     BeforeAll {
         if (Test-Path -LiteralPath $testKey) { Remove-Item -LiteralPath $testKey -Recurse -Force }

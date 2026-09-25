@@ -1,10 +1,8 @@
 ﻿# Official download hosts. Exact host match only (no subdomains), HTTPS only.
-# GitHub release assets redirect to *.githubusercontent.com, Microsoft uses aka.ms redirects.
+# Only hosts a download URL of the kit really needs (Microsoft uses aka.ms redirects). Add GitHub
+# (github.com + its asset hosts) only together with the first package that downloads from there.
 @{
     Hosts = @(
-        'github.com'
-        'objects.githubusercontent.com'
-        'release-assets.githubusercontent.com'
         'aka.ms'
         'download.microsoft.com'
         'download.visualstudio.microsoft.com'

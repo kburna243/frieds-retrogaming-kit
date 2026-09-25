@@ -28,6 +28,11 @@ $script:PinballTextExcludedNames = @('log.txt', 'puplog.txt')
 $script:PinballTextMaxBytes = 16MB
 
 function Get-PinballRegistryRoot { [CmdletBinding()] param() $script:PinballRegistryRoots }
+
+# Every key the kit backs up (step 9) and may import again (rebuild, screens undo): the settings roots plus
+# Visual Pinball (VP10 player settings). Nothing else of HKCU is ever imported; PinUP Popper keeps its
+# settings in its database, not in the registry, so it is not part of the list.
+function Get-PinballRegistryImportRoot { [CmdletBinding()] param() @($script:PinballRegistryRoots) + 'HKCU:\Software\Visual Pinball' }
 function Get-PinballAppCompatRoot { [CmdletBinding()] param() $script:PinballAppCompatRoots }
 
 # -RegFileEscaping: for the text of .reg files, where every backslash is doubled.
@@ -159,8 +164,8 @@ function Invoke-PinballDatabaseRelocation {
 function Get-PinballTextFile {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string[]] $Folder)
-    # ponytail: Get-ChildItem also descends into junctions; builds copied with robocopy /XJ contain none.
-    Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object {
+    # Junctions and symbolic links inside the build are not followed (a scan never leaves the build).
+    Get-KitFileTree -Path $Folder | Where-Object {
         $script:PinballTextExtensions -contains $_.Extension.ToLowerInvariant() -and
         $script:PinballTextExcludedNames -notcontains $_.Name.ToLowerInvariant() -and
         $_.Length -le $script:PinballTextMaxBytes
@@ -262,7 +267,7 @@ function Invoke-PinballShortcutRelocation {
         [Parameter(Mandatory)] [psobject] $Relocator,
         [switch] $DryRun
     )
-    foreach ($file in Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -Filter '*.lnk' -ErrorAction SilentlyContinue) {
+    foreach ($file in Get-KitFileTree -Path $Folder -Filter '*.lnk') {
         $link = Get-KitShortcut -Path $file.FullName
         $changes = @{}
         $count = 0
@@ -276,7 +281,12 @@ function Invoke-PinballShortcutRelocation {
         }
         $target = if ($changes.ContainsKey('TargetPath')) { $changes.TargetPath } else { $link.TargetPath }
         $state = 'Ok'
-        if ($target -and -not (Test-Path -LiteralPath $target)) {
+        # A network target outside the old and new build folders is only reported: checking it would make
+        # Windows contact a server a foreign shortcut names (and send the user's credentials there).
+        $known = $target -and ($Relocator.Guard.Match($target, 0).Success -or
+                 @($Relocator.Pattern.Matches($target) | Where-Object { $_.Index -eq 0 }).Count)
+        if ($target -match '^\\\\' -and -not $known) { $state = 'Unc' }
+        elseif ($target -and -not (Test-Path -LiteralPath $target)) {
             $plugin = Join-Path $file.DirectoryName (Split-Path -Leaf $target)
             $state = if ($file.Directory.Name -match '^plugins(64)?$' -and (Test-Path -LiteralPath $plugin -PathType Container)) { 'Redundant' } else { 'Dead' }
         }
@@ -289,17 +299,19 @@ function Invoke-PinballShortcutRelocation {
 
 # ---------------------------------------------------------------- rebuild mode: registry sources
 
-# Kit backup: only the registry part is restored; every .reg text goes through the relocation first.
+# Kit backup: only the registry part is restored; every .reg text goes through the relocation first and
+# then through Assert-KitRegText (only -AllowedRoots, no deletions), also in a dry run.
 function Import-PinballRegistryFromBackup {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string] $Path,
         [Parameter(Mandatory)] [psobject] $Relocator,
+        [string[]] $AllowedRoots = (Get-PinballRegistryImportRoot),
         [switch] $DryRun
     )
     $escaped = New-PinballRelocator -OldRoot $Relocator.OldRoot -NewRoot $Relocator.NewRoot -Siblings $Relocator.Siblings -RegFileEscaping
     if (-not $DryRun) { Assert-PinballProcessesClosed }
-    Restore-KitBackup -Path $Path -WhatIf:$DryRun -Confirm:$false -PathFilter { $null } -RegistryFilter {
+    Restore-KitBackup -Path $Path -WhatIf:$DryRun -Confirm:$false -AllowedRoots @() -AllowedRegistryRoots $AllowedRoots -PathFilter { $null } -RegistryFilter {
         param($text) (Convert-PinballPath -Relocator $escaped -Text $text).Text
     }
 }
@@ -338,8 +350,10 @@ function Import-PinballRegistryFromHive {
             try {
                 $null = Export-KitRegistryKey -Path "HKU\$mount\$sub" -Destination $tmp
                 $text = ConvertFrom-PinballHiveExport -Text ([IO.File]::ReadAllText($tmp)) -MountName $mount -Relocator $Relocator
-                [IO.File]::WriteAllText($tmp, $text, [Text.Encoding]::Unicode)
-                if (-not $DryRun) { Assert-PinballProcessesClosed; Import-KitRegistryFile -Path $tmp -Confirm:$false }
+                # Only the settings root itself may come back (a crafted old profile could hold anything).
+                Assert-KitRegText -Text $text -AllowedRoots @($root)
+                [IO.File]::WriteAllText($tmp, $text.TrimStart([char]0xFEFF), [Text.Encoding]::Unicode)
+                if (-not $DryRun) { Assert-PinballProcessesClosed; Import-KitRegistryFile -Path $tmp -AllowedRoots @($root) -Confirm:$false }
                 [pscustomobject]@{ Type = 'Registry'; Source = "HKU\$mount\$sub"; Target = $root; Action = $(if ($DryRun) { 'WhatIf' } else { 'Restored' }) }
             } finally { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
         }
@@ -382,7 +396,10 @@ function Invoke-PinballRelocation {
 
     $imported = @(); $missing = @()
     if ($Mode -eq 'Rebuild') {
-        if ($RegistryBackup) { $imported = @(Import-PinballRegistryFromBackup -Path $RegistryBackup -Relocator $relocator -DryRun:$DryRun) }
+        if ($RegistryBackup) {
+            $allowed = @($RegistryRoots) + 'HKCU:\Software\Visual Pinball'
+            $imported = @(Import-PinballRegistryFromBackup -Path $RegistryBackup -Relocator $relocator -AllowedRoots $allowed -DryRun:$DryRun)
+        }
         elseif ($OldUserHive) { $imported = @(Import-PinballRegistryFromHive -HivePath $OldUserHive -Relocator $relocator -Roots $RegistryRoots -DryRun:$DryRun) }
         else { $missing = @(Get-PinballMissingSetting -Roots $RegistryRoots) }
     }
@@ -425,6 +442,7 @@ function Write-PinballRelocationReport {
     foreach ($t in $Report.TextFiles | Where-Object { $_.Status -eq 'Skipped' }) { Write-KitLog (Get-KitText 'Pinball.Relocate.FileSkipped' -f $t.Path, $t.Reason) -Level Warn }
     foreach ($s in $Report.Shortcuts | Where-Object { $_.Link -eq 'Dead' }) { Write-KitLog (Get-KitText 'Pinball.Relocate.DeadLink' -f $s.Path, $s.Target) -Level Warn }
     foreach ($s in $Report.Shortcuts | Where-Object { $_.Link -eq 'Redundant' }) { Write-KitLog (Get-KitText 'Pinball.Relocate.RedundantLink' -f $s.Path, $s.Target) }
+    foreach ($s in $Report.Shortcuts | Where-Object { $_.Link -eq 'Unc' }) { Write-KitLog (Get-KitText 'Pinball.Relocate.UncLink' -f $s.Path, $s.Target) -Level Warn }
     foreach ($l in $Report.Legacy) { Write-KitLog (Get-KitText 'Pinball.Relocate.Legacy' -f $l.Key, $l.Name) -Level Warn }
     foreach ($m in $Report.Missing) { Write-KitLog $m -Level Warn }
 }

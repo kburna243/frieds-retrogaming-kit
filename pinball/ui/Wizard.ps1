@@ -46,8 +46,16 @@ $script:UserSid = $KitUserSid
 $script:MonitorOverride = $Monitors
 $script:ShotPath = $Screenshot
 $script:RoleColors = @{ Playfield = 'SteelBlue'; Backglass = 'DarkOrange'; DMD = 'MediumPurple'; FullDMD = 'Teal'; Topper = 'Goldenrod' }
+# Plans (files with SHA256 and signature, icacls) are confirmed in a dialog, never silently.
+$script:Approve = { param($text) Confirm-KitAction -Text $text }
 
 # --- helpers ------------------------------------------------------------------------------------------------
+
+# Steps that write HKCU get the SID of the user who started the wizard (set by the elevation).
+function Add-UserSid([hashtable] $Params) {
+    if ($script:UserSid) { $Params.KitUserSid = $script:UserSid }
+    $Params
+}
 
 function Get-StepPageStatus([object[]] $Results) {
     if (-not $Results) { return 'Failed' }
@@ -156,6 +164,12 @@ $pages = @(
             $p.Controls.Add($r)
         }
         $null = Add-KitUiText $p (Get-KitText 'Pinball.Ui.DryRunHint')
+        $null = Add-KitUiButton $p (Get-KitText 'Pinball.Ui.SupportLog') {
+            $log = Get-KitLogFile
+            if (-not $log) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Ui.NoLog') -Level Warn; return }
+            $null = Export-KitSupportLog -Path $log, ([IO.Path]::ChangeExtension($log, '.transcript.log')) -Destination ([IO.Path]::ChangeExtension($log, '.support.txt'))
+            Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Log.SupportExported' -f ([IO.Path]::ChangeExtension($log, '.support.txt')))
+        }
     } }
     @{ TitleKey = 'Pinball.Ui.Page.Detect'; StepNames = @('pinball-1-detect'); Build = {
         param($w, $p)
@@ -176,7 +190,7 @@ $pages = @(
         $null = Add-KitUiCheck $p (Get-KitText 'Pinball.Ui.Deps.AllowDism') ([bool]$w.Values['AllowDism']) { $script:W.Values['AllowDism'] = $this.Checked }
         $null = Add-RunButton $p {
             $v = $script:W.Values
-            Invoke-WizardStep 3 '03-Dependencies.ps1' @{ AllowDownload = [bool]$v['AllowDownload']; AllowDism = [bool]$v['AllowDism'] }
+            Invoke-WizardStep 3 '03-Dependencies.ps1' @{ AllowDownload = [bool]$v['AllowDownload']; AllowDism = [bool]$v['AllowDism']; Approve = $script:Approve }
         }
     } }
     @{ TitleKey = 'Pinball.Ui.Page.Copy'; StepNames = @('pinball-4-copy'); Build = {
@@ -196,7 +210,7 @@ $pages = @(
         }
         $null = Add-RunButton $p {
             $v = $script:W.Values
-            $params = @{ Mode = $v['Mode'] }
+            $params = Add-UserSid @{ Mode = $v['Mode'] }
             if ($v['Mode'] -eq 'Rebuild') {
                 if ($v['RegistryBackup']) { $params.RegistryBackup = $v['RegistryBackup'] }
                 if ($v['OldUserHive']) { $params.OldUserHive = $v['OldUserHive'] }
@@ -208,17 +222,29 @@ $pages = @(
         param($w, $p)
         $null = Add-KitUiText $p (Get-KitText 'Pinball.Ui.Register.Desc')
         if (-not (Test-KitAdmin)) { $null = Add-KitUiText $p (Get-KitText 'Pinball.Step.NeedsAdmin') -Color 'DarkOrange' }
-        $null = Add-RunButton $p {
-            $params = @{}
-            if ($script:UserSid) { $params.KitUserSid = $script:UserSid }
-            Invoke-WizardStep 6 '06-Register.ps1' $params
+        $null = Add-RunButton $p { Invoke-WizardStep 6 '06-Register.ps1' (Add-UserSid @{ Approve = $script:Approve }) }
+        # Own command, not part of the step: shows broad write rights on vPinball, hardens after confirmation.
+        $null = Add-KitUiButton $p (Get-KitText 'Pinball.Ui.Register.Harden') {
+            $root = Get-KitStateValue -Path $script:StateFile -Key 'TargetRoot'
+            $problem = Get-PinballRootProblem -Root $root
+            if ($problem) { Write-KitWizardLog -Wizard $script:W -Text $problem -Level Warn; return }
+            $v = Join-PinballPath (ConvertTo-PinballRoot $root) 'vPinball'
+            $risks = @(Get-PinballFolderAclRisk -Path $v)
+            foreach ($r in $risks) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Acl.Risk' -f $r.Path, $r.Name, $r.Rights) -Level Warn }
+            if (-not $risks) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Acl.Ok' -f $v); return }
+            if (-not (Test-KitAdmin)) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Step.NeedsAdmin') -Level Warn; return }
+            if (-not $script:UserSid) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Elevation.NoSid') -Level Warn; return }
+            if (Test-KitWizardDryRun -Wizard $script:W) { return }
+            try { $left = @(Protect-PinballBuildFolder -Root $root -UserSid $script:UserSid -Approve $script:Approve -Confirm:$false) }
+            catch { Write-KitWizardLog -Wizard $script:W -Text $_.Exception.Message -Level Error; return }
+            foreach ($r in $left) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Acl.Risk' -f $r.Path, $r.Name, $r.Rights) -Level Warn }
         }
     } }
     @{ TitleKey = 'Pinball.Ui.Page.FpBam'; StepNames = @('pinball-7-fpbam', 'pinball-7-fploader-admin'); Build = {
         param($w, $p)
         $null = Add-KitUiText $p (Get-KitText 'Pinball.Ui.FpBam.Desc')
         $null = Add-KitUiCheck $p (Get-KitText 'Pinball.Ui.FpBam.Confirm') ([bool]$w.Values['FpLoaderConfirmed']) { $script:W.Values['FpLoaderConfirmed'] = $this.Checked }
-        $null = Add-RunButton $p { Invoke-WizardStep 7 '07-FpBamSetup.ps1' @{ ConfirmFpLoaderAdminRun = [bool]$script:W.Values['FpLoaderConfirmed'] } }
+        $null = Add-RunButton $p { Invoke-WizardStep 7 '07-FpBamSetup.ps1' (Add-UserSid @{ ConfirmFpLoaderAdminRun = [bool]$script:W.Values['FpLoaderConfirmed']; Approve = $script:Approve }) }
     } }
     @{ TitleKey = 'Pinball.Ui.Page.Screens'; StepNames = @('pinball-8-screens'); Build = {
         param($w, $p)
@@ -333,7 +359,7 @@ $pages = @(
         }
         $null = Add-KitUiButton $buttons (Get-KitText 'Pinball.Ui.Screens.Write') {
             $layout = Get-WizardLayout
-            $params = @{ Mode = $script:W.Values['ScreenMode']; Layout = [pscustomobject]@{ Roles = $layout.Roles; Windows = $layout.Windows } }
+            $params = Add-UserSid @{ Mode = $script:W.Values['ScreenMode']; Layout = [pscustomobject]@{ Roles = $layout.Roles; Windows = $layout.Windows } }
             if ($script:MonitorOverride) { $params.Monitors = $script:MonitorOverride }
             Invoke-WizardStep 8 '08-Screens.ps1' $params
         }
@@ -342,8 +368,10 @@ $pages = @(
             if (-not $last) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Ui.Screens.NothingToUndo'); return }
             foreach ($l in $last) { Write-KitWizardLog -Wizard $script:W -Text ('{0} <- {1}' -f $l.Path, $l.Backup) }
             if (Test-KitWizardDryRun -Wizard $script:W) { return }
+            $targets = @(Get-WizardTargets)
+            if (-not $targets) { return }
             if (-not (Confirm-KitAction -Text (Get-KitText 'Pinball.Ui.Screens.UndoConfirm' -f $last.Count))) { return }
-            try { Restore-PinballScreenBackup -Written $last -Confirm:$false; Set-KitWizardStatus -Wizard $script:W -Index 8 -Status 'None' }
+            try { Restore-PinballScreenBackup -Written $last -Targets $targets -Confirm:$false; Set-KitWizardStatus -Wizard $script:W -Index 8 -Status 'None' }
             catch { Write-KitWizardLog -Wizard $script:W -Text $_.Exception.Message -Level Error }
         }
         $null = Add-KitUiButton $buttons (Get-KitText 'Pinball.Ui.Screens.Card') {
@@ -370,7 +398,7 @@ $pages = @(
         $null = Add-RunButton $p {
             $auto = [bool]$script:W.Values['Autostart']
             $text = if ($auto) { Get-KitText 'Pinball.Ui.Finish.AutostartConfirm' } else { $null }
-            Invoke-WizardStep 9 '09-Finish.ps1' @{ EnableAutostart = $auto } $text
+            Invoke-WizardStep 9 '09-Finish.ps1' @{ EnableAutostart = $auto; Approve = $script:Approve } $text
         }
     } }
     @{ TitleKey = 'Pinball.Ui.Page.Credits'; Build = {

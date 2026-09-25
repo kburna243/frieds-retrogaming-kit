@@ -262,9 +262,41 @@ Describe 'Screens: writers' {
         $layout = New-PinballScreenLayout -Monitors (Get-ThreeMonitors)
         $w = @(Invoke-PinballScreenPlan -Plan @(Get-PinballScreenPlan -Layout $layout -Targets @(Get-PinballScreenTarget -Paths $p) -Mode Replace) -Layout $layout -BackupDir (Join-Path $TestDrive 'undo\backups') -Confirm:$false)
         Get-KitRegistryValue -Path $p.FpRegistry -Name 'BackboxMonitorID' | Should BeExactly '\\.\DISPLAY2'
-        Restore-PinballScreenBackup -Written $w -Confirm:$false
+        Restore-PinballScreenBackup -Written $w -Targets @(Get-PinballScreenTarget -Paths $p) -Confirm:$false
         @($files | ForEach-Object { Get-Hash $p[$_] }) -join ',' | Should Be ($before -join ',')
         Get-KitRegistryValue -Path $p.FpRegistry -Name 'BackboxMonitorID' | Should BeExactly '\\.\DISPLAY7'
+    }
+
+    It 'the way back refuses records from a manipulated state file before restoring anything' {
+        $p = New-ScreenFixture (Join-Path $TestDrive 'undo-evil')
+        $targets = @(Get-PinballScreenTarget -Paths $p)
+        $victim = Join-Path $TestDrive 'undo-evil\victim.ini'
+        [IO.File]::WriteAllText($victim, 'keep')
+        $ini = $p.PinUpPlayer
+        [IO.File]::WriteAllText("$ini.bak_screens_1", 'backup')
+        $okRecord = [pscustomobject]@{ Target = 'PinUpPlayer'; Kind = 'Ini'; Path = $ini; Backup = "$ini.bak_screens_1" }
+        $hash = Get-Hash $ini
+        $evil = @(
+            [pscustomobject]@{ Target = 'PinUpPlayer'; Kind = 'Ini'; Path = $victim; Backup = "$ini.bak_screens_1" }                 # foreign target
+            [pscustomobject]@{ Target = 'PinUpPlayer'; Kind = 'Ini'; Path = $ini; Backup = $victim }                                  # foreign backup
+            [pscustomobject]@{ Target = 'PinUpPlayer'; Kind = 'Ini'; Path = "$(Split-Path $ini)\sub\..\PinUpPlayer.ini"; Backup = "$ini.bak_screens_1\..\..\victim.ini" }
+            [pscustomobject]@{ Target = 'FpRegistry'; Kind = 'FpRegistry'; Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'; Backup = "$ini.bak_screens_1" }
+        )
+        foreach ($e in $evil) {
+            { Restore-PinballScreenBackup -Written @($okRecord, $e) -Targets $targets -Confirm:$false } | Should Throw
+            Get-Hash $ini | Should Be $hash # the valid record before it was not restored either
+        }
+        [IO.File]::ReadAllText($victim) | Should Be 'keep'
+    }
+
+    It 'the way back imports a registry backup only for its own key' {
+        $p = New-ScreenFixture (Join-Path $TestDrive 'undo-reg')
+        $targets = @(Get-PinballScreenTarget -Paths $p)
+        $reg = Join-Path $TestDrive 'undo-reg\other.reg'
+        [IO.File]::WriteAllText($reg, "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_CURRENT_USER\Software\retro-cabinet-kit-test-screens\VP10]`r`n" + '"Width"=dword:00000001' + "`r`n", [Text.Encoding]::Unicode)
+        $record = [pscustomobject]@{ Target = 'FpRegistry'; Kind = 'FpRegistry'; Path = $p.FpRegistry; Backup = $reg }
+        { Restore-PinballScreenBackup -Written @($record) -Targets $targets -Confirm:$false } | Should Throw
+        Get-KitRegistryValue -Path $p.VpxRegistry -Name 'Width' | Should Not Be 1
     }
 
     It 'removes foreign DMD positions only from table sections, with a dry run first' {
@@ -331,8 +363,17 @@ Describe 'Screens: steps 8 and 9 as stand-alone scripts' {
         @($manifest.Files).Count | Should Be 2
         @($manifest.Registry).Count | Should Be 1
         Join-Path $pup 'autostart_ran.txt' | Should Not Exist
-        $r = @(& "$steps\09-Finish.ps1" @common @opt -EnableAutostart)
+        $r = @(& "$steps\09-Finish.ps1" @common @opt -EnableAutostart -Approve { $false })
+        ($r | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'pinball-9-backup=Skipped,pinball-9-autostart=Failed'
+        Join-Path $pup 'autostart_ran.txt' | Should Not Exist
+        $r = @(& "$steps\09-Finish.ps1" @common @opt -EnableAutostart -Approve { param($t) $t -match 'RunWindowsStartup\.bat \| SHA256 [0-9A-F]{64}' })
         ($r | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'pinball-9-backup=Skipped,pinball-9-autostart=Done'
         Join-Path $pup 'autostart_ran.txt' | Should Exist
+    }
+
+    It '8 and 9: a root that is no local build is refused' {
+        $r = @(& "$steps\09-Finish.ps1" @common -Root '\\nas\share' -BackupDir (Join-Path $TestDrive 'finish2'))
+        $r[0].Status | Should Be 'NeedsUser'
+        (& "$steps\08-Screens.ps1" @common -Root (Join-Path $TestDrive 'NoBuild') -Monitors (Get-ThreeMonitors)).Status | Should Be 'NeedsUser'
     }
 }

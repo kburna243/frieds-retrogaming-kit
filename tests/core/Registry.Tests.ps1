@@ -62,4 +62,46 @@ Describe 'Registry' {
     It 'fails the export for a missing key' {
         { Export-KitRegistryKey -Path "$testKey\DoesNotExist" -Destination (Join-Path $TestDrive 'x.reg') } | Should Throw
     }
+
+    It 'imports its own export (UTF-16LE with BOM) through the check, only below the allowed key' {
+        $file = Join-Path $TestDrive 'roundtrip.reg'
+        $null = Export-KitRegistryKey -Path "$testKey\Sub\Deeper" -Destination $file
+        ([IO.File]::ReadAllBytes($file))[0..1] -join ',' | Should Be '255,254'
+        Remove-ItemProperty -LiteralPath "$testKey\Sub\Deeper" -Name 'Rom'
+        Import-KitRegistryFile -Path $file -AllowedRoots "$testKey\Sub" -Confirm:$false
+        Get-KitRegistryValue -Path "$testKey\Sub\Deeper" -Name 'Rom' | Should BeExactly 'C:\Games\vPinball\VPinMAME\roms'
+        { Import-KitRegistryFile -Path $file -AllowedRoots "$testKey\Other" -Confirm:$false } | Should Throw
+    }
+}
+
+Describe 'Assert-KitRegText' {
+    Set-KitCulture -Culture 'en-US'
+    $root = 'HKCU:\Software\Future Pinball'
+    $head = "Windows Registry Editor Version 5.00`r`n`r`n"
+
+    It 'accepts merges below the allowed roots (short and long form, BOM, hex continuation)' {
+        $ok = [char]0xFEFF + $head + "[HKEY_CURRENT_USER\Software\Future Pinball\GamePlayer]`r`n" + '"Width"=dword:00000780' + "`r`n" +
+              '@="x"' + "`r`n" + '"Bin"=hex:01,02,\' + "`r`n" + '  03,04' + "`r`n; comment`r`n"
+        Assert-KitRegText -Text $ok -AllowedRoots $root
+        Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\B2S]`r`n") -AllowedRoots 'Registry::HKEY_CURRENT_USER\Software\B2S'
+        Assert-KitRegText -Text ("REGEDIT4`r`n`r`n[HKEY_CURRENT_USER\Software\Future Pinball]`r`n") -AllowedRoots $root
+    }
+
+    It 'refuses key deletion, value deletion and keys outside the roots' {
+        { Assert-KitRegText -Text ($head + "[-HKEY_CURRENT_USER\Software\Future Pinball]`r`n") -AllowedRoots $root } | Should Throw 'line 3'
+        { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n" + '"Width"=-') -AllowedRoots $root } | Should Throw 'line 4'
+        { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n@=-") -AllowedRoots $root } | Should Throw
+        { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Future Pinball Evil]`r`n") -AllowedRoots $root } | Should Throw
+        { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run]`r`n" + '"x"="evil.exe"') -AllowedRoots $root } | Should Throw
+        { Assert-KitRegText -Text ($head + "[HKEY_LOCAL_MACHINE\Software\Future Pinball]`r`n") -AllowedRoots $root } | Should Throw
+        { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n") -AllowedRoots @() } | Should Throw
+    }
+
+    It 'refuses files without header, values before a key and unknown lines' {
+        { Assert-KitRegText -Text "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n" -AllowedRoots $root } | Should Throw
+        { Assert-KitRegText -Text '' -AllowedRoots $root } | Should Throw
+        { Assert-KitRegText -Text ($head + '"x"="y"') -AllowedRoots $root } | Should Throw
+        { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Future Pinball]`r`nrm -rf") -AllowedRoots $root } | Should Throw
+        { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n" + '"Bin"=hex:01,\' + "`r`n[-HKEY_CURRENT_USER\Software]") -AllowedRoots $root } | Should Throw
+    }
 }

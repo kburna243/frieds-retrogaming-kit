@@ -63,12 +63,31 @@ Describe 'Pinball steps 1-7 as stand-alone scripts' {
         (& "$steps\04-Copy.ps1" @common).Status | Should Be 'NeedsUser'
     }
 
+    It 'every executing step checks the root again (a manipulated state file is not trusted)' {
+        $bad = Join-Path $TestDrive 'bad-state.json'
+        Copy-Item -LiteralPath $state -Destination $bad
+        Set-KitStateValue -Path $bad -Key 'TargetRoot' -Value '\\nas\share'
+        $b = @{ StatePath = $bad; Culture = 'en-US' }
+        (& "$steps\04-Copy.ps1" @b -Update).Status | Should Be 'NeedsUser'
+        (& "$steps\05-Relocate.ps1" @b -RegistryRoots "$testKey\FP" -AppCompatRoots "$testKey\Layers").Status | Should Be 'NeedsUser'
+        @(& "$steps\07-FpBamSetup.ps1" @b -LayersKey "$testKey\Layers" -Approve { throw 'must not ask' })[0].Status | Should Be 'NeedsUser'
+        Set-KitStateValue -Path $bad -Key 'TargetRoot' -Value (Join-Path $TestDrive 'NoBuildHere')
+        (& "$steps\05-Relocate.ps1" @b -RegistryRoots "$testKey\FP" -AppCompatRoots "$testKey\Layers").Status | Should Be 'NeedsUser'
+    }
+
+    It 'registry steps lock for another user' {
+        @(& "$steps\07-FpBamSetup.ps1" @common -KitUserSid 'S-1-5-18' -LayersKey "$testKey\Layers2" -Approve { throw 'must not ask' })[0].Status | Should Be 'NeedsUser'
+    }
+
     It '6 register: dry run only (needs administrator rights, never registers in tests)' {
         @('Skipped', 'NeedsUser') -contains (& "$steps\06-Register.ps1" @common -WhatIf).Status | Should Be $true
     }
 
     It '7 FP/BAM: sets the flags in the test key, runs the batch file, waits for the admin confirmation' {
-        $results = @(& "$steps\07-FpBamSetup.ps1" @common -LayersKey "$testKey\Layers")
+        $results = @(& "$steps\07-FpBamSetup.ps1" @common -LayersKey "$testKey\Layers" -Approve { $false })
+        ($results | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'pinball-7-fpbam=Failed,pinball-7-fploader-admin=NeedsUser'
+        Join-Path $dst 'vPinball\FuturePinball\BAM\bam_ran.txt' | Should Not Exist
+        $results = @(& "$steps\07-FpBamSetup.ps1" @common -LayersKey "$testKey\Layers" -Approve { $true })
         ($results | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'pinball-7-fpbam=Done,pinball-7-fploader-admin=NeedsUser'
         Get-KitRegistryValue -Path "$testKey\Layers" -Name "$dst\vPinball\FuturePinball\BAM\FPLoader.exe" | Should BeExactly '~ DISABLEDXMAXIMIZEDWINDOWEDMODE'
         $results = @(& "$steps\07-FpBamSetup.ps1" @common -LayersKey "$testKey\Layers" -ConfirmFpLoaderAdminRun)

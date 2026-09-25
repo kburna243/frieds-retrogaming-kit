@@ -18,6 +18,9 @@
     VpxRegistry, FpRegistry).
 .PARAMETER AnswerFile
     Set for an unattended run: nobody can check the screens, so the step is locked.
+.PARAMETER KitUserSid
+    SID of the user who started the kit; the step writes HKCU (VPX, Future Pinball) and stops for another
+    user or when it runs elevated without this SID.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -28,6 +31,7 @@ param(
     [hashtable] $Paths = @{},
     [string] $BackupDir,
     [string] $AnswerFile,
+    [string] $KitUserSid,
     [string] $StatePath,
     [string] $Culture
 )
@@ -42,6 +46,8 @@ if (-not $Root) { Write-KitLog (Get-KitText 'Pinball.Step.RunTargetFirst') -Leve
 if (-not $BackupDir) { $BackupDir = Join-Path (Split-Path -Parent $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($StatePath)) 'backups' }
 
 $lock = Get-PinballScreenLock -AnswerFile $AnswerFile
+if (-not $lock -and $Root) { $lock = Get-PinballRootProblem -Root $Root }
+if (-not $lock) { $lock = Get-KitRegistryUserLock -OriginalSid $KitUserSid }
 if ($lock) { Write-KitLog $lock -Level Warn }
 
 $monitorList = @(if (-not $lock) { Get-PinballMonitor -Monitors $Monitors })

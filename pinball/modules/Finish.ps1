@@ -9,7 +9,7 @@ function Get-PinballFinishBackupSet {
     param([Parameter(Mandatory)] [string] $Root, [hashtable] $Paths = @{}, [string[]] $RegistryKeys)
     $files = @(Get-PinballScreenTarget -Root $Root -Paths $Paths | Where-Object { $_.Kind -notlike '*Registry' } | ForEach-Object { $_.Path })
     if (-not $PSBoundParameters.ContainsKey('RegistryKeys')) {
-        $RegistryKeys = @(Get-PinballRegistryRoot) + 'HKCU:\Software\Visual Pinball'
+        $RegistryKeys = @(Get-PinballRegistryImportRoot)
     }
     [pscustomobject]@{
         Files    = @($files | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Sort-Object -Unique)
@@ -21,6 +21,5 @@ function Find-PinballStartupBat {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $Root)
     $pup = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball\PinUPSystem'
-    Get-ChildItem -LiteralPath $pup -Recurse -File -Filter $script:PinballStartupBatName -ErrorAction SilentlyContinue |
-        Select-Object -First 1 -ExpandProperty FullName
+    Get-KitFileTree -Path $pup -Filter $script:PinballStartupBatName | Select-Object -First 1 -ExpandProperty FullName
 }

@@ -23,6 +23,23 @@ function Test-KitSameUser {
     $OriginalSid -eq (Get-KitUserSid)
 }
 
+# Registry steps write to HKCU. Elevated without the SID of the user who started the kit, nobody can tell
+# whose HKCU that is (over-the-shoulder UAC runs as the administrator), so they are locked as well.
+# Returns $null (go ahead) or the reason for NeedsUser.
+function Get-KitRegistryUserLock {
+    [CmdletBinding()]
+    param(
+        [AllowEmptyString()] [string] $OriginalSid,
+        [bool] $IsAdmin = (Test-KitAdmin)
+    )
+    if ($OriginalSid) {
+        if (Test-KitSameUser -OriginalSid $OriginalSid) { return $null }
+        return Get-KitText 'Elevation.DifferentUser'
+    }
+    if ($IsAdmin) { return Get-KitText 'Elevation.NoSid' }
+    $null
+}
+
 function Convert-KitMappedDriveToUnc {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $Path)

@@ -1,7 +1,8 @@
 ﻿# Dependencies (step 3): detect VC++ 2005-2022 x86/x64, .NET 3.5, .NET 4.8, DirectX 9 legacy (d3dx9_43.dll,
 # needed by Future Pinball) and the Windows version; install from the build first
 # (2-Programs\All In One Runtimes, Installer\directx9), official Microsoft downloads only as fallback
-# (allow-listed hosts + Authenticode "Microsoft Corporation"), .NET 3.5 via DISM only after confirmation.
+# (allow-listed hosts), .NET 3.5 via DISM only after confirmation. Every file that runs needs a valid
+# Microsoft signature (CN and O exact) and is confirmed as part of a plan with its SHA256.
 # Silent switches are the ones proven on a real cabinet (see project history).
 
 $script:PinballUninstallKeys = @(
@@ -81,6 +82,8 @@ function Get-PinballDependencyStatus {
 }
 
 # What would be done for the missing dependencies. Source = Build | Download | Dism | User.
+# Installers from the build are only used when the build lies on a local drive (never from UNC or a network
+# drive). Publisher = the signer CN every file must carry (O is always Microsoft Corporation).
 function Get-PinballDependencyPlan {
     [CmdletBinding()]
     param(
@@ -89,19 +92,21 @@ function Get-PinballDependencyPlan {
     )
     $v = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball'
     $aio = Join-Path $v '2-Programs\All In One Runtimes'
+    $local = -not (Get-PinballRootProblem -Root $Root -NoDatabase)
+    $inBuild = { param($p) $local -and (Test-Path -LiteralPath $p -PathType Leaf) }
     foreach ($s in $Status | Where-Object { -not $_.Present }) {
-        $item = [pscustomobject]@{ Id = $s.Id; Name = $s.Name; Source = 'User'; FilePath = $null; Arguments = $null; Url = $null }
+        $item = [pscustomobject]@{ Id = $s.Id; Name = $s.Name; Source = 'User'; FilePath = $null; Arguments = $null; Url = $null; Publisher = 'Microsoft Corporation' }
         if ($s.Id -like 'VC*') {
             $p = $script:PinballVcPackages | Where-Object { "VC$($_.Year)-$($_.Arch)" -eq $s.Id }
-            $local = Join-Path $aio $p.File
-            if (Test-Path -LiteralPath $local) { $item.Source = 'Build'; $item.FilePath = $local; $item.Arguments = $p.Args }
+            $file = Join-Path $aio $p.File
+            if (& $inBuild $file) { $item.Source = 'Build'; $item.FilePath = $file; $item.Arguments = $p.Args }
             elseif ($p.ContainsKey('Url')) { $item.Source = 'Download'; $item.Url = $p.Url; $item.Arguments = '/install /quiet /norestart' }
         } elseif ($s.Id -eq 'DirectX9') {
-            $local = Join-Path $v 'Installer\directx9\DXSETUP.exe'
-            if (Test-Path -LiteralPath $local) { $item.Source = 'Build'; $item.FilePath = $local; $item.Arguments = '/silent' }
+            $file = Join-Path $v 'Installer\directx9\DXSETUP.exe'
+            if (& $inBuild $file) { $item.Source = 'Build'; $item.FilePath = $file; $item.Arguments = '/silent' }
             else { $item.Source = 'Download'; $item.Url = $script:PinballDirectXUrl; $item.Arguments = '/Q' }
         } elseif ($s.Id -eq 'NetFx35') {
-            $item.Source = 'Dism'; $item.FilePath = Join-Path $env:SystemRoot 'System32\dism.exe'
+            $item.Source = 'Dism'; $item.FilePath = Join-Path $env:SystemRoot 'System32\dism.exe'; $item.Publisher = 'Microsoft Windows'
             $item.Arguments = '/Online /Enable-Feature /FeatureName:NetFx3 /All /NoRestart'
         }
         $item
@@ -115,37 +120,57 @@ function Get-PinballInstallerResult {
     switch ($ExitCode) { 0 { 'Ok' } 1638 { 'Ok' } 3010 { 'RebootRequired' } default { 'Failed' } }
 }
 
-# Runs the plan. Downloads go through the core Download module and must carry a valid Microsoft signature.
-# Returns one row per item; RebootRequired rows are collected by the caller.
+# Runs the plan. EVERY file that would run (build, download, DISM) must carry a valid signature of its
+# Microsoft publisher; otherwise the item is NeedsUser and a download is deleted again. The files that pass
+# are shown as one plan (path, SHA256, signature) and run only after confirmation (-Approve, else the
+# console asks), each one only while its hash is still the confirmed one. Downloads go to the admin-only
+# %ProgramData% folder unless -DownloadDir is given (tests). Returns one row per item; RebootRequired rows
+# are collected by the caller.
 function Invoke-PinballDependencyPlan {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [object[]] $Plan,
         [switch] $AllowDism,
-        [string] $DownloadDir = (Join-Path $env:TEMP 'retro-cabinet-kit\downloads')
+        [string] $DownloadDir,
+        [scriptblock] $Approve
     )
-    foreach ($item in $Plan) {
+    $ready = New-Object Collections.Generic.List[object]
+    $rows = @(foreach ($item in $Plan) {
         $row = [pscustomobject]@{ Id = $item.Id; Result = 'Skipped'; ExitCode = $null; Message = '' }
+        $row
         if ($item.Source -eq 'User' -or ($item.Source -eq 'Dism' -and -not $AllowDism)) {
             $row.Result = 'NeedsUser'; $row.Message = Get-KitText "Pinball.Deps.NeedsUser.$($item.Source)" -f $item.Name
-            $row; continue
+            continue
         }
-        if (-not $PSCmdlet.ShouldProcess($item.Name, "Install ($($item.Source))")) { $row; continue }
+        if (-not $PSCmdlet.ShouldProcess($item.Name, "Install ($($item.Source))")) { continue }
 
         $file = $item.FilePath
+        if ($item.Source -eq 'Build' -and $file -notmatch '^[A-Za-z]:\\') {
+            $row.Result = 'NeedsUser'; $row.Message = Get-KitText 'Pinball.Deps.NotLocal' -f $item.Name, $file
+            continue
+        }
         if ($item.Source -eq 'Download') {
-            if (-not (Test-Path -LiteralPath $DownloadDir)) { New-Item -ItemType Directory -Path $DownloadDir -Force | Out-Null }
+            if (-not $DownloadDir) { $DownloadDir = Initialize-KitDownloadDir }
             $file = Join-Path $DownloadDir ("{0}.exe" -f $item.Id)
             $null = Save-KitDownload -Uri $item.Url -Destination $file -Confirm:$false
-            if (-not (Test-KitSignature -Path $file -ExpectedPublisher 'Microsoft Corporation').IsTrusted) {
-                Remove-Item -LiteralPath $file -Force
-                $row.Result = 'Failed'; $row.Message = Get-KitText 'Pinball.Deps.BadSignature' -f $item.Url
-                $row; continue
-            }
         }
-        $process = Start-Process -FilePath $file -ArgumentList $item.Arguments -Wait -PassThru -WindowStyle Hidden
-        $row.ExitCode = $process.ExitCode
-        $row.Result = Get-PinballInstallerResult -ExitCode $process.ExitCode
-        $row
+        $sig = Test-KitSignature -Path $file -ExpectedPublisher $item.Publisher -ExpectedOrganization 'Microsoft Corporation'
+        if (-not $sig.IsTrusted) {
+            if ($item.Source -eq 'Download') { Remove-Item -LiteralPath $file -Force }
+            $row.Result = 'NeedsUser'; $row.Message = Get-KitText 'Pinball.Deps.Untrusted' -f $item.Name, $file, $item.Publisher, $sig.Status, $sig.Subject
+            continue
+        }
+        $ready.Add([pscustomobject]@{ Row = $row; Item = $item; File = (Get-KitFilePlan -Path $file) })
+    })
+    if ($ready.Count) {
+        $ok = Confirm-KitPlan -FilePlan @($ready | ForEach-Object { $_.File }) -Approve $Approve
+        foreach ($r in $ready) {
+            if (-not $ok) { $r.Row.Result = 'NeedsUser'; $r.Row.Message = Get-KitText 'Plan.Declined'; continue }
+            if (-not (Test-KitFilePlanHash -Row $r.File)) { $r.Row.Result = 'Failed'; $r.Row.Message = Get-KitText 'Plan.Changed' -f $r.File.Path; continue }
+            $process = Start-Process -FilePath $r.File.Path -ArgumentList $r.Item.Arguments -Wait -PassThru -WindowStyle Hidden
+            $r.Row.ExitCode = $process.ExitCode
+            $r.Row.Result = Get-PinballInstallerResult -ExitCode $process.ExitCode
+        }
     }
+    $rows
 }

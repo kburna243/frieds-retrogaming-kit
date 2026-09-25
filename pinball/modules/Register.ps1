@@ -74,35 +74,104 @@ function Invoke-PinballProcess([string] $FilePath, [string] $Arguments, [string]
     (Start-Process @opt).ExitCode
 }
 
+# The build files that get registered or run (DLLs, Popper servers) are shown first as one plan (path,
+# SHA256, signature status; the build's files are usually unsigned, so the status is information, the
+# confirmation is the gate). Declined -> throws, nothing registered. Only the files of the plan lose their
+# download mark, and each one is used only while its hash is still the confirmed one.
 function Invoke-PinballRegisterPlan {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string] $Root,
-        [Parameter(Mandatory)] [object[]] $Plan
+        [Parameter(Mandatory)] [object[]] $Plan,
+        [scriptblock] $Approve
     )
-    $v = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball'
-    if ($PSCmdlet.ShouldProcess($v, 'Unblock-File *.dll, *.exe')) {
-        Get-ChildItem -LiteralPath $v -Recurse -File -Force -Include '*.dll', '*.exe' -ErrorAction SilentlyContinue | Unblock-File
-    }
-    foreach ($item in $Plan) {
+    $queued = New-Object Collections.Generic.List[object]
+    $rows = @(foreach ($item in $Plan) {
         $row = [pscustomobject]@{ Title = $item.Title; Result = 'Skipped'; ExitCode = $null }
+        $row
         if ($item.Requires -and -not (Test-Path -LiteralPath $item.Requires)) {
             $row.Result = if ($item.Optional) { 'NotPresent' } else { 'Missing' }
-            $row; continue
+        } elseif ($PSCmdlet.ShouldProcess($item.Title, 'Register')) {
+            $queued.Add([pscustomobject]@{ Row = $row; Item = $item })
         }
-        if (-not $PSCmdlet.ShouldProcess($item.Title, 'Register')) { $row; continue }
+    })
+    $files = @($queued | ForEach-Object { $_.Item.Requires } | Where-Object { $_ } | Sort-Object -Unique)
+    $filePlan = @{}
+    if ($files) {
+        foreach ($f in $files) { $filePlan[$f] = Get-KitFilePlan -Path $f }
+        if (-not (Confirm-KitPlan -FilePlan @($files | ForEach-Object { $filePlan[$_] }) -Approve $Approve)) { throw (Get-KitText 'Plan.Declined') }
+        Unblock-File -LiteralPath $files
+    }
+    foreach ($t in $queued) {
+        $item = $t.Item; $row = $t.Row
         Assert-PinballProcessesClosed
         try {
             if ($item.Kind -eq 'Registry') {
                 foreach ($val in $item.Values) { Set-KitRegistryValue -Path $val.Path -Name $val.Name -Value $val.Value -Type $val.Type -Confirm:$false }
                 $row.Result = 'Ok'
+            } elseif ($item.Requires -and -not (Test-KitFilePlanHash -Row $filePlan[$item.Requires])) {
+                $row.Result = 'Failed'; Write-KitLog (Get-KitText 'Plan.Changed' -f $item.Requires) -Level Error
             } else {
                 $row.ExitCode = Invoke-PinballProcess $item.FilePath $item.Arguments $item.WorkingDirectory
                 $row.Result = if ($row.ExitCode -eq 0) { 'Ok' } else { 'Failed' }
             }
         } catch { $row.Result = 'Failed'; Write-KitLog $_.Exception.Message -Level Error }
-        $row
     }
+    $rows
+}
+
+# --- folder rights (M1) ---------------------------------------------------------------------------------------
+
+# Authenticated Users, Users, Everyone. Rights that let them change files: write, append, attributes,
+# delete, change permissions, take ownership, generic write/all.
+$script:PinballBroadSids = @('S-1-5-11', 'S-1-5-32-545', 'S-1-1-0')
+$script:PinballWriteMask = [int64][Security.AccessControl.FileSystemRights]'WriteData, AppendData, WriteExtendedAttributes, WriteAttributes, Delete, DeleteSubdirectoriesAndFiles, ChangePermissions, TakeOwnership' -bor 0x10000000 -bor 0x40000000
+
+# Registered COM servers run inside every program that uses them, elevated ones too: a folder that broad
+# groups may change is a way to administrator rights. Read-only; one row per risky Allow entry.
+function Get-PinballFolderAclRisk {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [string] $Path)
+    $acl = Get-Acl -LiteralPath $Path
+    foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
+        $sid = $rule.IdentityReference.Value
+        if ($rule.AccessControlType -ne 'Allow' -or $script:PinballBroadSids -notcontains $sid) { continue }
+        if (-not ([int64]$rule.FileSystemRights -band $script:PinballWriteMask)) { continue }
+        $name = try { $rule.IdentityReference.Translate([Security.Principal.NTAccount]).Value } catch { $sid }
+        [pscustomobject]@{ Path = $Path; Sid = $sid; Name = $name; Rights = [string]$rule.FileSystemRights; Inherited = $rule.IsInherited }
+    }
+}
+
+# icacls arguments for the optional hardening: inheritance off, Administrators and SYSTEM full control, the
+# cabinet user modify, Users read/execute; the broad write entries are gone.
+# ponytail: the cabinet user keeps write access, Popper, VPX and VPinMAME write into the build at runtime.
+function Get-PinballHardeningArgument {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [string] $Path, [Parameter(Mandatory)] [string] $UserSid)
+    if ($UserSid -notmatch '^S-1-5-21(-\d+){3,4}$') { throw (Get-KitText 'Pinball.Acl.BadSid' -f $UserSid) }
+    @($Path, '/inheritance:r', '/grant:r', '*S-1-5-32-544:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', "*${UserSid}:(OI)(CI)M", '*S-1-5-32-545:(OI)(CI)RX', '/C', '/Q')
+}
+
+# Own command, never part of a step: administrator only, after confirmation. Returns the risks left.
+function Protect-PinballBuildFolder {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)] [string] $Root,
+        [Parameter(Mandatory)] [string] $UserSid,
+        [scriptblock] $Approve
+    )
+    if (-not (Test-KitAdmin)) { throw (Get-KitText 'Pinball.Step.NeedsAdmin') }
+    $problem = Get-PinballRootProblem -Root $Root
+    if ($problem) { throw $problem }
+    $v = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball'
+    $arguments = Get-PinballHardeningArgument -Path $v -UserSid $UserSid
+    if (-not $PSCmdlet.ShouldProcess($v, 'icacls ' + ($arguments -join ' '))) { return }
+    if (-not (Confirm-KitPlan -Lines (Get-KitText 'Pinball.Acl.HardenConfirm' -f $v, ($arguments -join ' ')) -Approve $Approve)) { return }
+    $ErrorActionPreference = 'Continue' # icacls writes to stderr; judge by exit code only
+    $out = & (Join-Path $env:SystemRoot 'System32\icacls.exe') @arguments 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) { throw "icacls failed ($LASTEXITCODE): $($out.Trim())" }
+    Write-KitLog (Get-KitText 'Pinball.Acl.Hardened' -f $v)
+    Get-PinballFolderAclRisk -Path $v
 }
 
 # Server file of a COM class: LocalServer32 or InprocServer32 default value; for .NET classes (mscoree.dll)

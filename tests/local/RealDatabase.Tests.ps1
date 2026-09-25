@@ -5,7 +5,7 @@ Import-Module (Join-Path $kitRoot 'pinball\RetroCabinetKit.Pinball.psd1') -Force
 # Runs only with tests\Run-Tests.ps1 -Local. Works on a COPY of a real Popper database that is kept in
 # tests\fixtures-local\ (gitignored, never committed). A missing fixture is a failure, not a skip.
 $fixture = Join-Path $kitRoot 'tests\fixtures-local\PUPDatabase-real.db'
-$newRoot = 'E:\Kit Test'
+$newRoot = Join-Path ([IO.Path]::GetTempPath()) 'Kit Test' # only a path in the rewritten texts, nothing is written there
 
 function Get-Hash([string] $Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash }
 

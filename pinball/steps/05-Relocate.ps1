@@ -12,6 +12,9 @@
     Registry keys whose value data is rewritten (default: Future Pinball, VPinMAME, B2S below HKCU\Software).
 .PARAMETER AppCompatRoots
     AppCompatFlags\Layers keys that are only checked for outdated entries.
+.PARAMETER KitUserSid
+    SID of the user who started the kit (passed by the elevation); the step writes HKCU and stops for another
+    user, or when it runs elevated without this SID.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -22,6 +25,7 @@ param(
     [string] $OldRoot,
     [string[]] $RegistryRoots,
     [string[]] $AppCompatRoots,
+    [string] $KitUserSid,
     [string] $StatePath,
     [string] $Culture
 )
@@ -37,14 +41,17 @@ if (-not $RegistryRoots) { $RegistryRoots = Get-PinballRegistryRoot }
 if (-not $AppCompatRoots) { $AppCompatRoots = Get-PinballAppCompatRoot }
 $siblings = @(Get-KitStateValue -Path $StatePath -Key 'Siblings' | Where-Object { $_ })
 if (-not ($NewRoot -and $OldRoot)) { Write-KitLog (Get-KitText 'Pinball.Step.RunTargetFirst') -Level Warn }
+$rootProblem = if ($NewRoot) { Get-PinballRootProblem -Root $NewRoot }
+$userLock = Get-KitRegistryUserLock -OriginalSid $KitUserSid
+foreach ($m in @($rootProblem, $userLock) | Where-Object { $_ }) { Write-KitLog $m -Level Warn }
 
 $common = @{ OldRoot = $OldRoot; NewRoot = $NewRoot; Siblings = $siblings; RegistryRoots = $RegistryRoots; AppCompatRoots = $AppCompatRoots }
-if ($WhatIfPreference -and $NewRoot -and $OldRoot) {
+if ($WhatIfPreference -and $NewRoot -and $OldRoot -and -not $rootProblem) {
     Write-PinballRelocationReport (Invoke-PinballRelocation @common -Mode $Mode -RegistryBackup $RegistryBackup -OldUserHive $OldUserHive -DryRun)
 }
 
 $step = New-KitStep -Name 'pinball-5-relocate' `
-    -Test { [bool]($NewRoot -and $OldRoot) -and (Test-Path -LiteralPath (Get-PinballDatabasePath -Root $NewRoot)) } `
+    -Test { [bool]($NewRoot -and $OldRoot) -and -not $rootProblem -and -not $userLock } `
     -Invoke {
         $report = Invoke-PinballRelocation @common -Mode $Mode -RegistryBackup $RegistryBackup -OldUserHive $OldUserHive
         Write-PinballRelocationReport $report
@@ -54,7 +61,7 @@ $step = New-KitStep -Name 'pinball-5-relocate' `
         if ($Mode -eq 'Rebuild') { Set-KitStateValue -Path $StatePath -Key 'RebuildRegistryDone' -Value $true }
     } `
     -Verify {
-        if (-not ($NewRoot -and $OldRoot)) { return $false }
+        if (-not ($NewRoot -and $OldRoot) -or $rootProblem) { return $false }
         $check = Test-PinballRelocation @common
         if (-not $check.Clean) { Write-KitLog (Get-KitText 'Pinball.Relocate.Remaining' -f $check.Remaining) -Level Warn }
         # A rebuild is only done once its registry import ran, even if nothing old is left.

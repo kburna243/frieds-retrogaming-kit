@@ -261,7 +261,11 @@ function Open-KitSqlite {
         [switch] $ReadOnly,
         [switch] $Create
     )
-    New-Object RetroCabinetKit.SqliteConnection ((Resolve-FullPath $Path), [bool]$ReadOnly, [bool]$Create)
+    $connection = New-Object RetroCabinetKit.SqliteConnection ((Resolve-FullPath $Path), [bool]$ReadOnly, [bool]$Create)
+    # The database comes from a build of unknown origin: its views and triggers may not call SQL functions
+    # with side effects.
+    $null = $connection.Execute('PRAGMA trusted_schema=OFF;', $null)
+    $connection
 }
 
 function Close-KitSqlite {

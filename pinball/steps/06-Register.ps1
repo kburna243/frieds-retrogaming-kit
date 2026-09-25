@@ -5,12 +5,17 @@
     machine/user wide: registering switches every table and frontend to THIS copy of the build.
     Verify: VPinMAME.Controller, B2S.Server, FlexDMD.FlexDMD and PinUpPlayer point into the new root.
 .PARAMETER KitUserSid
-    SID of the user who started the kit (passed by the elevation); registry steps stop for another user.
+    SID of the user who started the kit (passed by the elevation); registry steps stop for another user, or
+    when they run elevated without this SID.
+.PARAMETER Approve
+    { param($text) ... } returning $true to register the shown plan (build files, SHA256, signature status).
+    The wizard passes its dialog; without it the console asks.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string] $Root,
     [string] $KitUserSid,
+    [scriptblock] $Approve,
     [string] $StatePath,
     [string] $Culture
 )
@@ -23,9 +28,16 @@ if (-not $StatePath) { $StatePath = Get-PinballDefaultStatePath }
 if (-not $Root) { $Root = Get-KitStateValue -Path $StatePath -Key 'TargetRoot' }
 if (-not $Root) { Write-KitLog (Get-KitText 'Pinball.Step.RunTargetFirst') -Level Warn }
 
-$sameUser = -not $KitUserSid -or (Test-KitSameUser -OriginalSid $KitUserSid)
-if (-not $sameUser) { Write-KitLog (Get-KitText 'Elevation.DifferentUser') -Level Warn }
+$rootProblem = if ($Root) { Get-PinballRootProblem -Root $Root }
+$userLock = Get-KitRegistryUserLock -OriginalSid $KitUserSid
+foreach ($m in @($rootProblem, $userLock) | Where-Object { $_ }) { Write-KitLog $m -Level Warn }
 if (-not (Test-KitAdmin)) { Write-KitLog (Get-KitText 'Pinball.Step.NeedsAdmin') -Level Warn }
+if ($Root -and -not $rootProblem) {
+    $vPinball = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball'
+    $risks = @(Get-PinballFolderAclRisk -Path $vPinball)
+    foreach ($r in $risks) { Write-KitLog (Get-KitText 'Pinball.Acl.Risk' -f $r.Path, $r.Name, $r.Rights) -Level Warn }
+    if (-not $risks) { Write-KitLog (Get-KitText 'Pinball.Acl.Ok' -f $vPinball) }
+}
 
 $plan = @(if ($Root) { Get-PinballRegisterPlan -Root $Root })
 if ($WhatIfPreference) {
@@ -36,15 +48,15 @@ if ($WhatIfPreference) {
 }
 
 $step = New-KitStep -Name 'pinball-6-register' `
-    -Test { [bool]$Root -and (Test-KitAdmin) -and $sameUser -and (Test-Path -LiteralPath (Join-Path (ConvertTo-PinballRoot $Root) 'vPinball')) } `
+    -Test { [bool]$Root -and -not $rootProblem -and -not $userLock -and (Test-KitAdmin) } `
     -Invoke {
-        $rows = @(Invoke-PinballRegisterPlan -Root $Root -Plan $plan -Confirm:$false)
+        $rows = @(Invoke-PinballRegisterPlan -Root $Root -Plan $plan -Approve $Approve)
         foreach ($r in $rows) { Write-KitLog (Get-KitText 'Pinball.Register.Result' -f $r.Title, $r.Result, $r.ExitCode) }
         $bad = @($rows | Where-Object { $_.Result -in 'Failed', 'Missing' })
         if ($bad) { throw (Get-KitText 'Pinball.Register.Failed' -f (($bad | ForEach-Object { $_.Title }) -join ', ')) }
     } `
     -Verify {
-        if (-not $Root) { return $false }
+        if (-not $Root -or $rootProblem) { return $false }
         $checks = @(Test-PinballComRegistration -Root $Root)
         foreach ($c in $checks | Where-Object { -not $_.Ok }) { Write-KitLog (Get-KitText 'Pinball.Register.NotPointing' -f $c.Name, ($c.Paths -join '; ')) -Level Warn }
         -not @($checks | Where-Object { -not $_.Ok }).Count

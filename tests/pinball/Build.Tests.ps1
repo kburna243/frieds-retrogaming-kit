@@ -75,6 +75,21 @@ Describe 'Target (step 2)' {
         (Test-PinballTarget -TargetRoot '\\nas\share' -SourceRoot $src -SizeBytes 1).Reason | Should Match 'local drive'
     }
 
+    It 'refuses target characters that would change the meaning of batch and INI files' {
+        foreach ($bad in 'Games&Co', 'Pin%PATH%', 'A^B', 'Bang!', 'Tab"le', 'Spiele Ü') {
+            (Test-PinballTarget -TargetRoot "C:\$bad" -SourceRoot $src -SizeBytes 1).Reason | Should Match 'characters'
+        }
+        (Test-PinballTarget -TargetRoot (Join-Path $TestDrive 'Dst (2)') -SourceRoot $src -SizeBytes 1).IsValid | Should Be $true
+    }
+
+    It 'names the problem of a root in every executing step' {
+        Get-PinballRootProblem -Root $src | Should BeNullOrEmpty
+        Get-PinballRootProblem -Root '\\nas\share' | Should Match 'local drive'
+        Get-PinballRootProblem -Root (Join-Path $TestDrive 'Empty') | Should Match 'No build found'
+        Get-PinballRootProblem -Root (Join-Path $TestDrive 'Empty') -NoDatabase | Should BeNullOrEmpty
+        Get-PinballRootProblem -Root '' | Should Not BeNullOrEmpty
+    }
+
     It 'accepts the source itself without a space check' {
         $r = Test-PinballTarget -TargetRoot $src -SourceRoot $src -SizeBytes ([long]1PB)
         $r.IsValid | Should Be $true

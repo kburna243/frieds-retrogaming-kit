@@ -43,8 +43,28 @@ Describe 'FP/BAM setup (step 7)' {
         Find-PinballInstallGuide -Root $root | Should BeExactly "$root\vPinball\FuturePinball\BAM\BAM Install Guide.pdf"
     }
 
-    It 'runs the batch file with stdin from nul (a prompt returns at once)' {
-        Invoke-PinballBat -Path (Find-PinballBamBat -Root $root) -Confirm:$false | Should Be 0
+    It 'runs nothing when the plan of the batch file is declined' {
+        $bat = Find-PinballBamBat -Root $root
+        $script:shown = $null
+        { Invoke-PinballBat -Path $bat -Approve { param($t) $script:shown = $t; $false } } | Should Throw
+        $script:shown | Should Match ([regex]::Escape($bat))
+        $script:shown | Should Match (Get-FileHash -LiteralPath $bat -Algorithm SHA256).Hash
+        Join-Path $root 'vPinball\FuturePinball\BAM\bam_ran.txt' | Should Not Exist
+    }
+
+    It 'runs the batch file with stdin from nul after confirmation (a prompt returns at once)' {
+        Invoke-PinballBat -Path (Find-PinballBamBat -Root $root) -Approve { $true } | Should Be 0
         Join-Path $root 'vPinball\FuturePinball\BAM\bam_ran.txt' | Should Exist
+    }
+
+    It 'finds nothing through a junction in the build' {
+        $outside = Join-Path $TestDrive 'OutsideFp'
+        New-Item -ItemType Directory -Path $outside -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path $outside 'Install Guide.pdf'), 'x')
+        $root2 = Join-Path $TestDrive 'Cab2'
+        New-Item -ItemType Directory -Path "$root2\vPinball\FuturePinball" -Force | Out-Null
+        $null = cmd /c mklink /J "$root2\vPinball\FuturePinball\Docs" "$outside"
+        try { Find-PinballInstallGuide -Root $root2 | Should BeNullOrEmpty }
+        finally { cmd /c rmdir "$root2\vPinball\FuturePinball\Docs" }
     }
 }

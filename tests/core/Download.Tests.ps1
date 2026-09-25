@@ -3,20 +3,23 @@ Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1') -Force
 
 # No real download happens in these tests.
 Describe 'Download allow list' {
-    It 'loads the configured hosts' {
-        @(Get-KitAllowedHost) -contains 'github.com' | Should Be $true
+    It 'loads the configured hosts: only Microsoft, no GitHub while no URL needs it' {
+        @(Get-KitAllowedHost) -contains 'aka.ms' | Should Be $true
+        @(Get-KitAllowedHost | Where-Object { $_ -match 'github' }).Count | Should Be 0
+        Test-KitDownloadUrl 'https://github.com/nefarius/ViGEmBus/releases' | Should Be $false
+        Test-KitDownloadUrl 'https://objects.githubusercontent.com/x' | Should Be $false
     }
 
     It 'accepts HTTPS URLs on allowed hosts' {
-        Test-KitDownloadUrl 'https://github.com/nefarius/ViGEmBus/releases' | Should Be $true
-        Test-KitDownloadUrl 'https://GitHub.com/x' | Should Be $true
+        Test-KitDownloadUrl 'https://aka.ms/vs/17/release/vc_redist.x64.exe' | Should Be $true
+        Test-KitDownloadUrl 'https://Download.Microsoft.com/x' | Should Be $true
     }
 
     It 'rejects HTTP, look-alike hosts, subdomains and garbage' {
-        Test-KitDownloadUrl 'http://github.com/x' | Should Be $false
-        Test-KitDownloadUrl 'https://evilgithub.com/x' | Should Be $false
-        Test-KitDownloadUrl 'https://github.com.evil.example/x' | Should Be $false
-        Test-KitDownloadUrl 'https://gist.github.com/x' | Should Be $false
+        Test-KitDownloadUrl 'http://aka.ms/x' | Should Be $false
+        Test-KitDownloadUrl 'https://evilaka.ms/x' | Should Be $false
+        Test-KitDownloadUrl 'https://aka.ms.evil.example/x' | Should Be $false
+        Test-KitDownloadUrl 'https://x.download.microsoft.com/x' | Should Be $false
         Test-KitDownloadUrl 'not a url' | Should Be $false
     }
 
@@ -30,7 +33,7 @@ Describe 'Download allow list' {
         $dest = Join-Path $TestDrive 'y.exe'
         Mock -ModuleName 'RetroCabinetKit.Core' Invoke-WebRequest { throw 'network must not be used' }
         Mock -ModuleName 'RetroCabinetKit.Core' Start-BitsTransfer { throw 'network must not be used' }
-        Save-KitDownload -Uri 'https://github.com/x.exe' -Destination $dest -WhatIf
+        Save-KitDownload -Uri 'https://aka.ms/x.exe' -Destination $dest -WhatIf
         $dest | Should Not Exist
         Assert-MockCalled -ModuleName 'RetroCabinetKit.Core' Invoke-WebRequest -Times 0
     }
@@ -39,10 +42,24 @@ Describe 'Download allow list' {
 Describe 'Test-KitSignature' {
     $notepad = Join-Path $env:SystemRoot 'System32\notepad.exe'
 
-    It 'trusts a validly signed Windows binary from the expected publisher' {
-        $r = Test-KitSignature -Path $notepad -ExpectedPublisher 'Microsoft'
+    It 'trusts a validly signed Windows binary when CN and O match exactly' {
+        $r = Test-KitSignature -Path $notepad -ExpectedPublisher 'Microsoft Windows' -ExpectedOrganization 'Microsoft Corporation'
         $r.Status | Should Be 'Valid'
+        $r.Publisher | Should BeExactly 'Microsoft Windows'
+        $r.Organization | Should BeExactly 'Microsoft Corporation'
         $r.IsTrusted | Should Be $true
+    }
+
+    It 'accepts one of several expected CNs' {
+        (Test-KitSignature -Path $notepad -ExpectedPublisher 'Microsoft Corporation', 'Microsoft Windows' -ExpectedOrganization 'Microsoft Corporation').IsTrusted | Should Be $true
+    }
+
+    It 'no longer trusts a partial name: CN and O are compared exactly' {
+        (Test-KitSignature -Path $notepad -ExpectedPublisher 'Microsoft').IsTrusted | Should Be $false
+        (Test-KitSignature -Path $notepad -ExpectedPublisher 'Microsoft Win' -ExpectedOrganization 'Microsoft Corporation').IsTrusted | Should Be $false
+        (Test-KitSignature -Path $notepad -ExpectedPublisher 'Microsoft Windows' -ExpectedOrganization 'Microsoft').IsTrusted | Should Be $false
+        # CN right, O defaults to the CN: "Microsoft Windows" is not the organization.
+        (Test-KitSignature -Path $notepad -ExpectedPublisher 'Microsoft Windows').IsTrusted | Should Be $false
     }
 
     It 'does not trust a valid signature from another publisher' {
@@ -54,8 +71,81 @@ Describe 'Test-KitSignature' {
     It 'reports an unsigned file as not trusted' {
         $f = Join-Path $TestDrive 'unsigned.ps1'
         Set-Content -LiteralPath $f -Value 'Write-Output 1'
-        $r = Test-KitSignature -Path $f -ExpectedPublisher 'Microsoft'
+        $r = Test-KitSignature -Path $f -ExpectedPublisher 'Microsoft Windows' -ExpectedOrganization 'Microsoft Corporation'
         $r.Status | Should Be 'NotSigned'
         $r.IsTrusted | Should Be $false
+    }
+}
+
+Describe 'File plan and confirmation' {
+    $notepad = Join-Path $env:SystemRoot 'System32\notepad.exe'
+
+    It 'lists path, SHA256 and signature of a system file' {
+        $p = Get-KitFilePlan -Path $notepad
+        $p.Path | Should BeExactly $notepad
+        $p.Sha256 | Should Be (Get-FileHash -LiteralPath $notepad -Algorithm SHA256).Hash
+        $p.Signature | Should Be 'Valid'
+        $p.Signer | Should BeExactly 'Microsoft Windows'
+        Test-KitFilePlanHash -Row $p | Should Be $true
+    }
+
+    It 'notices a file that changed after the plan was made' {
+        $f = Join-Path $TestDrive 'setup.exe'
+        [IO.File]::WriteAllBytes($f, [byte[]](1, 2, 3))
+        $p = Get-KitFilePlan -Path $f
+        $p.Signature | Should Not Be 'Valid'
+        [IO.File]::WriteAllBytes($f, [byte[]](1, 2, 4))
+        Test-KitFilePlanHash -Row $p | Should Be $false
+    }
+
+    It 'passes the plan text to -Approve and returns its answer' {
+        $script:shown = $null
+        Confirm-KitPlan -FilePlan @(Get-KitFilePlan -Path $notepad) -Approve { param($t) $script:shown = $t; $false } | Should Be $false
+        $script:shown | Should Match ([regex]::Escape($notepad))
+        $script:shown | Should Match (Get-FileHash -LiteralPath $notepad -Algorithm SHA256).Hash
+        Confirm-KitPlan -Lines 'x' -Approve { $true } | Should Be $true
+    }
+}
+
+Describe 'Download folder (simulated in TEMP, never ProgramData)' {
+    It 'defaults to ProgramData\RetroCabinetKit\downloads' {
+        Get-KitDownloadDir | Should BeExactly (Join-Path $env:ProgramData 'RetroCabinetKit\downloads')
+    }
+
+    It 'gives base and downloads folder an ACL for Administrators and SYSTEM only' {
+        $base = Join-Path $TestDrive 'kitdata'
+        $me = [Security.Principal.WindowsIdentity]::GetCurrent().User
+        $dir = Initialize-KitDownloadDir -Base $base
+        try {
+            $dir | Should BeExactly (Join-Path $base 'downloads')
+            foreach ($d in $base, $dir) {
+                # .NET directly: the provider would list the locked base first.
+                $acl = [IO.Directory]::GetAccessControl($d)
+                $acl.AreAccessRulesProtected | Should Be $true
+                $sids = @($acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]) | ForEach-Object { $_.IdentityReference.Value } | Sort-Object -Unique)
+                $sids -join ',' | Should Be 'S-1-5-18,S-1-5-32-544'
+            }
+        } finally {
+            # Own TEMP test folder: give the rights back so it can be removed.
+            foreach ($d in $base, $dir) {
+                $acl = New-Object Security.AccessControl.DirectorySecurity
+                $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule ($me, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow')))
+                [IO.Directory]::SetAccessControl($d, $acl)
+            }
+            Remove-Item -LiteralPath $base -Recurse -Force
+        }
+    }
+
+    It 'refuses a junction as download folder' {
+        $base = Join-Path $TestDrive 'junctionbase'
+        $elsewhere = Join-Path $TestDrive 'elsewhere'
+        New-Item -ItemType Directory -Path $base, $elsewhere -Force | Out-Null
+        $null = cmd /c mklink /J "$base\downloads" "$elsewhere"
+        try {
+            { Initialize-KitDownloadDir -Base $base } | Should Throw
+            # Refused before any ACL was changed.
+            (Get-Acl -LiteralPath $base).AreAccessRulesProtected | Should Be $false
+            (Get-Acl -LiteralPath $elsewhere).AreAccessRulesProtected | Should Be $false
+        } finally { cmd /c rmdir "$base\downloads" }
     }
 }

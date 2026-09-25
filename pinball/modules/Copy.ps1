@@ -17,6 +17,8 @@ function Get-PinballRobocopyArgument {
     $a = @($Source, $Destination, '/E', '/COPY:DAT', '/DCOPY:T', '/R:2', '/W:5', "/MT:$Threads", '/XJ',
            '/XD', '@eaDir', '@tmp', 'System Volume Information', '$RECYCLE.BIN', '/NP')
     if ($Update) {
+        # The names come from the user-writable state file: plain file names only, no robocopy options.
+        foreach ($n in $ExcludeFiles) { if ($n -notmatch '^[^"/\\:*?<>|]+$') { throw (Get-KitText 'Pinball.Copy.BadExclude' -f $n) } }
         $a += '/XO'
         if ($ExcludeFiles) { $a += '/XF'; $a += $ExcludeFiles }
     }

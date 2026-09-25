@@ -186,6 +186,34 @@ Describe 'Relocation of a synthetic build (move mode)' {
     }
 }
 
+Describe 'Relocation scans stay inside the build' {
+    Set-KitCulture -Culture 'en-US'
+    $root = Join-Path $TestDrive 'Scan'
+    $outside = Join-Path $TestDrive 'OutsideScan'
+    New-Item -ItemType Directory -Path "$root\vPinball\Tables", $outside -Force | Out-Null
+    [IO.File]::WriteAllText("$outside\foreign.ini", 'P=D:\Old\vPinball\x')
+    [IO.File]::WriteAllText("$root\vPinball\Tables\own.ini", 'P=D:\Old\vPinball\y')
+    $rel = New-PinballRelocator -OldRoot 'D:\Old' -NewRoot $root
+
+    It 'does not follow a junction out of the build' {
+        $null = cmd /c mklink /J "$root\vPinball\Tables\link" "$outside"
+        try {
+            $found = @(Invoke-PinballTextRelocation -Folder "$root\vPinball" -Relocator $rel -DryRun)
+            ($found | ForEach-Object { Split-Path -Leaf $_.Path }) -join ',' | Should Be 'own.ini'
+        } finally { cmd /c rmdir "$root\vPinball\Tables\link" }
+    }
+
+    It 'reports a shortcut to a foreign network path without touching it' {
+        $lnk = "$root\vPinball\Tables\net.lnk"
+        $null = Set-KitShortcut -Path $lnk -TargetPath '\\127.0.0.1\rck-no-such-share\x.exe'
+        Mock -ModuleName 'RetroCabinetKit.Pinball' Test-Path { throw 'must not probe a foreign network path' } -ParameterFilter { $LiteralPath -like '\\*' }
+        $r = @(Invoke-PinballShortcutRelocation -Folder "$root\vPinball" -Relocator $rel -DryRun)
+        $r.Count | Should Be 1
+        $r[0].Link | Should Be 'Unc'
+        $r[0].Status | Should Be 'Unchanged'
+    }
+}
+
 Describe 'Relocation edge cases on the database' {
     Set-KitCulture -Culture 'en-US'
 
@@ -245,6 +273,17 @@ Describe 'Rebuild mode (fresh Windows)' {
         Get-KitRegistryValue -Path $reg -Name 'TablesDir' | Should BeExactly "$root\vPinball\FuturePinball\Tables"
         Get-KitRegistryValue -Path $reg -Name 'Steam' | Should BeExactly 'C:\Program Files (x86)\Steam'
         (Test-PinballRelocation -OldRoot $old -NewRoot $root -RegistryRoots @($reg) -AppCompatRoots @()).Clean | Should Be $true
+    }
+
+    It 'refuses a kit backup whose registry part reaches outside the settings roots' {
+        $outside = "$testKey\NotASetting"
+        Set-KitRegistryValue -Path $outside -Name 'Run' -Value 'evil.exe'
+        $zip = Join-Path $TestDrive 'outside.zip'
+        $null = New-KitBackup -Registry $outside -Destination $zip
+        Remove-Item -LiteralPath $outside -Recurse -Force
+        { Invoke-PinballRelocation -OldRoot $old -NewRoot $root -Mode Rebuild -RegistryBackup $zip -RegistryRoots @($reg) -AppCompatRoots @() -DryRun } | Should Throw
+        { Invoke-PinballRelocation -OldRoot $old -NewRoot $root -Mode Rebuild -RegistryBackup $zip -RegistryRoots @($reg) -AppCompatRoots @() } | Should Throw
+        Test-Path -LiteralPath $outside | Should Be $false
     }
 
     It 'lists the missing settings when there is no source' {

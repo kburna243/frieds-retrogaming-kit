@@ -579,16 +579,39 @@ function Invoke-PinballScreenPlan {
     }
 }
 
-# Way back: puts the backups of Invoke-PinballScreenPlan back. Registry import merges (values that did not
-# exist before stay).
+# Way back: puts the backups of Invoke-PinballScreenPlan back. The records come from the user-writable state
+# file, so each one must match one of -Targets (the current Get-PinballScreenTarget) by name, kind and
+# normalized path; a file backup must be "<target file>.bak_*" in the target's folder, a registry backup may
+# only touch that key (Assert-KitRegText). All records are checked before anything is restored. Registry
+# import merges (values that did not exist before stay).
 function Restore-PinballScreenBackup {
     [CmdletBinding(SupportsShouldProcess)]
-    param([Parameter(Mandatory)] [object[]] $Written)
-    foreach ($w in $Written) {
+    param(
+        [Parameter(Mandatory)] [object[]] $Written,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $Targets
+    )
+    $same = { param($a, $b) [string]::Equals($a, $b, [StringComparison]::OrdinalIgnoreCase) }
+    $checked = @(foreach ($w in $Written) {
+        $isReg = [string]$w.Kind -like '*Registry'
+        $t = @($Targets | Where-Object {
+            $_.Name -eq $w.Target -and $_.Kind -eq $w.Kind -and $(if ($isReg) { & $same $_.Path $w.Path }
+                                                                else { & $same ([IO.Path]::GetFullPath($_.Path)) ([IO.Path]::GetFullPath([string]$w.Path)) })
+        })[0]
+        $ok = [bool]$t -and [bool]$w.Backup
+        if ($ok -and -not $isReg) {
+            $backup = [IO.Path]::GetFullPath([string]$w.Backup)
+            $ok = (& $same (Split-Path -Parent $backup) (Split-Path -Parent ([IO.Path]::GetFullPath($t.Path)))) -and
+                  (Split-Path -Leaf $backup).StartsWith((Split-Path -Leaf $t.Path) + '.bak_', [StringComparison]::OrdinalIgnoreCase)
+        }
+        if (-not $ok) { throw (Get-KitText 'Pinball.Screens.UndoRefused' -f $w.Path, $w.Backup) }
+        [pscustomobject]@{ Record = $w; Target = $t }
+    })
+    foreach ($c in $checked) {
+        $w = $c.Record
         if (-not $PSCmdlet.ShouldProcess($w.Path, 'Restore screen values')) { continue }
         Assert-PinballProcessesClosed
-        if ($w.Kind -like '*Registry') { Import-KitRegistryFile -Path $w.Backup -Confirm:$false }
-        else { Copy-Item -LiteralPath $w.Backup -Destination $w.Path -Force }
+        if ($w.Kind -like '*Registry') { Import-KitRegistryFile -Path $w.Backup -AllowedRoots @($c.Target.Path) -Confirm:$false }
+        else { Copy-Item -LiteralPath ([IO.Path]::GetFullPath([string]$w.Backup)) -Destination $c.Target.Path -Force }
     }
 }
 

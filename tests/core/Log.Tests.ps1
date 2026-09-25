@@ -33,3 +33,30 @@ Describe 'Log' {
         { Write-KitLog 'x' -Level Debug } | Should Throw
     }
 }
+
+Describe 'Support log export' {
+    It 'replaces profile path, user name, computer name and account SIDs' {
+        $text = 'C:\Users\Max Muster\AppData\x | user Max Muster on CAB-PC | S-1-5-21-1111111111-2222222222-3333333333-1001 | S-1-5-18 | Maximilian'
+        $out = ConvertTo-KitAnonymousText -Text $text -UserName 'Max Muster' -ComputerName 'CAB-PC' -UserProfile 'C:\Users\Max Muster'
+        $out | Should BeExactly '<USERPROFILE>\AppData\x | user <USER> on <COMPUTER> | <SID> | S-1-5-18 | Maximilian'
+    }
+
+    It 'does not eat parts of words for a short user name' {
+        ConvertTo-KitAnonymousText -Text 'Tables and a table' -UserName 'a' -ComputerName '' -UserProfile '' | Should BeExactly 'Tables and <USER> table'
+    }
+
+    It 'writes one anonymized file from this machine''s log and transcript' {
+        $log = Join-Path $TestDrive 'support\kit.log'
+        Start-KitLog -Path $log -NoTranscript
+        Write-KitLog "profile $env:USERPROFILE, user $env:USERNAME, computer $env:COMPUTERNAME, sid $([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)"
+        Get-KitLogFile | Should BeExactly $log
+        Stop-KitLog
+        $dest = Join-Path $TestDrive 'support\kit.support.txt'
+        $null = Export-KitSupportLog -Path $log, (Join-Path $TestDrive 'support\missing.log') -Destination $dest
+        $out = [IO.File]::ReadAllText($dest)
+        $out | Should Match '<USERPROFILE>'
+        $out | Should Match '<SID>'
+        $out.IndexOf($env:USERNAME, [StringComparison]::OrdinalIgnoreCase) | Should Be -1
+        $out.IndexOf($env:COMPUTERNAME, [StringComparison]::OrdinalIgnoreCase) | Should Be -1
+    }
+}

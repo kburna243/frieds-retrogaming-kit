@@ -5,6 +5,46 @@
 
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 
+# All files below the folders (hidden ones too). Subfolders that are reparse points (junctions, symbolic
+# links) are not entered, so a scan never leaves the build through a link. The given folders themselves
+# are taken as they are.
+function Get-KitFileTree {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string[]] $Path,
+        [string] $Filter = '*'
+    )
+    $queue = New-Object Collections.Generic.Queue[IO.DirectoryInfo]
+    foreach ($p in $Path) {
+        $d = New-Object IO.DirectoryInfo (Resolve-FullPath $p)
+        if ($d.Exists) { $queue.Enqueue($d) }
+    }
+    while ($queue.Count) {
+        $d = $queue.Dequeue()
+        try { $files = $d.GetFiles($Filter); $dirs = $d.GetDirectories() }
+        catch { Write-Verbose "$($d.FullName): $($_.Exception.Message)"; continue }
+        $files
+        foreach ($s in $dirs) { if (-not ($s.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $queue.Enqueue($s) } }
+    }
+}
+
+# $true when the path (normalized, '..' resolved) lies inside one of the roots.
+# ponytail: textual check; a junction INSIDE an allowed root still leads elsewhere (scans skip junctions).
+function Test-KitPathUnder {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [string[]] $Root
+    )
+    $full = [IO.Path]::GetFullPath($Path)
+    foreach ($r in $Root | Where-Object { $_ }) {
+        if ($r -match '^[A-Za-z]:$') { $r += '\' } # 'C:' alone would mean the current folder of drive C
+        $base = [IO.Path]::GetFullPath($r).TrimEnd('\') + '\'
+        if ($full.StartsWith($base, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    $false
+}
+
 function Get-ZipEntryName([string] $FullPath) {
     if ($FullPath -match '^\\\\([^\\]+)\\(.+)$') { return 'files/UNC/' + $Matches[1] + '/' + ($Matches[2] -replace '\\', '/') }
     if ($FullPath -match '^([A-Za-z]):\\(.+)$') { return 'files/' + $Matches[1].ToUpperInvariant() + '/' + ($Matches[2] -replace '\\', '/') }
@@ -33,7 +73,7 @@ function New-KitBackup {
     foreach ($f in $Files) {
         $full = Resolve-FullPath $f
         if (Test-Path -LiteralPath $full -PathType Container) {
-            Get-ChildItem -LiteralPath $full -Recurse -File -Force | ForEach-Object { $paths[$_.FullName.ToLowerInvariant()] = $_.FullName }
+            Get-KitFileTree -Path $full | ForEach-Object { $paths[$_.FullName.ToLowerInvariant()] = $_.FullName }
         } else { $paths[$full.ToLowerInvariant()] = $full }
     }
 
@@ -105,22 +145,34 @@ function Get-KitBackupManifest {
 
 # -PathFilter { param($Path) ... } returns the target path ($null = skip the file).
 # -RegistryFilter { param($Text) ... } returns the (rewritten) .reg text before import.
+# The manifest comes from a file the user picked, so it is not trusted: every target (after -PathFilter,
+# normalized) must lie inside -AllowedRoots, checked for ALL files before the first one is written, and
+# every .reg text must pass Assert-KitRegText against -AllowedRegistryRoots (default: none).
 # Every file is extracted to a temp file next to the target and checked against its manifest
 # hash before it replaces anything. Registry import merges and never deletes values.
 function Restore-KitBackup {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string] $Path,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [string[]] $AllowedRoots,
+        [string[]] $AllowedRegistryRoots = @(),
         [scriptblock] $PathFilter,
         [scriptblock] $RegistryFilter,
         [switch] $SkipRegistry
     )
     $manifest = Get-KitBackupManifest -Path $Path
+    $files = @(foreach ($f in @($manifest.Files)) {
+        $target = if ($PathFilter) { & $PathFilter $f.Path } else { $f.Path }
+        if (-not $target) { continue }
+        $target = [IO.Path]::GetFullPath([string]$target)
+        if (-not (Test-KitPathUnder -Path $target -Root $AllowedRoots)) { throw (Get-KitText 'Backup.OutsideRoots' -f $target, ($AllowedRoots -join '; ')) }
+        [pscustomobject]@{ Manifest = $f; Target = $target }
+    })
     $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-FullPath $Path))
     try {
-        foreach ($f in @($manifest.Files)) {
-            $target = if ($PathFilter) { & $PathFilter $f.Path } else { $f.Path }
-            if (-not $target) { continue }
+        foreach ($entry in $files) {
+            $f = $entry.Manifest
+            $target = $entry.Target
             $action = 'WhatIf'
             if ($PSCmdlet.ShouldProcess($target, 'Restore file')) {
                 $dir = Split-Path -Parent $target
@@ -141,12 +193,13 @@ function Restore-KitBackup {
             $reader = New-Object IO.StreamReader ($zip.GetEntry($r.Entry).Open(), $true)
             try { $text = $reader.ReadToEnd() } finally { $reader.Dispose() }
             if ($RegistryFilter) { $text = & $RegistryFilter $text }
+            Assert-KitRegText -Text $text -AllowedRoots $AllowedRegistryRoots # also in a dry run
             $action = 'WhatIf'
             if ($PSCmdlet.ShouldProcess($r.Key, 'Import registry (merge)')) {
                 $tmp = Join-Path $env:TEMP ("rck-import-{0}.reg" -f [guid]::NewGuid())
                 try {
-                    [IO.File]::WriteAllText($tmp, $text, [Text.Encoding]::Unicode)
-                    Import-KitRegistryFile -Path $tmp -Confirm:$false
+                    [IO.File]::WriteAllText($tmp, $text.TrimStart([char]0xFEFF), [Text.Encoding]::Unicode)
+                    Import-KitRegistryFile -Path $tmp -AllowedRoots $AllowedRegistryRoots -Confirm:$false
                 } finally { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
                 $action = 'Restored'
             }

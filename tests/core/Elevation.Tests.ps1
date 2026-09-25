@@ -11,6 +11,13 @@ Describe 'Elevation' {
         Test-KitSameUser -OriginalSid 'S-1-5-18' | Should Be $false
     }
 
+    It 'locks registry steps when elevated without the starting user''s SID, or for another user' {
+        Get-KitRegistryUserLock -OriginalSid '' -IsAdmin $false | Should BeNullOrEmpty
+        Get-KitRegistryUserLock -OriginalSid '' -IsAdmin $true | Should Not BeNullOrEmpty
+        Get-KitRegistryUserLock -OriginalSid (Get-KitUserSid) -IsAdmin $true | Should BeNullOrEmpty
+        Get-KitRegistryUserLock -OriginalSid 'S-1-5-18' -IsAdmin $true | Should Not BeNullOrEmpty
+    }
+
     Context 'Convert-KitMappedDriveToUnc' {
         Mock -ModuleName 'RetroCabinetKit.Core' Get-CimInstance {
             [pscustomobject]@{ DeviceID = 'Z:'; ProviderName = '\\fileserver\share' }
