@@ -1,0 +1,41 @@
+name: CI Checks
+
+on:
+  push:
+    branches: [ main, p4-docs ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  depersonalization:
+    name: Depersonalization Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Depersonalization Scan
+        shell: pwsh
+        run: pwsh -NoProfile -File tools/Test-Depersonalized.ps1
+
+  site:
+    name: Site Build & Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Build site
+        working-directory: site
+        run: npm run build
