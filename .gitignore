@@ -1,0 +1,14 @@
+# Internal templates and private references, never published
+_bestand/
+references/
+.omc/
+
+# Runtime output
+*.log
+logs/
+install-state.json
+*.tmp
+*.partial
+
+# Real (non-synthetic) fixtures stay local
+tests/fixtures-local/
