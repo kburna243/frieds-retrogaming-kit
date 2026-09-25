@@ -25,6 +25,13 @@ function Assert-LightgunProcessesClosed {
     }
 }
 
+# For a step's Test: $true when all guarded programs are closed, otherwise logs which ones and returns $false.
+function Test-LightgunProcessesClosed {
+    [CmdletBinding()]
+    param([string[]] $Names = $script:LightgunProcessNames)
+    try { Assert-LightgunProcessesClosed -Names $Names; $true } catch { Write-KitLog $_.Exception.Message -Level Warn; $false }
+}
+
 function Get-LightgunDefaultStatePath {
     [CmdletBinding()]
     param()
