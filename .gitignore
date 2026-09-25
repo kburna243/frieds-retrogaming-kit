@@ -12,3 +12,9 @@ install-state.json
 
 # Real (non-synthetic) fixtures stay local
 tests/fixtures-local/
+
+# internal / private
+PLAN.md
+_vergleich/
+site/node_modules/
+site/dist/
