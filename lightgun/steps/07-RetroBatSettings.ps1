@@ -4,7 +4,7 @@
     - es_settings.cfg: use_guns=0 and disableautocontrollers=1 for mame, naomi, atomiswave, psx, model2, model3,
       teknoparrot; mame -> mame64 (lightgun as joystick over xinput, ctrlr profile custom1), naomi -> demul
       (use_demulshooter=0), psx -> duckstation.
-    - es_input.cfg: complete "Xbox 360 Controller" block with a = button 1, b = button 0 (trigger selects).
+    - es_input.cfg: complete "Xbox 360 Controller" block with a = button 0, b = button 1 (measured: the trigger starts the game).
     - Reported, never changed: per-game overrides and gamelist entries with a hard-wired <emulator>/<core>.
     Preview of every change first; written only while RetroBat, Gunmote, Steam and emulators are closed
     (checked again before every file), comments and order are kept, backups next to the files. A second run

@@ -213,14 +213,14 @@ Describe 'RetroBat settings (es_settings.cfg, es_input.cfg)' {
         Get-Hash $p.EsSettings | Should Be $hash
     }
 
-    It 'restores the complete Xbox block (a = button 1, b = button 0), other blocks untouched' {
+    It 'restores the complete Xbox block (a = button 0, b = button 1, measured), other blocks untouched' {
         @(Get-LightgunEsInputPlan -Path $p.EsInput).Count | Should BeGreaterThan 2
         Set-LightgunEsInput -Path $p.EsInput -Confirm:$false | Should BeGreaterThan 2
         $t = [IO.File]::ReadAllText($p.EsInput)
         $t | Should Match "^<\?xml version='1.0' encoding='utf-8'\?>"
         $t | Should Match '<input name="a" type="key" id="120" value="1" />'
-        $t | Should Match '<input name="a" type="button" id="1" value="1" />'
-        $t | Should Match '<input name="b" type="button" id="0" value="1" />'
+        $t | Should Match '<input name="a" type="button" id="0" value="1" />'
+        $t | Should Match '<input name="b" type="button" id="1" value="1" />'
         ([regex]::Matches($t, '<input ')).Count | Should Be 22
         @(Get-LightgunEsInputPlan -Path $p.EsInput).Count | Should Be 0
         Set-LightgunEsInput -Path $p.EsInput -Confirm:$false | Should Be 0

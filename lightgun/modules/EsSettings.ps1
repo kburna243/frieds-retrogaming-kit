@@ -5,8 +5,9 @@
 #   emulator choice: mame -> mame64 (+ lightgun as joystick over xinput, ctrlr profile custom1),
 #                    naomi -> demul (use_demulshooter=0: RetroBat would overwrite DemulShooter's config),
 #                    psx -> duckstation
-#   es_input.cfg: complete "Xbox 360 Controller" block, a = button 1, b = button 0: RetroBat follows Batocera
-#                 ("b" selects), so the trigger (Wiimote B -> Xbox A in the menu layout) selects.
+#   es_input.cfg: complete "Xbox 360 Controller" block, a = button 0, b = button 1. Measured on the cabinet
+#                 (not derived from Batocera): with the menu layout (Wiimote B -> 360.a, Wiimote A -> 360.b) the
+#                 trigger starts the game in the RetroBat menu.
 # Per-game overrides (<system>["game"].use_guns) and gamelist entries with a hard-wired <emulator>/<core>
 # overrule these settings; they are reported, never changed.
 # XML is edited with XmlDocument and PreserveWhitespace: comments, order and formatting stay; a new key is
@@ -29,7 +30,7 @@ $script:LightgunEsExtra = [ordered]@{
 
 # Complete Xbox 360 block (SDL numbering of the XInput pad): name, type, id, value.
 $script:LightgunXboxInputs = @(
-    @('a', 'button', '1', '1'), @('b', 'button', '0', '1'), @('down', 'hat', '0', '4'), @('hotkey', 'button', '6', '1'),
+    @('a', 'button', '0', '1'), @('b', 'button', '1', '1'), @('down', 'hat', '0', '4'), @('hotkey', 'button', '6', '1'),
     @('joystick1left', 'axis', '0', '-1'), @('joystick1up', 'axis', '1', '-1'), @('joystick2left', 'axis', '2', '-1'),
     @('joystick2up', 'axis', '3', '-1'), @('l2', 'axis', '4', '1'), @('l3', 'button', '8', '1'), @('left', 'hat', '0', '8'),
     @('pagedown', 'button', '5', '1'), @('pageup', 'button', '4', '1'), @('r2', 'axis', '5', '1'), @('r3', 'button', '9', '1'),

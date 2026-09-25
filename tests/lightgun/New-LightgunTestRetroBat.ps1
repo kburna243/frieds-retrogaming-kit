@@ -35,8 +35,8 @@ $inputCfg = @(
     '		<input name="a" type="key" id="120" value="1" />'
     '	</inputConfig>'
     '	<inputConfig type="joystick" deviceName="Xbox 360 Controller" deviceGUID="030000005e0400008e02000000007200">'
-    '		<input name="a" type="button" id="0" value="1" />'
-    '		<input name="b" type="button" id="1" value="1" />'
+    '		<input name="a" type="button" id="1" value="1" />'
+    '		<input name="b" type="button" id="0" value="1" />'
     '	</inputConfig>'
     '</inputList>'
 ) -join $nl

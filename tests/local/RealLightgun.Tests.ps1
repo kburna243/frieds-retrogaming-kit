@@ -64,6 +64,10 @@ Describe 'Lightgun on a real setup (local fixture, copies only)' {
         Get-Hash (Join-Path $fixtures 'es_settings.cfg') | Should Be $before
     }
 
+    It 'es_input.cfg: a = button 0, b = button 1 is the measured, working setup (no difference there)' {
+        @(Get-LightgunEsInputPlan -Path $inputCfg | Where-Object { $_.Name -in 'block', 'a', 'b' }).Count | Should Be 0
+    }
+
     It 'applied to the copy: only the planned keys change, all other lines stay, a second run changes nothing' {
         $orig = [IO.File]::ReadAllLines($settings)
         $plan = @(Get-LightgunEsSettingsPlan -Path $settings)
