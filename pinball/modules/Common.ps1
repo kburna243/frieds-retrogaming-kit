@@ -81,6 +81,9 @@ function Get-PinballRootProblem {
     if (-not $Root) { return Get-KitText 'Pinball.Step.RunTargetFirst' }
     try { $r = ConvertTo-PinballRoot $Root } catch { return $_.Exception.Message }
     if ($r -notmatch '^[A-Za-z]:') { return Get-KitText 'Pinball.Target.LocalOnly' -f $r }
+    # The root ends up in .bat and .ini files of the build: & % ^ ! and quotes would change their meaning (N7:
+    # checked by every step, the state file could carry any root).
+    if (($r + '\') -notmatch '^[A-Za-z]:\\[A-Za-z0-9 _.\-\\()]*$') { return Get-KitText 'Pinball.Target.BadChars' -f $r }
     $drive = New-Object IO.DriveInfo ($r.Substring(0, 1))
     if ($drive.DriveType -notin 'Fixed', 'Removable') { return Get-KitText 'Pinball.Target.LocalOnly' -f $r }
     $db = Get-PinballDatabasePath -Root $r

@@ -84,14 +84,16 @@ Describe 'Admin-only automation folder (simulated in TEMP)' {
         $base = Join-Path $TestDrive 'ProgramDataSim'
         $dir = Join-Path $base 'lightgun'
         try {
-            Install-LightgunAutomationFile -AutomationDir $dir -Confirm:$false
+            Install-LightgunAutomationFile -AutomationDir $dir -TrustedOwner @($me, 'S-1-5-32-544', 'S-1-5-18') -Confirm:$false
             $acl = [IO.Directory]::GetAccessControl($dir)
             $acl.AreAccessRulesProtected | Should Be $true
             $rules = @($acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]))
             (@($rules | ForEach-Object { $_.IdentityReference.Value } | Sort-Object -Unique) -join ',') | Should Be 'S-1-5-18,S-1-5-32-544,S-1-5-32-545'
             ($rules | Where-Object { $_.IdentityReference.Value -eq 'S-1-5-32-545' }).FileSystemRights.ToString() | Should Match '^ReadAndExecute'
             $baseAcl = [IO.Directory]::GetAccessControl($base)
-            (@($baseAcl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]) | ForEach-Object { $_.IdentityReference.Value } | Sort-Object -Unique) -join ',') | Should Be 'S-1-5-18,S-1-5-32-544'
+            # Administrators and SYSTEM, plus the trusted test owner (the real run trusts only those two).
+            (@($baseAcl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]) | ForEach-Object { $_.IdentityReference.Value } | Sort-Object -Unique) -join ',') |
+                Should Be ((@('S-1-5-18', 'S-1-5-32-544', $me) | Sort-Object -Unique) -join ',')
             Test-LightgunAutomationFile -AutomationDir $dir -TrustedOwner @($me, 'S-1-5-32-544', 'S-1-5-18') | Should Be $true
             # The real check trusts only Administrators/SYSTEM as owner: a folder a user owns is not safe.
             Test-LightgunAutomationFile -AutomationDir $dir | Should Be $false
@@ -112,9 +114,17 @@ Describe 'Admin-only automation folder (simulated in TEMP)' {
         $elsewhere = Join-Path $TestDrive 'elsewhere'
         New-Item -ItemType Directory -Path $base, $elsewhere -Force | Out-Null
         $null = cmd /c mklink /J "$base\lightgun" "$elsewhere"
-        try { { Install-LightgunAutomationFile -AutomationDir "$base\lightgun" -Confirm:$false } | Should Throw }
-        finally { cmd /c rmdir "$base\lightgun" }
+        try { { Install-LightgunAutomationFile -AutomationDir "$base\lightgun" -TrustedOwner @($me) -Confirm:$false } | Should Throw 'link' }
+        finally { cmd /c rmdir "$base\lightgun"; Reset-TestAcl $base }
         Join-Path $elsewhere 'profile.ps1' | Should Not Exist
+    }
+
+    It 'refuses a kit folder that a user created beforehand (owner is not Administrators or SYSTEM)' {
+        $base = Join-Path $TestDrive 'Sim4'
+        New-Item -ItemType Directory -Path $base -Force | Out-Null
+        { Install-LightgunAutomationFile -AutomationDir "$base\lightgun" -Confirm:$false } | Should Throw 'not owned by Administrators or SYSTEM'
+        Join-Path $base 'lightgun' | Should Not Exist
+        (Get-Acl -LiteralPath $base).AreAccessRulesProtected | Should Be $false
     }
 }
 

@@ -399,7 +399,7 @@ $pages = @(
         $null = Add-RunButton $p {
             $auto = [bool]$script:W.Values['Autostart']
             $text = if ($auto) { Get-KitText 'Pinball.Ui.Finish.AutostartConfirm' } else { $null }
-            Invoke-WizardStep 9 '09-Finish.ps1' @{ EnableAutostart = $auto; Approve = $script:Approve } $text
+            Invoke-WizardStep 9 '09-Finish.ps1' (Add-UserSid @{ EnableAutostart = $auto; Approve = $script:Approve }) $text
         }
     } }
     @{ TitleKey = 'Pinball.Ui.Page.Credits'; Build = {

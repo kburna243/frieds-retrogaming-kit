@@ -21,5 +21,5 @@ function Find-PinballStartupBat {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $Root)
     $pup = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball\PinUPSystem'
-    Get-KitFileTree -Path $pup -Filter $script:PinballStartupBatName | Select-Object -First 1 -ExpandProperty FullName
+    Get-KitFileTree -Path $pup -Filter $script:PinballStartupBatName -SkipReparseFiles | Select-Object -First 1 -ExpandProperty FullName
 }

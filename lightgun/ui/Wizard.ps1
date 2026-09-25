@@ -106,7 +106,7 @@ function Add-RunButton($Panel, [scriptblock] $OnClick) {
 
 # Button that opens an official web page (only https links, nothing else is ever started).
 function Add-LinkButton($Panel, [string] $Url) {
-    $null = Add-KitUiButton -Panel $Panel -Text (Get-KitText 'Lightgun.Ui.OpenLink' -f $Url) -Tag $Url -OnClick { if ([string]$this.Tag -match '^https://') { Start-Process ([string]$this.Tag) } }
+    $null = Add-KitUiButton -Panel $Panel -Text (Get-KitText 'Lightgun.Ui.OpenLink' -f $Url) -Tag $Url -OnClick { $null = Open-KitWebLink -Url ([string]$this.Tag) -HttpsOnly }
 }
 
 # --- pages --------------------------------------------------------------------------------------------------
@@ -160,7 +160,7 @@ $pages = @(
         Add-LinkButton $p (Get-LightgunGunmoteReleaseUrl)
         $null = Add-KitUiPathBox $p (Get-KitText 'Lightgun.Ui.Gunmote.Folder') $w.Values['Gunmote'] { $script:W.Values['Gunmote'] = $this.Text }
         $null = Add-RunButton $p {
-            $params = Add-UserSid @{}
+            $params = Add-UserSid @{ Approve = $script:Approve }
             if ($script:W.Values['Gunmote']) { $params.GunmotePath = $script:W.Values['Gunmote'] }
             Invoke-WizardStep 4 '04-Gunmote.ps1' $params
         }
@@ -195,7 +195,7 @@ $pages = @(
     @{ TitleKey = 'Lightgun.Ui.Page.Automation'; StepNames = @('lightgun-8-profile-automation'); Build = {
         param($w, $p)
         $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.Automation.Desc')
-        $null = Add-RunButton $p { Invoke-WizardStep 8 '08-ProfileAutomation.ps1' (Add-UserSid @{}) }
+        $null = Add-RunButton $p { Invoke-WizardStep 8 '08-ProfileAutomation.ps1' (Add-UserSid @{ Approve = $script:Approve }) }
     } }
     @{ TitleKey = 'Lightgun.Ui.Page.Verify'; StepNames = @('lightgun-9-xinput', 'lightgun-9-profile', 'lightgun-9-launcher'); Build = {
         param($w, $p)

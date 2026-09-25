@@ -63,7 +63,7 @@ function Find-PinballBamBat {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $Root)
     $fp = Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball\FuturePinball'
-    Get-KitFileTree -Path $fp -Filter $script:PinballBamBatName | Select-Object -First 1 -ExpandProperty FullName
+    Get-KitFileTree -Path $fp -Filter $script:PinballBamBatName -SkipReparseFiles | Select-Object -First 1 -ExpandProperty FullName
 }
 
 function Find-PinballInstallGuide {
@@ -76,18 +76,31 @@ function Find-PinballInstallGuide {
 }
 
 # A batch file of the build (BAM setup, Popper autostart) runs only after its plan (path, SHA256, signature
-# status) was confirmed, and only while it still has the confirmed hash. Declined -> throws.
+# status; -Lines on top, -ShowLines: its first lines) was confirmed, and only while it is held read-only with
+# the confirmed hash (N5). Declined -> throws.
 function Invoke-PinballBat {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string] $Path,
+        [string[]] $Lines = @(),
+        [int] $ShowLines = 0,
         [scriptblock] $Approve
     )
     $cmd = Get-PinballBatCommand -Path $Path
     if (-not $PSCmdlet.ShouldProcess($Path, 'cmd /c "<bat>" < nul')) { return }
     $plan = Get-KitFilePlan -Path $Path
-    if (-not (Confirm-KitPlan -FilePlan @($plan) -Approve $Approve)) { throw (Get-KitText 'Plan.Declined') }
+    if ($ShowLines -gt 0) {
+        $bytes = [IO.File]::ReadAllBytes($Path)
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { $hash = ([BitConverter]::ToString($sha.ComputeHash($bytes))) -replace '-', '' } finally { $sha.Dispose() }
+        if ($hash -ne $plan.Sha256) { throw (Get-KitText 'Plan.Changed' -f $Path) } # the shown text is the planned file
+        $content = @([Text.Encoding]::Default.GetString($bytes).TrimEnd("`r", "`n") -split '\r?\n')
+        $Lines += Get-KitText 'Pinball.Bat.Content' -f $Path, ([math]::Min($ShowLines, $content.Count)), $content.Count
+        $Lines += @($content | Select-Object -First $ShowLines | ForEach-Object { '    ' + ($_ -replace '[\x00-\x08\x0B-\x1F\x7F]', '?') })
+    }
+    if (-not (Confirm-KitPlan -Lines $Lines -FilePlan @($plan) -Approve $Approve)) { throw (Get-KitText 'Plan.Declined') }
     Assert-PinballProcessesClosed
-    if (-not (Test-KitFilePlanHash -Row $plan)) { throw (Get-KitText 'Plan.Changed' -f $Path) }
-    Invoke-PinballProcess $cmd.FilePath $cmd.Arguments $cmd.WorkingDirectory
+    $handle = Open-KitFilePlanFile -Row $plan
+    if (-not $handle) { throw (Get-KitText 'Plan.Changed' -f $Path) }
+    try { Invoke-PinballProcess $cmd.FilePath $cmd.Arguments $cmd.WorkingDirectory } finally { $handle.Dispose() }
 }

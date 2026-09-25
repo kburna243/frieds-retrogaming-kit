@@ -119,8 +119,33 @@ Describe 'File plan and confirmation' {
 }
 
 Describe 'Download folder (simulated in TEMP, never ProgramData)' {
+    Set-KitCulture -Culture 'en-US'
     It 'defaults to ProgramData\RetroCabinetKit\downloads' {
         Get-KitDownloadDir | Should BeExactly (Join-Path $env:ProgramData 'RetroCabinetKit\downloads')
+    }
+
+    It 'refuses an existing folder that is not owned by Administrators or SYSTEM (a user created it beforehand)' {
+        $base = Join-Path $TestDrive 'precreated'
+        New-Item -ItemType Directory -Path $base | Out-Null
+        { Initialize-KitDownloadDir -Base $base } | Should Throw 'not owned by Administrators or SYSTEM'
+        (Get-Acl -LiteralPath $base).AreAccessRulesProtected | Should Be $false # refused before any ACL change
+        Join-Path $base 'downloads' | Should Not Exist
+    }
+
+    It 'gives every run a fresh GUID work folder below the locked downloads folder, created after the lock' {
+        $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        $base = Join-Path $TestDrive 'workbase'
+        $owners = 'S-1-5-32-544', 'S-1-5-18', $me
+        $a = New-KitWorkDir -Base $base -TrustedOwner $owners
+        $b = New-KitWorkDir -Base $base -TrustedOwner $owners
+        $a | Should Not Be $b
+        (Split-Path -Leaf $a) | Should Match '^[0-9a-f]{32}$'
+        Split-Path -Parent $a | Should BeExactly (Join-Path $base 'downloads')
+        # Inherits the protected ACL of the downloads folder (no rules of its own, nothing from outside).
+        $acl = [IO.Directory]::GetAccessControl($a)
+        @($acl.GetAccessRules($true, $false, [Security.Principal.SecurityIdentifier])).Count | Should Be 0
+        (@($acl.GetAccessRules($false, $true, [Security.Principal.SecurityIdentifier]) | ForEach-Object { $_.IdentityReference.Value } | Sort-Object -Unique) -join ',') |
+            Should Be ((@($owners | Sort-Object -Unique)) -join ',')
     }
 
     It 'gives base and downloads folder an ACL for Administrators and SYSTEM only' {
@@ -158,5 +183,99 @@ Describe 'Download folder (simulated in TEMP, never ProgramData)' {
             (Get-Acl -LiteralPath $base).AreAccessRulesProtected | Should Be $false
             (Get-Acl -LiteralPath $elsewhere).AreAccessRulesProtected | Should Be $false
         } finally { cmd /c rmdir "$base\downloads" }
+    }
+}
+
+Describe 'Invoke-KitVerifiedExecutable (copies of signed Windows files, work folder in TEMP)' {
+    Set-KitCulture -Culture 'en-US'
+    $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $dir = @{ Base = (Join-Path $TestDrive 'KitData'); TrustedOwner = @('S-1-5-32-544', 'S-1-5-18', $me) }
+    $work = Join-Path $TestDrive 'KitData\downloads'
+    $src = Join-Path $TestDrive 'Build\setup'
+    New-Item -ItemType Directory -Path $src -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $env:SystemRoot 'System32\cmd.exe') -Destination "$src\setup.exe"
+    $ms = @{ Publisher = 'Microsoft Windows'; Organization = 'Microsoft Corporation' }
+
+    It 'runs a copy in a fresh work folder (working directory = that folder), returns the exit code, removes it' {
+        [IO.File]::WriteAllBytes("$src\evil.dll", [byte[]](77, 90, 0, 0)) # not copied without Folder
+        try {
+            $r = Invoke-KitVerifiedExecutable -Item (@{ Name = 'Setup'; Path = "$src\setup.exe"; Arguments = '/d /c exit 3' } + $ms) -Approve { $true } @dir
+        } finally { Remove-Item -LiteralPath "$src\evil.dll" }
+        $r.Result | Should Be 'Ok'
+        $r.ExitCode | Should Be 3
+        @(Get-ChildItem -LiteralPath $work -Force).Count | Should Be 0
+    }
+
+    It 'holds every PE file read-only while the program runs (Start-Process mocked)' {
+        $global:RckProbe = $null
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process {
+            $p = @{ FilePath = $FilePath; WorkingDirectory = $WorkingDirectory; Writable = $true; Deletable = $true }
+            try { [IO.File]::Open($FilePath, 'Open', 'ReadWrite', 'ReadWrite').Dispose() } catch { $p.Writable = $false }
+            try { Remove-Item -LiteralPath $FilePath -Force -ErrorAction Stop } catch { $p.Deletable = $false }
+            $global:RckProbe = $p
+            [pscustomobject]@{ ExitCode = 0 }
+        }
+        (Invoke-KitVerifiedExecutable -Item (@{ Name = 'Setup'; Path = "$src\setup.exe" } + $ms) -Approve { $true } @dir).Result | Should Be 'Ok'
+        $global:RckProbe.FilePath | Should BeLike "$work\*\setup.exe"
+        $global:RckProbe.WorkingDirectory | Should BeExactly (Split-Path -Parent $global:RckProbe.FilePath)
+        $global:RckProbe.Writable | Should Be $false
+        $global:RckProbe.Deletable | Should Be $false
+        Remove-Variable -Name RckProbe -Scope Global
+    }
+
+    It 'with Folder copies the whole folder and refuses an unsigned DLL next to the installer' {
+        [IO.File]::WriteAllBytes("$src\dsetup.dll", [byte[]](77, 90, 0, 0))
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
+        try {
+            $r = Invoke-KitVerifiedExecutable -Item (@{ Name = 'DX'; Path = "$src\setup.exe"; Folder = $true } + $ms) -Approve { throw 'must not ask' } @dir
+        } finally { Remove-Item -LiteralPath "$src\dsetup.dll" }
+        $r.Result | Should Be 'Untrusted'
+        $r.File | Should BeLike '*\dsetup.dll'
+        @(Get-ChildItem -LiteralPath $work -Force).Count | Should Be 0
+    }
+
+    It 'with Folder shows every PE file in the plan and copies the other files too' {
+        Copy-Item -LiteralPath (Join-Path $env:SystemRoot 'System32\version.dll') -Destination "$src\dsetup.dll"
+        [IO.File]::WriteAllText("$src\data.cab", 'cab')
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process {
+            $global:RckFiles = @(Get-ChildItem -LiteralPath $WorkingDirectory -Force | ForEach-Object { $_.Name } | Sort-Object)
+            [pscustomobject]@{ ExitCode = 0 }
+        }
+        $script:shown = $null
+        try {
+            $r = Invoke-KitVerifiedExecutable -Item (@{ Name = 'DX'; Path = "$src\setup.exe"; Folder = $true } + $ms) -Approve { param($t) $script:shown = $t; $true } @dir
+        } finally { Remove-Item -LiteralPath "$src\dsetup.dll", "$src\data.cab" }
+        $r.Result | Should Be 'Ok'
+        $script:shown | Should Match 'setup\.exe'
+        $script:shown | Should Match 'dsetup\.dll'
+        $global:RckFiles -join ',' | Should Be 'data.cab,dsetup.dll,setup.exe'
+        Remove-Variable -Name RckFiles -Scope Global
+    }
+
+    It 'does not start when a file appeared in the work folder after the confirmation (planted DLL)' {
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
+        $r = Invoke-KitVerifiedExecutable -Item (@{ Name = 'Setup'; Path = "$src\setup.exe" } + $ms) @dir -Approve {
+            $w = Get-ChildItem -LiteralPath $work -Directory | Select-Object -First 1
+            [IO.File]::WriteAllBytes((Join-Path $w.FullName 'version.dll'), [byte[]](77, 90))
+            $true
+        }
+        $r.Result | Should Be 'Changed'
+        @(Get-ChildItem -LiteralPath $work -Force).Count | Should Be 0
+    }
+
+    It 'does not start when the copy was changed after the confirmation' {
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
+        $r = Invoke-KitVerifiedExecutable -Item (@{ Name = 'Setup'; Path = "$src\setup.exe" } + $ms) @dir -Approve {
+            $w = Get-ChildItem -LiteralPath $work -Directory | Select-Object -First 1
+            [IO.File]::AppendAllText((Join-Path $w.FullName 'setup.exe'), 'x')
+            $true
+        }
+        $r.Result | Should Be 'Changed'
+    }
+
+    It 'runs nothing when declined' {
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
+        (Invoke-KitVerifiedExecutable -Item (@{ Name = 'Setup'; Path = "$src\setup.exe" } + $ms) -Approve { $false } @dir).Result | Should Be 'Declined'
+        @(Get-ChildItem -LiteralPath $work -Force).Count | Should Be 0
     }
 }

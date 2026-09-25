@@ -16,12 +16,20 @@
 .PARAMETER Tasks
     Injected task list for the check instead of Get-ScheduledTask (tests).
 .PARAMETER KitUserSid
-    SID of the user who started the kit (passed by the elevation); the tasks run for this user.
+    SID of the user who started the kit (passed by the elevation); the tasks run for this user. Locked like the
+    registry steps when the kit runs elevated as a different account.
+.PARAMETER Approve
+    { param($text) ... } returning $true for the plan: every task with the script and arguments it starts, and
+    profile.ps1 with SHA256. The wizard passes its dialog; without it the console asks.
+.PARAMETER TrustedOwner
+    Owners accepted for an existing automation folder (default: Administrators, SYSTEM). Tests add their own.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string] $RetroBatRoot,
     [string] $AutomationDir,
+    [scriptblock] $Approve,
+    [string[]] $TrustedOwner = @('S-1-5-32-544', 'S-1-5-18'),
     [string] $TaskPrefix = 'RetroCabinetKit Gunmote Profile',
     [object[]] $Tasks,
     [string] $KitUserSid,
@@ -49,14 +57,22 @@ foreach ($s in (Get-LightgunSystemProfile).GetEnumerator()) { Write-KitLog (Get-
 
 $userSid = Get-KitStartUserSid -OriginalSid $KitUserSid
 $admin = Test-KitAdmin
+# Tasks with highest rights for another account than the one logged on are never created (N4).
+$userLock = if ($admin) { Get-KitRegistryUserLock -OriginalSid $KitUserSid }
 if (-not $admin) { Write-KitLog (Get-KitText 'Lightgun.Step.NeedsAdmin') -Level Warn }
-elseif (-not $userSid) { Write-KitLog (Get-KitRegistryUserLock -OriginalSid $KitUserSid) -Level Warn }
+elseif ($userLock) { Write-KitLog $userLock -Level Warn }
 $taskProbe = @{}; if ($PSBoundParameters.ContainsKey('Tasks')) { $taskProbe.Tasks = $Tasks }
 
 $step = New-KitStep -Name 'lightgun-8-profile-automation' `
-    -Test { -not $rb.Problem -and [bool]$plan -and $admin -and [bool]$userSid } `
+    -Test { -not $rb.Problem -and [bool]$plan -and $admin -and [bool]$userSid -and -not $userLock } `
     -Invoke {
-        Install-LightgunAutomationFile -AutomationDir $AutomationDir -Confirm:$false
+        $exe = Get-LightgunPowerShellPath
+        $template = Get-KitFilePlan -Path (Get-LightgunTemplatePath)
+        $lines = @($plan | ForEach-Object { Get-KitText 'Lightgun.Task.Plan' -f $_.TaskName, $exe, $_.Argument, (ConvertTo-LightgunUserName $userSid) })
+        if (-not (Confirm-KitPlan -Lines $lines -FilePlan @($template) -Approve $Approve)) { throw (Get-KitText 'Plan.Declined') }
+        Install-LightgunAutomationFile -AutomationDir $AutomationDir -TrustedOwner $TrustedOwner -Confirm:$false
+        # The installed copy must be the confirmed script.
+        if ((Get-FileHash -LiteralPath (Join-Path $AutomationDir 'profile.ps1') -Algorithm SHA256).Hash -ne $template.Sha256) { throw (Get-KitText 'Plan.Changed' -f $template.Path) }
         Register-LightgunProfileTask -Plan $plan -UserSid $userSid -Confirm:$false
         Install-LightgunHook -RetroBatRoot $rb.Root -TaskPrefix $TaskPrefix -Confirm:$false
         Set-KitStateValue -Path $StatePath -Key 'AutomationInstalledAt' -Value ((Get-Date).ToString('o'))

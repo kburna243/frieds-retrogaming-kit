@@ -75,6 +75,17 @@ Describe 'Pinball steps 1-7 as stand-alone scripts' {
         (& "$steps\05-Relocate.ps1" @b -RegistryRoots "$testKey\FP" -AppCompatRoots "$testKey\Layers").Status | Should Be 'NeedsUser'
     }
 
+    It 'every step refuses a root with & % ^ ! or quotes (N7, not only step 2)' {
+        foreach ($r in 'C:\Games&calc', 'C:\100%', 'C:\a^b', 'C:\Hi!', 'C:\"x') {
+            Get-PinballRootProblem -Root $r -NoDatabase | Should Match 'cannot handle safely'
+        }
+        Get-PinballRootProblem -Root 'C:\Games (1)\x_y-z.v2' -NoDatabase | Should BeNullOrEmpty
+        $bad = Join-Path $TestDrive 'bad-chars-state.json'
+        Copy-Item -LiteralPath $state -Destination $bad
+        Set-KitStateValue -Path $bad -Key 'TargetRoot' -Value 'C:\Games&calc'
+        (& "$steps\05-Relocate.ps1" -StatePath $bad -Culture 'en-US' -RegistryRoots "$testKey\FP" -AppCompatRoots "$testKey\Layers").Status | Should Be 'NeedsUser'
+    }
+
     It 'registry steps lock for another user' {
         @(& "$steps\07-FpBamSetup.ps1" @common -KitUserSid 'S-1-5-18' -LayersKey "$testKey\Layers2" -Approve { throw 'must not ask' })[0].Status | Should Be 'NeedsUser'
     }

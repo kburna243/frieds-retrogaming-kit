@@ -212,6 +212,25 @@ Describe 'Relocation scans stay inside the build' {
         $r[0].Link | Should Be 'Unc'
         $r[0].Status | Should Be 'Unchanged'
     }
+
+    It 'also treats //server/share (forward slashes) as a network path (N8)' {
+        Mock -ModuleName 'RetroCabinetKit.Pinball' Get-KitShortcut {
+            [pscustomobject]@{ Path = $Path; TargetPath = '//127.0.0.1/rck-no-such-share/x.exe'; Arguments = ''; WorkingDirectory = ''; IconLocation = ''; Description = '' }
+        }
+        Mock -ModuleName 'RetroCabinetKit.Pinball' Test-Path { throw 'must not probe a foreign network path' } -ParameterFilter { $LiteralPath -like '//*' -or $LiteralPath -like '\\*' }
+        $r = @(Invoke-PinballShortcutRelocation -Folder "$root\vPinball" -Relocator $rel -DryRun)
+        @($r | Where-Object { $_.Link -ne 'Unc' }).Count | Should Be 0
+        $r.Count | Should BeGreaterThan 0
+    }
+
+    It 'finds shortcuts by their exact extension and skips file links (N6)' {
+        $t = "$root\vPinball\Tables"
+        [IO.File]::WriteAllText("$t\averylongname.lnkx", 'not a shortcut')
+        $null = cmd /c mklink "$t\linked.lnk" "$t\net.lnk"
+        Mock -ModuleName 'RetroCabinetKit.Pinball' Get-KitShortcut { throw "must not open $Path" } -ParameterFilter { $Path -notlike '*\net.lnk' }
+        try { $null = @(Invoke-PinballShortcutRelocation -Folder "$root\vPinball" -Relocator $rel -DryRun) }
+        finally { Remove-Item -LiteralPath "$t\averylongname.lnkx", "$t\linked.lnk" -Force }
+    }
 }
 
 Describe 'Relocation edge cases on the database' {

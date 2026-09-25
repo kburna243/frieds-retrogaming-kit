@@ -9,8 +9,12 @@
 .PARAMETER RegistryKeys
     Registry keys to back up (default: Future Pinball, VPinMAME, B2S, Visual Pinball below HKCU\Software).
 .PARAMETER Approve
-    { param($text) ... } returning $true to run RunWindowsStartup.bat shown with SHA256 and signature status.
-    The wizard passes its dialog; without it the console asks.
+    { param($text) ... } returning $true to run RunWindowsStartup.bat shown with SHA256, signature status, its
+    first 40 lines and the broad write rights on vPinball. The wizard passes its dialog; without it the console
+    asks.
+.PARAMETER KitUserSid
+    SID of the user who started the kit; the autostart is set up for the logged-on user and stops for another
+    user or when it runs elevated without this SID.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -20,6 +24,7 @@ param(
     [string] $BackupDir,
     [hashtable] $Paths = @{},
     [string[]] $RegistryKeys,
+    [string] $KitUserSid,
     [string] $StatePath,
     [string] $Culture
 )
@@ -54,12 +59,22 @@ $backup = New-KitStep -Name 'pinball-9-backup' `
 Invoke-KitStep -Step $backup -StatePath $StatePath -WhatIf:$WhatIfPreference
 
 if ($EnableAutostart) {
+    # The batch file sets up the autostart for the logged-on user: same lock as the registry steps 5-8 (N4).
+    $userLock = Get-KitRegistryUserLock -OriginalSid $KitUserSid
+    if ($userLock) { Write-KitLog $userLock -Level Warn }
     $bat = if ($Root -and -not $rootProblem) { Find-PinballStartupBat -Root $Root }
     if (-not $bat) { Write-KitLog (Get-KitText 'Pinball.Finish.NoStartupBat') -Level Warn }
+    # Whoever may change the build may change what starts with Windows: shown before the confirmation.
+    $risks = @()
+    if ($bat) {
+        $risks = @(Get-PinballFolderAclRisk -Path (Join-PinballPath (ConvertTo-PinballRoot $Root) 'vPinball') |
+            ForEach-Object { Get-KitText 'Pinball.Acl.Risk' -f $_.Path, $_.Name, $_.Rights })
+    }
+    foreach ($r in $risks) { Write-KitLog $r -Level Warn }
     $autostart = New-KitStep -Name 'pinball-9-autostart' `
-        -Test { [bool]$bat } `
+        -Test { [bool]$bat -and -not $userLock } `
         -Invoke {
-            $code = Invoke-PinballBat -Path $bat -Approve $Approve
+            $code = Invoke-PinballBat -Path $bat -Lines $risks -ShowLines 40 -Approve $Approve
             if ($code -ne 0) { throw (Get-KitText 'Pinball.FpBam.BatFailed' -f $bat, $code) }
             Set-KitStateValue -Path $StatePath -Key 'AutostartDone' -Value $true
         } `

@@ -7,12 +7,14 @@ Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 
 # All files below the folders (hidden ones too). Subfolders that are reparse points (junctions, symbolic
 # links) are not entered, so a scan never leaves the build through a link. The given folders themselves
-# are taken as they are.
+# are taken as they are. -Filter is applied to the long name again (Windows also matches 8.3 names: '*.lnk'
+# would return 'x.lnkx'). -SkipReparseFiles leaves out file links too (callers that write or run the files).
 function Get-KitFileTree {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string[]] $Path,
-        [string] $Filter = '*'
+        [string] $Filter = '*',
+        [switch] $SkipReparseFiles
     )
     $queue = New-Object Collections.Generic.Queue[IO.DirectoryInfo]
     foreach ($p in $Path) {
@@ -23,7 +25,11 @@ function Get-KitFileTree {
         $d = $queue.Dequeue()
         try { $files = $d.GetFiles($Filter); $dirs = $d.GetDirectories() }
         catch { Write-Verbose "$($d.FullName): $($_.Exception.Message)"; continue }
-        $files
+        foreach ($f in $files) {
+            if ($f.Name -notlike $Filter) { continue }
+            if ($SkipReparseFiles -and ($f.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
+            $f
+        }
         foreach ($s in $dirs) { if (-not ($s.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $queue.Enqueue($s) } }
     }
 }

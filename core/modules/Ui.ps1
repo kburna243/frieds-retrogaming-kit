@@ -281,8 +281,8 @@ function Add-KitCreditsView {
     $box.Width = Get-PanelInnerWidth $Panel
     $box.Height = [math]::Max(300, $Panel.ClientSize.Height - 60)
     $box.Text = if (Test-Path -LiteralPath $Path) { ConvertFrom-KitCreditsMarkdown ([IO.File]::ReadAllText($Path, [Text.Encoding]::UTF8)) } else { $Path }
-    # Only web links are opened, nothing else from the file is ever executed.
-    $box.add_LinkClicked({ if ($_.LinkText -match '^https?://') { Start-Process $_.LinkText } })
+    # Only web links are opened (through explorer.exe, never elevated), nothing else from the file is executed.
+    $box.add_LinkClicked({ $null = Open-KitWebLink -Url $_.LinkText })
     $Panel.Controls.Add($box)
     $box
 }

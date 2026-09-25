@@ -38,7 +38,7 @@ function Get-KitLogFile {
 }
 
 # Placeholders for what identifies the person or the machine: profile path, user name, computer name and
-# account SIDs (S-1-5-21-...). Names only count as whole words, so a short user name does not eat text.
+# account SIDs (S-1-5-21-..., Entra ID S-1-12-1-...). Names only count as whole words, so a short user name does not eat text.
 function ConvertTo-KitAnonymousText {
     [CmdletBinding()]
     param(
@@ -47,7 +47,7 @@ function ConvertTo-KitAnonymousText {
         [string] $ComputerName = $env:COMPUTERNAME,
         [string] $UserProfile = $env:USERPROFILE
     )
-    $t = [regex]::Replace($Text, 'S-1-5-21(?:-\d+){3,4}', '<SID>')
+    $t = [regex]::Replace($Text, 'S-1-(?:5-21|12-1)(?:-\d+){3,4}', '<SID>') # local/domain and Entra ID accounts
     if ($UserProfile) { $t = [regex]::Replace($t, [regex]::Escape($UserProfile.TrimEnd('\')), '<USERPROFILE>', 'IgnoreCase') }
     foreach ($pair in @(@($UserName, '<USER>'), @($ComputerName, '<COMPUTER>'))) {
         if ($pair[0]) { $t = [regex]::Replace($t, '(?<![\p{L}\p{N}_])' + [regex]::Escape($pair[0]) + '(?![\p{L}\p{N}_])', $pair[1], 'IgnoreCase') }

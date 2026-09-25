@@ -147,6 +147,7 @@ function Register-LightgunTask {
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
     $params = @{ TaskName = $TaskName; Action = $action; Principal = $principal; Settings = $settings; Force = $true }
     if ($AtLogOn) { $params.Trigger = New-ScheduledTaskTrigger -AtLogOn -User $user }
+    Write-KitLog (Get-KitText 'Lightgun.Task.Plan' -f $TaskName, $Execute, $Argument, $user) # what runs with highest rights (N4)
     if (-not $PSCmdlet.ShouldProcess($TaskName, "Register task ($Execute $Argument), highest rights, user $user")) { return }
     $null = Register-ScheduledTask @params
     Write-KitLog (Get-KitText 'Lightgun.Task.Registered' -f $TaskName, $user)

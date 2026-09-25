@@ -95,6 +95,23 @@ Describe 'Register plan confirmation and unblocking (nothing is registered)' {
         Test-Blocked $other | Should Be $true
         Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 1
     }
+
+    It 'holds the confirmed file read-only while the registration runs, and refuses a changed one (N5)' {
+        $global:RckProbe = $null
+        Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process {
+            $w = $true
+            try { [IO.File]::Open($inPlan, 'Open', 'ReadWrite', 'ReadWrite').Dispose() } catch { $w = $false }
+            $global:RckProbe = $w
+            [pscustomobject]@{ ExitCode = 0 }
+        }
+        (@(Invoke-PinballRegisterPlan -Root $TestDrive -Plan $plan -Approve { $true }))[0].Result | Should Be 'Ok'
+        $global:RckProbe | Should Be $false
+        # Changed between confirmation and start: nothing runs.
+        $rows = @(Invoke-PinballRegisterPlan -Root $TestDrive -Plan $plan -Approve { [IO.File]::WriteAllBytes($inPlan, [byte[]](9)); $true })
+        $rows[0].Result | Should Be 'Failed'
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 1 -Exactly -Scope It
+        Remove-Variable -Name RckProbe -Scope Global
+    }
 }
 
 Describe 'Folder rights of the build (analysis on a TEMP folder only)' {
@@ -120,6 +137,22 @@ Describe 'Folder rights of the build (analysis on a TEMP folder only)' {
     It 'warns about Everyone, Users and Authenticated Users with write or modify rights' {
         $r = @(Get-PinballFolderAclRisk -Path (New-AclFolder 'open' @{ 'S-1-1-0' = 'Modify'; 'S-1-5-32-545' = 'Write'; 'S-1-5-11' = 'AppendData' }))
         ($r | ForEach-Object { $_.Sid } | Sort-Object) -join ',' | Should Be 'S-1-1-0,S-1-5-11,S-1-5-32-545'
+    }
+
+    It 'reports a FAT/exFAT drive as a risk: it has no rights at all (N9)' {
+        Set-KitCulture -Culture 'en-US'
+        foreach ($fs in 'FAT32', 'exFAT') {
+            $r = @(Get-PinballFolderAclRisk -Path (New-AclFolder 'own') -FileSystem $fs)
+            $r.Count | Should Be 1
+            $r[0].Sid | Should Be 'S-1-1-0'
+            $r[0].Name | Should Match $fs
+        }
+        @(Get-PinballFolderAclRisk -Path (New-AclFolder 'own') -FileSystem 'NTFS').Count | Should Be 0
+    }
+
+    It 'accepts an Entra ID account SID (S-1-12-1-...) for the hardening' {
+        (Get-PinballHardeningArgument -Path 'E:\x' -UserSid 'S-1-12-1-1111111111-2222222222-3333333333-4444444444') -join ' ' | Should Match '\*S-1-12-1-1111111111-2222222222-3333333333-4444444444:\(OI\)\(CI\)M'
+        { Get-PinballHardeningArgument -Path 'E:\x' -UserSid 'S-1-12-2-1-2-3-4' } | Should Throw
     }
 
     It 'builds the icacls hardening command and refuses anything but a user SID' {

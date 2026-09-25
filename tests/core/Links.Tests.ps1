@@ -33,3 +33,21 @@ Describe 'Links' {
         { Get-KitShortcut -Path (Join-Path $TestDrive 'none.lnk') } | Should Throw
     }
 }
+
+Describe 'Open-KitWebLink (Start-Process mocked, no browser opens)' {
+    It 'hands web links to explorer.exe (never a browser started with the wizard''s rights)' {
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { }
+        Open-KitWebLink -Url 'https://github.com/nefarius/ViGEmBus/releases' | Should Be $true
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Core' Start-Process -Times 1 -Exactly -ParameterFilter {
+            $FilePath -eq (Join-Path $env:SystemRoot 'explorer.exe') -and $ArgumentList -eq '"https://github.com/nefarius/ViGEmBus/releases"'
+        }
+    }
+
+    It 'ignores everything that is not a plain http(s) URL' {
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
+        foreach ($u in 'file:///C:/Windows/System32/calc.exe', 'C:\Windows\System32\calc.exe', 'https://x.example/a" /c calc', 'javascript:alert(1)', '') {
+            Open-KitWebLink -Url $u | Should Be $false
+        }
+        Open-KitWebLink -Url 'http://example.com/' -HttpsOnly | Should Be $false
+    }
+}

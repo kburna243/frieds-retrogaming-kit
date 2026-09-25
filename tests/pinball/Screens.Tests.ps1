@@ -366,9 +366,24 @@ Describe 'Screens: steps 8 and 9 as stand-alone scripts' {
         $r = @(& "$steps\09-Finish.ps1" @common @opt -EnableAutostart -Approve { $false })
         ($r | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'pinball-9-backup=Skipped,pinball-9-autostart=Failed'
         Join-Path $pup 'autostart_ran.txt' | Should Not Exist
-        $r = @(& "$steps\09-Finish.ps1" @common @opt -EnableAutostart -Approve { param($t) $t -match 'RunWindowsStartup\.bat \| SHA256 [0-9A-F]{64}' })
+        # Another account (elevated over the shoulder): the autostart is locked like the registry steps (N4).
+        $r = @(& "$steps\09-Finish.ps1" @common @opt -EnableAutostart -KitUserSid 'S-1-5-18' -Approve { throw 'must not ask' })
+        ($r | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'pinball-9-backup=Skipped,pinball-9-autostart=NeedsUser'
+        # The confirmation shows the file with SHA256 AND its content (N4).
+        $r = @(& "$steps\09-Finish.ps1" @common @opt -EnableAutostart -Approve {
+            param($t) $t -match 'RunWindowsStartup\.bat \| SHA256 [0-9A-F]{64}' -and $t -match '(?m)^    echo ok> autostart_ran\.txt\r?$' -and $t -match 'first 2 of 2 lines' })
         ($r | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'pinball-9-backup=Skipped,pinball-9-autostart=Done'
         Join-Path $pup 'autostart_ran.txt' | Should Exist
+    }
+
+    It '9: shows at most the first 40 lines of the batch file' {
+        $bat = Join-Path $TestDrive 'long.bat'
+        [IO.File]::WriteAllLines($bat, @(1..60 | ForEach-Object { "rem line $_" }))
+        $script:shown = $null
+        { Invoke-PinballBat -Path $bat -ShowLines 40 -Approve { param($t) $script:shown = $t; $false } -Confirm:$false } | Should Throw
+        $script:shown | Should Match 'first 40 of 60 lines'
+        $script:shown | Should Match '(?m)^    rem line 40\r?$'
+        $script:shown | Should Not Match 'rem line 41'
     }
 
     It '8 and 9: a root that is no local build is refused' {

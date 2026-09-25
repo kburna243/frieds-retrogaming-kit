@@ -160,3 +160,54 @@ Describe 'Lightgun steps 8-9 as stand-alone scripts' {
         ($r | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'lightgun-9-xinput=NeedsUser,lightgun-9-profile=NeedsUser,lightgun-9-launcher=NeedsUser'
     }
 }
+
+# N4: tasks with highest rights only for the logged-on account and only after a plan that names what they start.
+# Administrator rights are simulated (Test-KitAdmin mocked); registering is mocked and must not be reached.
+Describe 'Lightgun steps 4 and 8: user lock and plan before tasks with highest rights' {
+    Set-KitCulture -Culture 'en-US'
+    $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $rb = Join-Path $TestDrive 'RetroBat'
+    & $newRetroBat -Root $rb
+    $state = Join-Path $TestDrive 'install-state.json'
+    $common = @{ StatePath = $state; Culture = 'en-US' }
+    Set-KitStateValue -Path $state -Key 'RetroBatRoot' -Value $rb
+    Set-KitStateValue -Path $state -Key 'LayoutTitles' -Value ([pscustomobject]@{ Menu = 'RCK Menu (no pointer)'; Pad43 = 'RCK Pad 4:3'; TP = 'RCK TeknoParrot'; Mouse = 'RCK Mouse' })
+    $auto = Join-Path $TestDrive 'Sim\lightgun'
+    $g = Join-Path $TestDrive 'Gunmote'
+    New-Item -ItemType Directory -Path $g -Force | Out-Null
+    [IO.File]::WriteAllBytes("$g\Gunmote.exe", [byte[]](77, 90))
+    $gunmote = [pscustomobject]@{ Dir = $g; Exe = "$g\Gunmote.exe"; Version = '1'; Keymaps = "$g\Keymaps"; KeymapsJson = "$g\Keymaps\Keymaps.json"; InProgramFiles = $true }
+
+    Mock Test-KitAdmin { $true }
+    Mock Find-LightgunGunmote { $gunmote }
+    Mock Register-LightgunGunmoteTask { throw 'must not register' }
+    Mock -ModuleName 'RetroCabinetKit.Lightgun' Register-ScheduledTask { throw 'must not register' }
+
+    It '4: elevated as another account -> needs the user, no confirmation, no task' {
+        (& "$steps\04-Gunmote.ps1" @common -KitUserSid 'S-1-5-18' -Tasks @() -Approve { throw 'must not ask' }).Status | Should Be 'NeedsUser'
+    }
+
+    It '4: shows the program the task starts (with SHA256) and registers nothing when declined' {
+        $global:RckShown = $null # the step is its own script scope: $script: would not reach the test
+        (& "$steps\04-Gunmote.ps1" @common -KitUserSid $me -Tasks @() -Approve { param($t) $global:RckShown = $t; $false }).Status | Should Be 'Failed'
+        $global:RckShown | Should Match ([regex]::Escape("$g\Gunmote.exe"))
+        $global:RckShown | Should Match 'highest rights'
+        $global:RckShown | Should Match (Get-FileHash -LiteralPath "$g\Gunmote.exe" -Algorithm SHA256).Hash
+        Remove-Variable -Name RckShown -Scope Global
+    }
+
+    It '8: elevated as another account -> needs the user, nothing written' {
+        (& "$steps\08-ProfileAutomation.ps1" @common -KitUserSid 'S-1-5-18' -AutomationDir $auto -TaskPrefix 'RCK-TEST Profile' -Tasks @() -Approve { throw 'must not ask' }).Status | Should Be 'NeedsUser'
+        $auto | Should Not Exist
+    }
+
+    It '8: shows every task with the script it starts and profile.ps1 with SHA256; declined -> nothing written' {
+        $global:RckShown = $null
+        (& "$steps\08-ProfileAutomation.ps1" @common -KitUserSid $me -AutomationDir $auto -TaskPrefix 'RCK-TEST Profile' -Tasks @() -Approve { param($t) $global:RckShown = $t; $false }).Status | Should Be 'Failed'
+        $global:RckShown | Should Match ([regex]::Escape("RCK-TEST Profile Pad43"))
+        $global:RckShown | Should Match ([regex]::Escape("-File `"$auto\profile.ps1`" -Layout `"RCK Pad 4:3`""))
+        $global:RckShown | Should Match (Get-FileHash -LiteralPath (Get-LightgunTemplatePath) -Algorithm SHA256).Hash
+        Remove-Variable -Name RckShown -Scope Global
+        $auto | Should Not Exist
+    }
+}

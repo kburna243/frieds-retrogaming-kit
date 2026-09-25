@@ -75,33 +75,69 @@ function Get-KitDownloadDir {
     Join-Path $Base 'downloads'
 }
 
-# Creates <Base> and <Base>\downloads with an ACL for Administrators and SYSTEM only (inheritance off). As
-# administrator the owner becomes Administrators, so a folder a user created there beforehand loses its
-# owner rights. Links (junctions) are refused. Returns the downloads folder.
+# Creates the folder, or accepts an existing one only when its owner is one of -TrustedOwner (default:
+# Administrators, SYSTEM). Below ProgramData every user may create folders: one created beforehand stays under
+# the user's control (the owner can always rewrite the ACL), so the kit stops instead of using it. A folder
+# created right here (New-Item fails if someone was faster) needs no check. Links (junctions) are refused.
+# Returns the full path.
+function Initialize-KitTrustedFolder {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [string[]] $TrustedOwner = @('S-1-5-32-544', 'S-1-5-18')
+    )
+    $full = Resolve-FullPath $Path
+    $created = $false
+    if (-not (Test-Path -LiteralPath $full)) {
+        try { $null = New-Item -ItemType Directory -Path $full -ErrorAction Stop; $created = $true }
+        catch { if (-not (Test-Path -LiteralPath $full)) { throw } }
+    }
+    if ((Get-Item -LiteralPath $full -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw (Get-KitText 'Path.ReparsePoint' -f $full) }
+    if (-not $created) {
+        $owner = [IO.Directory]::GetAccessControl($full).GetOwner([Security.Principal.SecurityIdentifier]).Value
+        if ($TrustedOwner -notcontains $owner) { throw (Get-KitText 'Path.UntrustedOwner' -f $full, $owner) }
+    }
+    $full
+}
+
+# Creates <Base> and <Base>\downloads (existing ones only with a trusted owner) with an ACL for Administrators
+# and SYSTEM only (inheritance off); -TrustedOwner SIDs get full control too (tests in TEMP add their own SID,
+# the default adds nothing). As administrator the owner becomes Administrators. Returns the downloads folder.
 function Initialize-KitDownloadDir {
     [CmdletBinding()]
-    param([string] $Base = (Join-Path $env:ProgramData 'RetroCabinetKit'))
+    param(
+        [string] $Base = (Join-Path $env:ProgramData 'RetroCabinetKit'),
+        [string[]] $TrustedOwner = @('S-1-5-32-544', 'S-1-5-18')
+    )
     $admin = Test-KitAdmin
     # A fresh object per folder: after one SetAccessControl the object counts as unchanged and writes nothing.
     $newAcl = {
         $acl = New-Object Security.AccessControl.DirectorySecurity
         $acl.SetAccessRuleProtection($true, $false)
-        foreach ($sid in 'S-1-5-32-544', 'S-1-5-18') {
+        foreach ($sid in (@('S-1-5-32-544', 'S-1-5-18') + $TrustedOwner | Select-Object -Unique)) {
             $id = New-Object Security.Principal.SecurityIdentifier $sid
             $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule ($id, 'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow')))
         }
         if ($admin) { $acl.SetOwner((New-Object Security.Principal.SecurityIdentifier 'S-1-5-32-544')) }
         $acl
     }
-    $full = Resolve-FullPath $Base
-    $dirs = @($full, (Get-KitDownloadDir -Base $full))
-    foreach ($d in $dirs) {
-        if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
-        if ((Get-Item -LiteralPath $d -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw (Get-KitText 'Path.ReparsePoint' -f $d) }
-    }
+    $full = Initialize-KitTrustedFolder -Path $Base -TrustedOwner $TrustedOwner
+    $dl = Initialize-KitTrustedFolder -Path (Get-KitDownloadDir -Base $full) -TrustedOwner $TrustedOwner
     # Deepest first: once the base is locked, a non-administrator (tests) could not reach the child any more.
-    foreach ($d in $dirs[1], $dirs[0]) { (Get-Item -LiteralPath $d -Force).SetAccessControl((& $newAcl)) }
-    $dirs[1]
+    foreach ($d in $dl, $full) { (Get-Item -LiteralPath $d -Force).SetAccessControl((& $newAcl)) }
+    $dl
+}
+
+# A fresh folder per run (GUID) below the locked downloads folder, created only AFTER the lock: it inherits the
+# admin-only ACL and nobody else can have put a file into it.
+function New-KitWorkDir {
+    [CmdletBinding()]
+    param(
+        [string] $Base = (Join-Path $env:ProgramData 'RetroCabinetKit'),
+        [string[]] $TrustedOwner = @('S-1-5-32-544', 'S-1-5-18')
+    )
+    $dl = Initialize-KitDownloadDir -Base $Base -TrustedOwner $TrustedOwner
+    (New-Item -ItemType Directory -Path (Join-Path $dl ([guid]::NewGuid().ToString('N'))) -ErrorAction Stop).FullName
 }
 
 # Common name (SimpleName) and O= of the signer certificate.
@@ -162,6 +198,105 @@ function Test-KitFilePlanHash {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [psobject] $Row)
     (Test-Path -LiteralPath $Row.Path -PathType Leaf) -and (Get-FileHash -LiteralPath $Row.Path -Algorithm SHA256).Hash -eq $Row.Sha256
+}
+
+# Opens the file of a plan row read-only with FileShare.Read and checks the hash read THROUGH that handle:
+# while the returned stream is open nobody can change, replace or delete the file, and it is the confirmed
+# one. Programs may still read and run it. $null (nothing held) when it is missing, locked or changed.
+function Open-KitFilePlanFile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Row)
+    try { $fs = [IO.File]::Open($Row.Path, 'Open', 'Read', 'Read') } catch { return $null }
+    $ok = $false
+    try { $ok = (Get-Sha256Hex $fs) -eq $Row.Sha256 } finally { if (-not $ok) { $fs.Dispose() } }
+    if ($ok) { $fs }
+}
+
+# An installer never runs where it was found (N1): next to it in the build or download folder a planted DLL
+# would be loaded, and the file could be swapped between check and start. Each item is copied into a fresh
+# admin-only work folder (New-KitWorkDir): the file, or with Folder = $true everything below its folder (links
+# skipped). EVERY .exe/.dll there must carry a valid signature with the expected CN (Publisher) and O
+# (Organization, default: the first CN). The PE files of all trusted items are confirmed as ONE plan with
+# SHA256 (-Lines on top; -Approve, else the console asks). Right before the start the work folder must hold
+# exactly the copied files, and every PE file is held open with FileShare.Read after its hash was read through
+# that handle. The copy starts with the work folder as working directory; the folder is removed afterwards.
+# Windows' own programs below System32 (DISM) run in place: only administrators can change that folder and a
+# copy would miss their components. Item: @{ Name; Path; Arguments; Publisher; Organization; Folder }.
+# Returns one row per item: Name, Result (Ok | Untrusted | Declined | Changed), ExitCode, File, Signature.
+function Invoke-KitVerifiedExecutable {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [hashtable[]] $Item,
+        [string[]] $Lines = @(),
+        [scriptblock] $Approve,
+        [string] $Base = (Join-Path $env:ProgramData 'RetroCabinetKit'),
+        [string[]] $TrustedOwner = @('S-1-5-32-544', 'S-1-5-18')
+    )
+    $rows = New-Object Collections.Generic.List[object]
+    $ready = New-Object Collections.Generic.List[object]
+    $system32 = Join-Path $env:SystemRoot 'System32'
+    try {
+        foreach ($it in $Item) {
+            $row = [pscustomobject]@{ Name = $it.Name; Result = 'Untrusted'; ExitCode = $null; File = $null; Signature = $null }
+            $rows.Add($row)
+            $src = Resolve-FullPath $it.Path
+            $srcDir = Split-Path -Parent $src
+            $job = [pscustomobject]@{ Row = $row; Item = $it; Work = $srcDir; Exe = $src; Expected = $null; Plan = @(); Temp = $false }
+            if (-not (Test-KitPathUnder -Path $src -Root $system32)) {
+                $job.Work = New-KitWorkDir -Base $Base -TrustedOwner $TrustedOwner
+                $job.Temp = $true
+                $files = if ($it['Folder']) { @(Get-KitFileTree -Path $srcDir -SkipReparseFiles) } else { @(Get-Item -LiteralPath $src -Force) }
+                $job.Expected = @(foreach ($f in $files) {
+                    $rel = $f.FullName.Substring($srcDir.Length).TrimStart('\')
+                    $dest = Join-Path $job.Work $rel
+                    $null = New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force
+                    Copy-Item -LiteralPath $f.FullName -Destination $dest
+                    $rel
+                })
+                $job.Exe = Join-Path $job.Work (Split-Path -Leaf $src)
+                $pe = @($job.Expected | Where-Object { [IO.Path]::GetExtension($_) -in '.exe', '.dll' } | ForEach-Object { Join-Path $job.Work $_ })
+            } else { $pe = @($src) }
+            $bad = $null
+            foreach ($p in $pe) {
+                $sig = Test-KitSignature -Path $p -ExpectedPublisher $it.Publisher -ExpectedOrganization $it['Organization']
+                if (-not $sig.IsTrusted) { $bad = $sig; break }
+            }
+            if ($bad) {
+                $row.File = $bad.Path; $row.Signature = $bad
+                if ($job.Temp) { Remove-Item -LiteralPath $job.Work -Recurse -Force -ErrorAction SilentlyContinue }
+                continue
+            }
+            $job.Plan = @(Get-KitFilePlan -Path $pe)
+            $ready.Add($job)
+        }
+        $ok = $ready.Count -and (Confirm-KitPlan -Lines $Lines -FilePlan @($ready | ForEach-Object { $_.Plan }) -Approve $Approve)
+        foreach ($job in $ready) {
+            if (-not $ok) { $job.Row.Result = 'Declined'; continue }
+            $handles = New-Object Collections.Generic.List[object]
+            try {
+                $job.Row.Result = 'Changed'
+                if ($job.Temp) {
+                    $present = @(Get-ChildItem -LiteralPath $job.Work -Recurse -Force | Where-Object { -not $_.PSIsContainer } |
+                        ForEach-Object { $_.FullName.Substring($job.Work.Length).TrimStart('\') })
+                    if ((@($present | Sort-Object) -join '|') -ne (@($job.Expected | Sort-Object) -join '|')) { continue }
+                }
+                foreach ($p in $job.Plan) {
+                    $h = Open-KitFilePlanFile -Row $p
+                    if (-not $h) { break }
+                    $handles.Add($h)
+                }
+                if ($handles.Count -ne $job.Plan.Count) { continue }
+                $opt = @{ FilePath = $job.Exe; WorkingDirectory = $job.Work; Wait = $true; PassThru = $true; WindowStyle = 'Hidden' }
+                if ($job.Item['Arguments']) { $opt.ArgumentList = $job.Item['Arguments'] } # -ArgumentList refuses empty values
+                $job.Row.ExitCode = (Start-Process @opt).ExitCode
+                $job.Row.Result = 'Ok'
+            } finally { foreach ($h in $handles) { $h.Dispose() } }
+        }
+    } finally {
+        foreach ($job in $ready | Where-Object { $_.Temp }) { Remove-Item -LiteralPath $job.Work -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+    foreach ($r in $rows | Where-Object { $_.Result -eq 'Changed' }) { Write-KitLog (Get-KitText 'Plan.Changed' -f $r.Name) -Level Error }
+    $rows.ToArray()
 }
 
 # Shows the plan (log) and asks for confirmation: -Approve { param($text) ... } returns $true/$false (the

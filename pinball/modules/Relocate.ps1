@@ -164,8 +164,9 @@ function Invoke-PinballDatabaseRelocation {
 function Get-PinballTextFile {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string[]] $Folder)
-    # Junctions and symbolic links inside the build are not followed (a scan never leaves the build).
-    Get-KitFileTree -Path $Folder | Where-Object {
+    # Junctions and symbolic links inside the build are not followed (a scan never leaves the build), file links
+    # are left out too: the files found here get rewritten.
+    Get-KitFileTree -Path $Folder -SkipReparseFiles | Where-Object {
         $script:PinballTextExtensions -contains $_.Extension.ToLowerInvariant() -and
         $script:PinballTextExcludedNames -notcontains $_.Name.ToLowerInvariant() -and
         $_.Length -le $script:PinballTextMaxBytes
@@ -267,7 +268,7 @@ function Invoke-PinballShortcutRelocation {
         [Parameter(Mandatory)] [psobject] $Relocator,
         [switch] $DryRun
     )
-    foreach ($file in Get-KitFileTree -Path $Folder -Filter '*.lnk') {
+    foreach ($file in Get-KitFileTree -Path $Folder -Filter '*.lnk' -SkipReparseFiles) {
         $link = Get-KitShortcut -Path $file.FullName
         $changes = @{}
         $count = 0
@@ -285,7 +286,7 @@ function Invoke-PinballShortcutRelocation {
         # Windows contact a server a foreign shortcut names (and send the user's credentials there).
         $known = $target -and ($Relocator.Guard.Match($target, 0).Success -or
                  @($Relocator.Pattern.Matches($target) | Where-Object { $_.Index -eq 0 }).Count)
-        if ($target -match '^\\\\' -and -not $known) { $state = 'Unc' }
+        if ($target -and $target.Replace('/', '\') -match '^\\\\' -and -not $known) { $state = 'Unc' } # also //server/share (N8)
         elseif ($target -and -not (Test-Path -LiteralPath $target)) {
             $plugin = Join-Path $file.DirectoryName (Split-Path -Leaf $target)
             $state = if ($file.Directory.Name -match '^plugins(64)?$' -and (Test-Path -LiteralPath $plugin -PathType Container)) { 'Redundant' } else { 'Dead' }

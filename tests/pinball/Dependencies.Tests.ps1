@@ -72,74 +72,100 @@ Describe 'Dependency plan and install results (nothing is installed)' {
         Get-PinballInstallerResult 1603 | Should Be 'Failed'
     }
 
+    # The kit data folder is simulated in TEMP (never ProgramData); the test user is a trusted owner there.
+    $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $kd = @{ KitDataBase = (Join-Path $TestDrive 'KitData'); TrustedOwner = @('S-1-5-32-544', 'S-1-5-18', $me) }
+    $work = Join-Path $TestDrive 'KitData\downloads'
+
     It 'never runs DISM without confirmation and downloads nothing under -WhatIf' {
-        Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { throw 'must not start a process' }
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start a process' }
         Mock -ModuleName 'RetroCabinetKit.Pinball' Save-KitDownload { throw 'must not download' }
-        $rows = @(Invoke-PinballDependencyPlan -Plan $plan -WhatIf)
+        $rows = @(Invoke-PinballDependencyPlan -Plan $plan -WhatIf @kd)
         ($rows | Where-Object { $_.Id -eq 'NetFx35' }).Result | Should Be 'NeedsUser'
         ($rows | Where-Object { $_.Id -eq 'Windows' }).Result | Should Be 'NeedsUser'
         ($rows | Where-Object { $_.Id -eq 'VC2015-2022-x64' }).Result | Should Be 'Skipped'
-        Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 0
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Core' Start-Process -Times 0
         Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Save-KitDownload -Times 0
     }
 
     It 'deletes a download without a valid Microsoft signature (NeedsUser, nothing started)' {
-        $dl = Join-Path $TestDrive 'dl'
-        New-Item -ItemType Directory -Path $dl -Force | Out-Null
         Mock -ModuleName 'RetroCabinetKit.Pinball' Save-KitDownload { Set-Content -LiteralPath $Destination -Value 'x'; Get-Item -LiteralPath $Destination }
-        Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { throw 'must not start an unsigned file' }
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start an unsigned file' }
         $item = $plan | Where-Object { $_.Id -eq 'VC2015-2022-x64' }
-        $row = Invoke-PinballDependencyPlan -Plan @($item) -DownloadDir $dl -Approve { throw 'no plan for untrusted files' }
+        $row = Invoke-PinballDependencyPlan -Plan @($item) @kd -Approve { throw 'no plan for untrusted files' }
         $row.Result | Should Be 'NeedsUser'
         $row.Message | Should Match 'no valid signature'
-        @(Get-ChildItem -LiteralPath $dl).Count | Should Be 0
-        Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 0
+        @(Get-ChildItem -LiteralPath $work -Force).Count | Should Be 0 # download and work folder are gone
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Core' Start-Process -Times 0
     }
 
     It 'does not run an unsigned installer from the build (placeholder file of the test build)' {
-        Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { throw 'must not start an unsigned file' }
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start an unsigned file' }
         $item = $plan | Where-Object { $_.Id -eq 'VC2008-x86' }
-        $row = Invoke-PinballDependencyPlan -Plan @($item) -Approve { throw 'no plan for untrusted files' }
+        $row = Invoke-PinballDependencyPlan -Plan @($item) @kd -Approve { throw 'no plan for untrusted files' }
         $row.Result | Should Be 'NeedsUser'
         "$root\vPinball\2-Programs\All In One Runtimes\vcredist2008_x86.exe" | Should Exist # the build is never changed
-        Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 0
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Core' Start-Process -Times 0
     }
 
     It 'never takes installers from a network path' {
         $unc = @(Get-PinballDependencyPlan -Root '\\nas\share' -Status $missing)
         @($unc | Where-Object { $_.Source -eq 'Build' }).Count | Should Be 0
         ($unc | Where-Object { $_.Id -eq 'DirectX9' }).Source | Should Be 'Download'
-        Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { throw 'must not start' }
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
         $item = [pscustomobject]@{ Id = 'X'; Name = 'X'; Source = 'Build'; FilePath = '\\nas\share\vPinball\x.exe'; Arguments = ''; Url = $null; Publisher = 'Microsoft Corporation' }
-        (Invoke-PinballDependencyPlan -Plan @($item) -Approve { $true }).Result | Should Be 'NeedsUser'
+        (Invoke-PinballDependencyPlan -Plan @($item) @kd -Approve { $true }).Result | Should Be 'NeedsUser'
     }
 
-    Context 'a trusted file (a Windows system file stands in for an installer)' {
-        $notepad = Join-Path $env:SystemRoot 'System32\notepad.exe'
-        $item = [pscustomobject]@{ Id = 'T'; Name = 'Test'; Source = 'Build'; FilePath = $notepad; Arguments = '/x'; Url = $null; Publisher = 'Microsoft Windows' }
+    Context 'a trusted file in the build (a copy of a signed Windows file stands in for an installer)' {
+        $aio = "$root\vPinball\2-Programs\All In One Runtimes"
+        Copy-Item -LiteralPath (Join-Path $env:SystemRoot 'System32\notepad.exe') -Destination "$aio\signed.exe"
+        $item = [pscustomobject]@{ Id = 'T'; Name = 'Test'; Source = 'Build'; FilePath = "$aio\signed.exe"; Arguments = '/x'; Url = $null; Publisher = 'Microsoft Windows' }
 
-        It 'runs nothing when the plan is declined, and shows file and SHA256 first' {
-            Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { throw 'must not start' }
+        It 'runs nothing when the plan is declined, and shows the copy with SHA256 first' {
+            Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
             $script:shown = $null
-            $row = Invoke-PinballDependencyPlan -Plan @($item) -Approve { param($t) $script:shown = $t; $false }
+            $row = Invoke-PinballDependencyPlan -Plan @($item) @kd -Approve { param($t) $script:shown = $t; $false }
             $row.Result | Should Be 'NeedsUser'
-            $script:shown | Should Match ([regex]::Escape($notepad))
-            $script:shown | Should Match (Get-FileHash -LiteralPath $notepad -Algorithm SHA256).Hash
+            $script:shown | Should Match ([regex]::Escape($work))
+            $script:shown | Should Match (Get-FileHash -LiteralPath $item.FilePath -Algorithm SHA256).Hash
             $script:shown | Should Match 'Valid'
-            Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 0
+            Assert-MockCalled -ModuleName 'RetroCabinetKit.Core' Start-Process -Times 0
         }
 
-        It 'runs it after confirmation' {
-            Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { [pscustomobject]@{ ExitCode = 3010 } }
-            $row = Invoke-PinballDependencyPlan -Plan @($item) -Approve { $true }
+        It 'runs the copy in the work folder after confirmation, never the file in the build' {
+            Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { [pscustomobject]@{ ExitCode = 3010 } }
+            $row = Invoke-PinballDependencyPlan -Plan @($item) @kd -Approve { $true }
             $row.Result | Should Be 'RebootRequired'
-            Assert-MockCalled -ModuleName 'RetroCabinetKit.Pinball' Start-Process -Times 1 -ParameterFilter { $FilePath -eq $notepad }
+            Assert-MockCalled -ModuleName 'RetroCabinetKit.Core' Start-Process -Times 1 -ParameterFilter {
+                $FilePath -like "$work\*\signed.exe" -and $WorkingDirectory -eq (Split-Path -Parent $FilePath) -and $ArgumentList -eq '/x'
+            }
+            @(Get-ChildItem -LiteralPath $work -Force).Count | Should Be 0
         }
 
         It 'refuses the same file under an expected publisher it does not have' {
-            Mock -ModuleName 'RetroCabinetKit.Pinball' Start-Process { throw 'must not start' }
+            Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
             $other = $item.PSObject.Copy(); $other.Publisher = 'Microsoft Corporation'
-            (Invoke-PinballDependencyPlan -Plan @($other) -Approve { $true }).Result | Should Be 'NeedsUser'
+            (Invoke-PinballDependencyPlan -Plan @($other) @kd -Approve { $true }).Result | Should Be 'NeedsUser'
         }
+
+        It 'refuses DirectX when any DLL in its folder is not signed (DLL planting)' {
+            $dx = "$root\vPinball\Installer\directx9"
+            Copy-Item -LiteralPath (Join-Path $env:SystemRoot 'System32\notepad.exe') -Destination "$dx\DXSETUP.exe" -Force
+            [IO.File]::WriteAllBytes("$dx\dsetup.dll", [byte[]](77, 90, 0, 0))
+            Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
+            $dxItem = [pscustomobject]@{ Id = 'DirectX9'; Name = 'DirectX'; Source = 'Build'; FilePath = "$dx\DXSETUP.exe"; Arguments = '/silent'; Url = $null; Publisher = 'Microsoft Windows' }
+            $row = Invoke-PinballDependencyPlan -Plan @($dxItem) @kd -Approve { throw 'no plan for untrusted files' }
+            $row.Result | Should Be 'NeedsUser'
+            $row.Message | Should Match 'dsetup\.dll'
+            Remove-Item -LiteralPath "$dx\dsetup.dll"
+        }
+    }
+
+    It 'runs DISM (below System32) in place' {
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { [pscustomobject]@{ ExitCode = 0 } }
+        $dism = $plan | Where-Object { $_.Id -eq 'NetFx35' }
+        (Invoke-PinballDependencyPlan -Plan @($dism) -AllowDism @kd -Approve { $true }).Result | Should Be 'Ok'
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Core' Start-Process -Times 1 -ParameterFilter { $FilePath -eq (Join-Path $env:SystemRoot 'System32\dism.exe') }
     }
 }

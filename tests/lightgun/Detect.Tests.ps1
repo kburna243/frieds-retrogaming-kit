@@ -85,7 +85,14 @@ Describe 'ViGEmBus' {
     It 'refuses an installer that is not signed by Nefarius and never runs it' {
         $fake = Join-Path $TestDrive 'ViGEmBus_fake.exe'
         [IO.File]::WriteAllBytes($fake, [byte[]](77, 90, 0, 0))
-        { Install-LightgunViGEm -InstallerPath $fake -Approve { throw 'must not ask' } -Confirm:$false } | Should Throw 'not signed by Nefarius'
+        $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        $base = Join-Path $TestDrive 'KitData'
+        Mock -ModuleName 'RetroCabinetKit.Core' Start-Process { throw 'must not start' }
+        { Install-LightgunViGEm -InstallerPath $fake -DownloadBase $base -TrustedOwner 'S-1-5-32-544', 'S-1-5-18', $me -Approve { throw 'must not ask' } -Confirm:$false } |
+            Should Throw 'not signed by Nefarius'
+        # Checked as a copy in its own work folder, which is gone again; the original stays untouched.
+        @(Get-ChildItem -LiteralPath (Join-Path $base 'downloads') -Force).Count | Should Be 0
+        $fake | Should Exist
     }
 
     It 'does nothing under -WhatIf (no download)' {

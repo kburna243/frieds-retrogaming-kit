@@ -41,6 +41,10 @@ Describe 'Support log export' {
         $out | Should BeExactly '<USERPROFILE>\AppData\x | user <USER> on <COMPUTER> | <SID> | S-1-5-18 | Maximilian'
     }
 
+    It 'replaces Entra ID account SIDs too' {
+        ConvertTo-KitAnonymousText -Text 'x S-1-12-1-1111111111-2222222222-3333333333-4444444444 y' -UserName '' -ComputerName '' -UserProfile '' | Should BeExactly 'x <SID> y'
+    }
+
     It 'does not eat parts of words for a short user name' {
         ConvertTo-KitAnonymousText -Text 'Tables and a table' -UserName 'a' -ComputerName '' -UserProfile '' | Should BeExactly 'Tables and <USER> table'
     }

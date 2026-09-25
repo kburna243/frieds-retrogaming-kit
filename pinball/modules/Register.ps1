@@ -109,11 +109,16 @@ function Invoke-PinballRegisterPlan {
             if ($item.Kind -eq 'Registry') {
                 foreach ($val in $item.Values) { Set-KitRegistryValue -Path $val.Path -Name $val.Name -Value $val.Value -Type $val.Type -Confirm:$false }
                 $row.Result = 'Ok'
-            } elseif ($item.Requires -and -not (Test-KitFilePlanHash -Row $filePlan[$item.Requires])) {
-                $row.Result = 'Failed'; Write-KitLog (Get-KitText 'Plan.Changed' -f $item.Requires) -Level Error
             } else {
-                $row.ExitCode = Invoke-PinballProcess $item.FilePath $item.Arguments $item.WorkingDirectory
-                $row.Result = if ($row.ExitCode -eq 0) { 'Ok' } else { 'Failed' }
+                # Held read-only (hash read through the handle) while the process uses it (N5).
+                $handle = if ($item.Requires) { Open-KitFilePlanFile -Row $filePlan[$item.Requires] }
+                if ($item.Requires -and -not $handle) {
+                    $row.Result = 'Failed'; Write-KitLog (Get-KitText 'Plan.Changed' -f $item.Requires) -Level Error
+                } else {
+                    try { $row.ExitCode = Invoke-PinballProcess $item.FilePath $item.Arguments $item.WorkingDirectory }
+                    finally { if ($handle) { $handle.Dispose() } }
+                    $row.Result = if ($row.ExitCode -eq 0) { 'Ok' } else { 'Failed' }
+                }
             }
         } catch { $row.Result = 'Failed'; Write-KitLog $_.Exception.Message -Level Error }
     }
@@ -128,10 +133,15 @@ $script:PinballBroadSids = @('S-1-5-11', 'S-1-5-32-545', 'S-1-1-0')
 $script:PinballWriteMask = [int64][Security.AccessControl.FileSystemRights]'WriteData, AppendData, WriteExtendedAttributes, WriteAttributes, Delete, DeleteSubdirectoriesAndFiles, ChangePermissions, TakeOwnership' -bor 0x10000000 -bor 0x40000000
 
 # Registered COM servers run inside every program that uses them, elevated ones too: a folder that broad
-# groups may change is a way to administrator rights. Read-only; one row per risky Allow entry.
+# groups may change is a way to administrator rights. Read-only; one row per risky Allow entry. A FAT/exFAT
+# drive has no rights at all (N9): one row for everyone. -FileSystem overrides the detection (tests).
 function Get-PinballFolderAclRisk {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $Path)
+    param([Parameter(Mandatory)] [string] $Path, [string] $FileSystem)
+    if (-not $FileSystem) { $FileSystem = try { (New-Object IO.DriveInfo ([IO.Path]::GetPathRoot((Resolve-PinballFullPath $Path)))).DriveFormat } catch { '' } }
+    if ($FileSystem -in 'FAT', 'FAT32', 'exFAT') {
+        return [pscustomobject]@{ Path = $Path; Sid = 'S-1-1-0'; Name = (Get-KitText 'Pinball.Acl.NoAclName' -f $FileSystem); Rights = 'FullControl'; Inherited = $false }
+    }
     $acl = Get-Acl -LiteralPath $Path
     foreach ($rule in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
         $sid = $rule.IdentityReference.Value
@@ -148,7 +158,8 @@ function Get-PinballFolderAclRisk {
 function Get-PinballHardeningArgument {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $Path, [Parameter(Mandatory)] [string] $UserSid)
-    if ($UserSid -notmatch '^S-1-5-21(-\d+){3,4}$') { throw (Get-KitText 'Pinball.Acl.BadSid' -f $UserSid) }
+    # Local/domain (S-1-5-21) or Entra ID (S-1-12-1) account (N9).
+    if ($UserSid -notmatch '^S-1-(5-21|12-1)(-\d+){3,4}$') { throw (Get-KitText 'Pinball.Acl.BadSid' -f $UserSid) }
     @($Path, '/inheritance:r', '/grant:r', '*S-1-5-32-544:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', "*${UserSid}:(OI)(CI)M", '*S-1-5-32-545:(OI)(CI)RX', '/C', '/Q')
 }
 

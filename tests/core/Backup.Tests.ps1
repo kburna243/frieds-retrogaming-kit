@@ -125,4 +125,24 @@ Describe 'Path helpers' {
             @(Get-KitFileTree -Path $root -Filter '*.lnk').Count | Should Be 1
         } finally { cmd /c rmdir "$root\a\link" }
     }
+
+    It 'Get-KitFileTree matches the extension exactly (no 8.3 hit: *.lnk is not x.lnkx)' {
+        $root = Join-Path $TestDrive 'tree83'
+        New-Item -ItemType Directory -Path $root -Force | Out-Null
+        [IO.File]::WriteAllText("$root\averylongname.lnkx", 'x')
+        [IO.File]::WriteAllText("$root\real.lnk", 'x')
+        (@(Get-KitFileTree -Path $root -Filter '*.lnk') | ForEach-Object { $_.Name }) -join ',' | Should BeExactly 'real.lnk'
+    }
+
+    It 'Get-KitFileTree -SkipReparseFiles leaves out file links (symbolic link to a file outside)' {
+        $root = Join-Path $TestDrive 'treelink'
+        $outside = Join-Path $TestDrive 'outside2'
+        New-Item -ItemType Directory -Path $root, $outside -Force | Out-Null
+        [IO.File]::WriteAllText("$outside\target.bat", 'x')
+        [IO.File]::WriteAllText("$root\own.bat", 'x')
+        $null = cmd /c mklink "$root\link.bat" "$outside\target.bat"
+        "$root\link.bat" | Should Exist # symbolic links need developer mode or administrator rights
+        (@(Get-KitFileTree -Path $root -Filter '*.bat') | ForEach-Object { $_.Name } | Sort-Object) -join ',' | Should BeExactly 'link.bat,own.bat'
+        (@(Get-KitFileTree -Path $root -Filter '*.bat' -SkipReparseFiles) | ForEach-Object { $_.Name }) -join ',' | Should BeExactly 'own.bat'
+    }
 }

@@ -114,7 +114,7 @@ function Test-LightgunAdminOnlyAcl {
     # Only the bits that change something (Modify/FullControl would also contain the read bits), plus the
     # generic GENERIC_ALL / GENERIC_WRITE bits that inherited rules can carry.
     $write = [int]([Security.AccessControl.FileSystemRights]'WriteData, AppendData, WriteExtendedAttributes, WriteAttributes, DeleteSubdirectoriesAndFiles, Delete, ChangePermissions, TakeOwnership') -bor 0x10000000 -bor 0x40000000
-    $allowed = 'S-1-5-32-544', 'S-1-5-18'
+    $allowed = @('S-1-5-32-544', 'S-1-5-18') + $TrustedOwner # tests: their own SID, like Initialize-KitDownloadDir grants it
     $dirAcl = [IO.Directory]::GetAccessControl($Path)
     if (-not $dirAcl.AreAccessRulesProtected) { return $false }
     if ($TrustedOwner -notcontains $dirAcl.GetOwner([Security.Principal.SecurityIdentifier]).Value) { return $false }
@@ -132,25 +132,26 @@ function Test-LightgunAdminOnlyAcl {
     $true
 }
 
-# Copies profile.ps1 into the automation folder and locks it. Existing kit files are removed first so the new
-# ones inherit the folder's ACL (a file a user created beforehand keeps its own rules otherwise).
+# Copies profile.ps1 into the automation folder and locks it. The parent (kit data folder) is checked and locked
+# first: admin-only, or a user could rename the folder and put his own in its place. Existing folders are only
+# used with an owner from -TrustedOwner (N3; tests add their own SID). Existing kit files are removed first so
+# the new ones inherit the folder's ACL (a file a user created beforehand keeps its own rules otherwise).
 function Install-LightgunAutomationFile {
     [CmdletBinding(SupportsShouldProcess)]
-    param([string] $AutomationDir = (Get-LightgunAutomationDir))
+    param(
+        [string] $AutomationDir = (Get-LightgunAutomationDir),
+        [string[]] $TrustedOwner = @('S-1-5-32-544', 'S-1-5-18')
+    )
     if (-not $PSCmdlet.ShouldProcess($AutomationDir, 'Install profile.ps1 (admin-only folder)')) { return }
     $logs = Join-Path $AutomationDir 'logs'
-    foreach ($d in (Split-Path -Parent $AutomationDir), $AutomationDir, $logs) {
-        if ((Test-Path -LiteralPath $d) -and ((Get-Item -LiteralPath $d -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw (Get-KitText 'Path.ReparsePoint' -f $d) }
-    }
-    New-Item -ItemType Directory -Path $logs -Force | Out-Null
+    $null = Initialize-KitDownloadDir -Base (Split-Path -Parent $AutomationDir) -TrustedOwner $TrustedOwner
+    foreach ($d in $AutomationDir, $logs) { $null = Initialize-KitTrustedFolder -Path $d -TrustedOwner $TrustedOwner }
     $target = Join-Path $AutomationDir 'profile.ps1'
     if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Force }
     Copy-Item -LiteralPath (Get-LightgunTemplatePath) -Destination $target
     # Deepest first: once the folder is locked, a non-administrator (tests) could not reach the child any more.
     Set-LightgunAdminOnlyAcl -Path $logs
     Set-LightgunAdminOnlyAcl -Path $AutomationDir
-    # The parent must be admin-only as well, or a user could rename the folder and put his own in its place.
-    $null = Initialize-KitDownloadDir -Base (Split-Path -Parent $AutomationDir)
     Write-KitLog (Get-KitText 'Lightgun.Auto.Installed' -f $AutomationDir)
 }
 

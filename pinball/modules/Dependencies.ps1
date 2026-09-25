@@ -120,57 +120,67 @@ function Get-PinballInstallerResult {
     switch ($ExitCode) { 0 { 'Ok' } 1638 { 'Ok' } 3010 { 'RebootRequired' } default { 'Failed' } }
 }
 
-# Runs the plan. EVERY file that would run (build, download, DISM) must carry a valid signature of its
-# Microsoft publisher; otherwise the item is NeedsUser and a download is deleted again. The files that pass
-# are shown as one plan (path, SHA256, signature) and run only after confirmation (-Approve, else the
-# console asks), each one only while its hash is still the confirmed one. Downloads go to the admin-only
-# %ProgramData% folder unless -DownloadDir is given (tests). Returns one row per item; RebootRequired rows
-# are collected by the caller.
+# Runs the plan through Invoke-KitVerifiedExecutable (N1): nothing runs in the build or download folder; each
+# installer (DirectX: its whole folder) is copied into a fresh admin-only work folder, EVERY .exe/.dll there
+# must carry a valid Microsoft signature (CN = Publisher, O = Microsoft Corporation), the PE files are shown
+# as one plan (path, SHA256, signature) and run only after confirmation (-Approve, else the console asks),
+# held open read-only while they run. Untrusted or declined -> NeedsUser. Downloads land in their own fresh
+# work folder, which is removed afterwards. -KitDataBase / -TrustedOwner: kit data folder (default
+# %ProgramData%\RetroCabinetKit) and its trusted owners (tests: TEMP and their own SID). Returns one row per
+# item; RebootRequired rows are collected by the caller.
 function Invoke-PinballDependencyPlan {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [object[]] $Plan,
         [switch] $AllowDism,
-        [string] $DownloadDir,
+        [string] $KitDataBase,
+        [string[]] $TrustedOwner,
         [scriptblock] $Approve
     )
-    $ready = New-Object Collections.Generic.List[object]
-    $rows = @(foreach ($item in $Plan) {
-        $row = [pscustomobject]@{ Id = $item.Id; Result = 'Skipped'; ExitCode = $null; Message = '' }
-        $row
-        if ($item.Source -eq 'User' -or ($item.Source -eq 'Dism' -and -not $AllowDism)) {
-            $row.Result = 'NeedsUser'; $row.Message = Get-KitText "Pinball.Deps.NeedsUser.$($item.Source)" -f $item.Name
-            continue
-        }
-        if (-not $PSCmdlet.ShouldProcess($item.Name, "Install ($($item.Source))")) { continue }
+    $dir = @{}
+    if ($KitDataBase) { $dir.Base = $KitDataBase }
+    if ($TrustedOwner) { $dir.TrustedOwner = $TrustedOwner }
+    $queued = New-Object Collections.Generic.List[object]
+    $downloads = New-Object Collections.Generic.List[string]
+    try {
+        $rows = @(foreach ($item in $Plan) {
+            $row = [pscustomobject]@{ Id = $item.Id; Result = 'Skipped'; ExitCode = $null; Message = '' }
+            $row
+            if ($item.Source -eq 'User' -or ($item.Source -eq 'Dism' -and -not $AllowDism)) {
+                $row.Result = 'NeedsUser'; $row.Message = Get-KitText "Pinball.Deps.NeedsUser.$($item.Source)" -f $item.Name
+                continue
+            }
+            if (-not $PSCmdlet.ShouldProcess($item.Name, "Install ($($item.Source))")) { continue }
 
-        $file = $item.FilePath
-        if ($item.Source -eq 'Build' -and $file -notmatch '^[A-Za-z]:\\') {
-            $row.Result = 'NeedsUser'; $row.Message = Get-KitText 'Pinball.Deps.NotLocal' -f $item.Name, $file
-            continue
+            $file = $item.FilePath
+            if ($item.Source -eq 'Build' -and $file -notmatch '^[A-Za-z]:\\') {
+                $row.Result = 'NeedsUser'; $row.Message = Get-KitText 'Pinball.Deps.NotLocal' -f $item.Name, $file
+                continue
+            }
+            if ($item.Source -eq 'Download') {
+                $dl = New-KitWorkDir @dir
+                $downloads.Add($dl)
+                $file = Join-Path $dl ("{0}.exe" -f $item.Id)
+                $null = Save-KitDownload -Uri $item.Url -Destination $file -Confirm:$false
+            }
+            $queued.Add([pscustomobject]@{ Row = $row; Item = $item; Exec = @{
+                Name = $item.Name; Path = $file; Arguments = $item.Arguments; Publisher = $item.Publisher
+                Organization = 'Microsoft Corporation'; Folder = ($item.Id -eq 'DirectX9' -and $item.Source -eq 'Build') } })
+        })
+        if ($queued.Count) {
+            $results = @(Invoke-KitVerifiedExecutable -Item @($queued | ForEach-Object { $_.Exec }) -Approve $Approve @dir)
+            for ($i = 0; $i -lt $queued.Count; $i++) {
+                $row = $queued[$i].Row; $item = $queued[$i].Item; $res = $results[$i]
+                switch ($res.Result) {
+                    'Ok'        { $row.ExitCode = $res.ExitCode; $row.Result = Get-PinballInstallerResult -ExitCode $res.ExitCode }
+                    'Untrusted' { $row.Result = 'NeedsUser'; $row.Message = Get-KitText 'Pinball.Deps.Untrusted' -f $item.Name, $res.File, $item.Publisher, $res.Signature.Status, $res.Signature.Subject }
+                    'Declined'  { $row.Result = 'NeedsUser'; $row.Message = Get-KitText 'Plan.Declined' }
+                    default     { $row.Result = 'Failed'; $row.Message = Get-KitText 'Plan.Changed' -f $item.Name }
+                }
+            }
         }
-        if ($item.Source -eq 'Download') {
-            if (-not $DownloadDir) { $DownloadDir = Initialize-KitDownloadDir }
-            $file = Join-Path $DownloadDir ("{0}.exe" -f $item.Id)
-            $null = Save-KitDownload -Uri $item.Url -Destination $file -Confirm:$false
-        }
-        $sig = Test-KitSignature -Path $file -ExpectedPublisher $item.Publisher -ExpectedOrganization 'Microsoft Corporation'
-        if (-not $sig.IsTrusted) {
-            if ($item.Source -eq 'Download') { Remove-Item -LiteralPath $file -Force }
-            $row.Result = 'NeedsUser'; $row.Message = Get-KitText 'Pinball.Deps.Untrusted' -f $item.Name, $file, $item.Publisher, $sig.Status, $sig.Subject
-            continue
-        }
-        $ready.Add([pscustomobject]@{ Row = $row; Item = $item; File = (Get-KitFilePlan -Path $file) })
-    })
-    if ($ready.Count) {
-        $ok = Confirm-KitPlan -FilePlan @($ready | ForEach-Object { $_.File }) -Approve $Approve
-        foreach ($r in $ready) {
-            if (-not $ok) { $r.Row.Result = 'NeedsUser'; $r.Row.Message = Get-KitText 'Plan.Declined'; continue }
-            if (-not (Test-KitFilePlanHash -Row $r.File)) { $r.Row.Result = 'Failed'; $r.Row.Message = Get-KitText 'Plan.Changed' -f $r.File.Path; continue }
-            $process = Start-Process -FilePath $r.File.Path -ArgumentList $r.Item.Arguments -Wait -PassThru -WindowStyle Hidden
-            $r.Row.ExitCode = $process.ExitCode
-            $r.Row.Result = Get-PinballInstallerResult -ExitCode $process.ExitCode
-        }
+    } finally {
+        foreach ($d in $downloads) { Remove-Item -LiteralPath $d -Recurse -Force -ErrorAction SilentlyContinue }
     }
     $rows
 }
