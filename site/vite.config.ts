@@ -7,7 +7,7 @@ import { defineConfig } from "vite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // GitHub Pages: relative base "./" works for any repo path (hash routing, no rewrites needed).
-// Override for an absolute base, e.g. SITE_BASE=/retro-cabinet-kit/ npm run build
+// Override for an absolute base, e.g. SITE_BASE=/frieds-retrogaming-kit/ npm run build
 export default defineConfig({
   base: process.env.SITE_BASE || "./",
   plugins: [react(), tailwindcss()],
