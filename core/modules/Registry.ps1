@@ -75,10 +75,12 @@ function ConvertTo-RegFileKey([string] $Path) {
         -replace '^HKU(?=\\|$)', 'HKEY_USERS' -replace '^HKCR(?=\\|$)', 'HKEY_CLASSES_ROOT'
 }
 
-# A .reg text may only MERGE values below -AllowedRoots: no key deletion ([-...]), no value deletion ("x"=-,
-# @=-), no key outside the roots, no line reg.exe could read as something else. Text from reg export
-# (UTF-16LE with BOM) must be decoded with BOM detection; a leftover BOM character is ignored.
-# Throws with line number and line; returns nothing when the text is fine.
+# A .reg text may only MERGE values below -AllowedRoots: no key deletion ([-...]), no value deletion (data
+# starting with -), no key outside the roots, no line reg.exe could read as something else: control characters
+# (NUL, NEL, U+2028/9, a CR without LF ...) are refused, they could end a line for reg.exe but not for this
+# check. Text from reg export (UTF-16LE with BOM) must be decoded with BOM detection; a leftover BOM character
+# is ignored. Throws with line number and line; returns the checked lines joined with CRLF, the only text
+# that may be imported.
 function Assert-KitRegText {
     [CmdletBinding()]
     param(
@@ -89,8 +91,9 @@ function Assert-KitRegText {
     $lines = $Text.TrimStart([char]0xFEFF) -split '\r?\n'
     $header = $false; $inKey = $false; $continued = $false
     for ($i = 0; $i -lt $lines.Count; $i++) {
-        $t = $lines[$i].Trim()
         $n = $i + 1
+        if ($lines[$i] -match '[\x00-\x08\x0B\x0C\x0D\x0E-\x1F\x7F\u0085  ]') { throw (Get-KitText 'Registry.Refused.Control' -f $n) }
+        $t = $lines[$i].Trim()
         if ($continued) {
             if ($t -notmatch '^[0-9A-Fa-f,\s]*\\?$') { throw (Get-KitText 'Registry.Refused.Syntax' -f $n, $t) }
             $continued = $t.EndsWith('\'); continue
@@ -110,16 +113,32 @@ function Assert-KitRegText {
             $inKey = $true; continue
         }
         if ($inKey -and $t -match '^(@|"(?:[^"\\]|\\.)*")\s*=\s*(.*)$') {
-            if ($Matches[2].Trim() -eq '-') { throw (Get-KitText 'Registry.Refused.DeleteValue' -f $n, $t) }
+            if ($Matches[2].StartsWith('-')) { throw (Get-KitText 'Registry.Refused.DeleteValue' -f $n, $t) }
             $continued = $Matches[2].EndsWith('\'); continue
         }
         throw (Get-KitText 'Registry.Refused.Syntax' -f $n, $t)
     }
     if (-not $header) { throw (Get-KitText 'Registry.Refused.Header') }
+    $lines -join "`r`n"
 }
 
-# Every import goes through Assert-KitRegText; reg.exe imports a private copy of the checked text, not the
-# file that could still change after the check. Only then is "merges, never deletes" true.
+# Writes the text as UTF-16LE .reg into TEMP and reopens it read-only with FileShare.Read: while the handle is
+# held nobody can change or replace the file; reg.exe (read access) still can open it. Returns the stream.
+function Open-CheckedRegFile([string] $Path, [string] $Text) {
+    $bytes = [byte[]]([Text.Encoding]::Unicode.GetPreamble() + [Text.Encoding]::Unicode.GetBytes($Text))
+    $w = [IO.File]::Open($Path, 'CreateNew', 'Write', 'None')
+    try { $w.Write($bytes, 0, $bytes.Length) } finally { $w.Dispose() }
+    $r = [IO.File]::Open($Path, 'Open', 'Read', 'Read')
+    $copy = New-Object byte[] $r.Length
+    $read = 0
+    while ($read -lt $copy.Length) { $n = $r.Read($copy, $read, $copy.Length - $read); if ($n -le 0) { break }; $read += $n }
+    if ([Convert]::ToBase64String($copy) -ne [Convert]::ToBase64String($bytes)) { $r.Dispose(); throw (Get-KitText 'Plan.Changed' -f $Path) }
+    $r
+}
+
+# Every import goes through Assert-KitRegText; reg.exe imports a private copy of the checked and rebuilt text,
+# not the file that could still change after the check, and the copy is held open read-only (FileShare.Read)
+# while reg.exe runs. Only then is "merges, never deletes" true.
 function Import-KitRegistryFile {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -128,13 +147,17 @@ function Import-KitRegistryFile {
     )
     $file = Resolve-FullPath $Path
     $text = [IO.File]::ReadAllText($file) # detects the UTF-16LE BOM of reg export
-    Assert-KitRegText -Text $text -AllowedRoots $AllowedRoots
+    $checked = Assert-KitRegText -Text $text -AllowedRoots $AllowedRoots
     if (-not $PSCmdlet.ShouldProcess($file, 'reg.exe import (merges, never deletes)')) { return }
     $tmp = Join-Path $env:TEMP ("rck-import-{0}.reg" -f [guid]::NewGuid())
     $ErrorActionPreference = 'Continue'
+    $handle = $null
     try {
-        [IO.File]::WriteAllText($tmp, $text.TrimStart([char]0xFEFF), [Text.Encoding]::Unicode)
+        $handle = Open-CheckedRegFile $tmp $checked
         $output = & reg.exe import $tmp 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) { throw "reg.exe import '$file' failed ($LASTEXITCODE): $($output.Trim())" }
-    } finally { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
+    } finally {
+        if ($handle) { $handle.Dispose() }
+        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+    }
 }

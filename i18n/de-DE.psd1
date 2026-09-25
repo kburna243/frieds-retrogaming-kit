@@ -17,6 +17,7 @@
     'Registry.Refused.DeleteValue' = 'Registry-Import abgelehnt, Zeile {0}: Werte löschen ist nicht erlaubt: {1}'
     'Registry.Refused.Outside'     = 'Registry-Import abgelehnt, Zeile {0}: Schlüssel außerhalb der erlaubten Einstellungen ({2}): {1}'
     'Registry.Refused.Syntax'      = 'Registry-Import abgelehnt, Zeile {0}: keine Registry-Zeile: {1}'
+    'Registry.Refused.Control'     = 'Registry-Import abgelehnt, Zeile {0}: Steuerzeichen (z. B. NUL, einzelnes CR, NEL) sind nicht erlaubt.'
     'Backup.OutsideRoots'     = 'Wiederherstellen abgelehnt: „{0}“ liegt außerhalb der erlaubten Ordner ({1}).'
     'Log.SupportExported'     = 'Protokoll für den Support gespeichert (Benutzername, Computername, Profilpfad und SIDs ersetzt): {0}'
     'Step.Skipped'            = 'Schritt „{0}“ übersprungen: bereits erledigt.'

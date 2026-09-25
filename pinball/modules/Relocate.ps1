@@ -351,7 +351,7 @@ function Import-PinballRegistryFromHive {
                 $null = Export-KitRegistryKey -Path "HKU\$mount\$sub" -Destination $tmp
                 $text = ConvertFrom-PinballHiveExport -Text ([IO.File]::ReadAllText($tmp)) -MountName $mount -Relocator $Relocator
                 # Only the settings root itself may come back (a crafted old profile could hold anything).
-                Assert-KitRegText -Text $text -AllowedRoots @($root)
+                $null = Assert-KitRegText -Text $text -AllowedRoots @($root)
                 [IO.File]::WriteAllText($tmp, $text.TrimStart([char]0xFEFF), [Text.Encoding]::Unicode)
                 if (-not $DryRun) { Assert-PinballProcessesClosed; Import-KitRegistryFile -Path $tmp -AllowedRoots @($root) -Confirm:$false }
                 [pscustomobject]@{ Type = 'Registry'; Source = "HKU\$mount\$sub"; Target = $root; Action = $(if ($DryRun) { 'WhatIf' } else { 'Restored' }) }

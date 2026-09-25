@@ -17,6 +17,7 @@
     'Registry.Refused.DeleteValue' = 'Registry import refused, line {0}: deleting values is not allowed: {1}'
     'Registry.Refused.Outside'     = 'Registry import refused, line {0}: key outside the allowed settings ({2}): {1}'
     'Registry.Refused.Syntax'      = 'Registry import refused, line {0}: not a registry line: {1}'
+    'Registry.Refused.Control'     = 'Registry import refused, line {0}: control characters (e.g. NUL, a lone CR, NEL) are not allowed.'
     'Backup.OutsideRoots'     = 'Restore refused: "{0}" lies outside the allowed folders ({1}).'
     'Log.SupportExported'     = 'Log for support saved (user name, computer name, profile path and SIDs replaced): {0}'
     'Step.Skipped'            = 'Step "{0}" skipped: already done.'

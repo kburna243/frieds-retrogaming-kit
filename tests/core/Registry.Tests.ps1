@@ -97,6 +97,47 @@ Describe 'Assert-KitRegText' {
         { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n") -AllowedRoots @() } | Should Throw
     }
 
+    It 'refuses every value whose data starts with -, not only a bare -' {
+        foreach ($v in '"Width"=-', '"Width"= -', '"Width"=-dword:1', '@=-"x"', '@=--') {
+            { Assert-KitRegText -Text ($head + "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n" + $v) -AllowedRoots $root } | Should Throw 'line 4'
+        }
+    }
+
+    It 'refuses control characters that reg.exe could read as a line break (CR, NUL, NEL, U+2028/9, ...)' {
+        $key = "[HKEY_CURRENT_USER\Software\Future Pinball]"
+        foreach ($c in 0x0D, 0x00, 0x0B, 0x0C, 0x1A, 0x7F, 0x85, 0x2028, 0x2029) {
+            # "Harmless" value + hidden separator + a key outside the roots in the same checked line.
+            $text = $head + $key + "`r`n" + '"x"="a"' + [char]$c + "[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run]`r`n"
+            { Assert-KitRegText -Text $text -AllowedRoots $root } | Should Throw 'line 4'
+        }
+        # A tab and CRLF / LF line ends stay allowed.
+        $null = Assert-KitRegText -Text ($head + $key + "`n" + "`"x`"=`t`"a`"`r`n") -AllowedRoots $root
+    }
+
+    It 'returns the checked lines joined with CRLF (no BOM), the only text that is imported' {
+        $text = [char]0xFEFF + "Windows Registry Editor Version 5.00`n`n[HKEY_CURRENT_USER\Software\Future Pinball]`n" + '"x"="a"' + "`n"
+        Assert-KitRegText -Text $text -AllowedRoots $root |
+            Should BeExactly ("Windows Registry Editor Version 5.00`r`n`r`n[HKEY_CURRENT_USER\Software\Future Pinball]`r`n" + '"x"="a"' + "`r`n")
+    }
+
+    It 'imports only the rebuilt text from a TEMP copy held read-only while reg.exe runs (reg.exe mocked)' {
+        $file = Join-Path $TestDrive 'held.reg'
+        [IO.File]::WriteAllText($file, $head + "[HKEY_CURRENT_USER\Software\Future Pinball]`n" + '"x"="a"', [Text.Encoding]::Unicode)
+        $global:RckProbe = $null
+        Mock -ModuleName 'RetroCabinetKit.Core' reg.exe {
+            $probe = @{ Path = $args[1]; Text = [IO.File]::ReadAllText($args[1]); Writable = $true }
+            try { [IO.File]::Open($args[1], 'Open', 'ReadWrite', 'ReadWrite').Dispose() } catch { $probe.Writable = $false }
+            $global:RckProbe = $probe
+            $global:LASTEXITCODE = 0
+        }
+        Import-KitRegistryFile -Path $file -AllowedRoots $root -Confirm:$false
+        $global:RckProbe.Path | Should Not Be $file
+        $global:RckProbe.Writable | Should Be $false
+        $global:RckProbe.Text | Should BeExactly ($head + "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n" + '"x"="a"')
+        $global:RckProbe.Path | Should Not Exist
+        Remove-Variable -Name RckProbe -Scope Global
+    }
+
     It 'refuses files without header, values before a key and unknown lines' {
         { Assert-KitRegText -Text "[HKEY_CURRENT_USER\Software\Future Pinball]`r`n" -AllowedRoots $root } | Should Throw
         { Assert-KitRegText -Text '' -AllowedRoots $root } | Should Throw

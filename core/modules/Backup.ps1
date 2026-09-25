@@ -193,7 +193,7 @@ function Restore-KitBackup {
             $reader = New-Object IO.StreamReader ($zip.GetEntry($r.Entry).Open(), $true)
             try { $text = $reader.ReadToEnd() } finally { $reader.Dispose() }
             if ($RegistryFilter) { $text = & $RegistryFilter $text }
-            Assert-KitRegText -Text $text -AllowedRoots $AllowedRegistryRoots # also in a dry run
+            $null = Assert-KitRegText -Text $text -AllowedRoots $AllowedRegistryRoots # also in a dry run
             $action = 'WhatIf'
             if ($PSCmdlet.ShouldProcess($r.Key, 'Import registry (merge)')) {
                 $tmp = Join-Path $env:TEMP ("rck-import-{0}.reg" -f [guid]::NewGuid())
