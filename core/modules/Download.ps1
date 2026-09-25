@@ -8,17 +8,35 @@ function Get-KitAllowedHost {
     (Import-PowerShellDataFile -LiteralPath (Join-Path $script:KitCoreDir 'download-allowlist.psd1')).Hosts
 }
 
+function Get-KitAllowedUrlPrefix {
+    [CmdletBinding()]
+    param()
+    $list = Import-PowerShellDataFile -LiteralPath (Join-Path $script:KitCoreDir 'download-allowlist.psd1')
+    if ($list.ContainsKey('UrlPrefixes')) { @($list.UrlPrefixes) }
+}
+
+# Allowed: HTTPS, no user info, default port, and either the host is in -AllowedHosts or the normalized URL
+# lies below one of -AllowedUrlPrefixes (same host, path starts with the prefix path, no '%' escapes in the
+# path so an encoded '..' cannot slip past the normalization).
 function Test-KitDownloadUrl {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string] $Uri,
-        [string[]] $AllowedHosts = (Get-KitAllowedHost)
+        [string[]] $AllowedHosts = (Get-KitAllowedHost),
+        [AllowEmptyCollection()] [string[]] $AllowedUrlPrefixes = @(Get-KitAllowedUrlPrefix)
     )
     $parsed = $null
     if (-not [Uri]::TryCreate($Uri, [UriKind]::Absolute, [ref]$parsed)) { return $false }
-    if ($parsed.Scheme -ne 'https') { return $false }
+    if ($parsed.Scheme -ne 'https' -or $parsed.UserInfo -or -not $parsed.IsDefaultPort) { return $false }
     $hostName = $parsed.Host.ToLowerInvariant()
-    [bool](@($AllowedHosts | Where-Object { $_.ToLowerInvariant() -eq $hostName }).Count)
+    if (@($AllowedHosts | Where-Object { $_ -and $_.ToLowerInvariant() -eq $hostName }).Count) { return $true }
+    if ($parsed.AbsolutePath.Contains('%')) { return $false }
+    foreach ($p in $AllowedUrlPrefixes | Where-Object { $_ }) {
+        $prefix = [Uri]$p
+        if ($prefix.Host.ToLowerInvariant() -eq $hostName -and
+            $parsed.AbsolutePath.StartsWith($prefix.AbsolutePath, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    $false
 }
 
 function Save-KitDownload {
@@ -26,9 +44,10 @@ function Save-KitDownload {
     param(
         [Parameter(Mandatory)] [string] $Uri,
         [Parameter(Mandatory)] [string] $Destination,
-        [string[]] $AllowedHosts = (Get-KitAllowedHost)
+        [string[]] $AllowedHosts = (Get-KitAllowedHost),
+        [AllowEmptyCollection()] [string[]] $AllowedUrlPrefixes = @(Get-KitAllowedUrlPrefix)
     )
-    if (-not (Test-KitDownloadUrl -Uri $Uri -AllowedHosts $AllowedHosts)) { throw (Get-KitText 'Download.HostNotAllowed' -f $Uri) }
+    if (-not (Test-KitDownloadUrl -Uri $Uri -AllowedHosts $AllowedHosts -AllowedUrlPrefixes $AllowedUrlPrefixes)) { throw (Get-KitText 'Download.HostNotAllowed' -f $Uri) }
     $dest = Resolve-FullPath $Destination
     if (-not $PSCmdlet.ShouldProcess($dest, "Download $Uri")) { return }
 

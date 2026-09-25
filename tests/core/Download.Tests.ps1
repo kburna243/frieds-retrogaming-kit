@@ -3,11 +3,22 @@ Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1') -Force
 
 # No real download happens in these tests.
 Describe 'Download allow list' {
-    It 'loads the configured hosts: only Microsoft, no GitHub while no URL needs it' {
+    It 'loads the configured hosts: only Microsoft as whole hosts, GitHub never as a whole host' {
         @(Get-KitAllowedHost) -contains 'aka.ms' | Should Be $true
         @(Get-KitAllowedHost | Where-Object { $_ -match 'github' }).Count | Should Be 0
         Test-KitDownloadUrl 'https://github.com/nefarius/ViGEmBus/releases' | Should Be $false
         Test-KitDownloadUrl 'https://objects.githubusercontent.com/x' | Should Be $false
+    }
+
+    It 'allows exactly the ViGEmBus release folder on GitHub, nothing else there' {
+        Test-KitDownloadUrl 'https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe' | Should Be $true
+        Test-KitDownloadUrl 'https://github.com/nefarius/ViGEmBus/releases/download/../../../evil/x/releases/download/a.exe' | Should Be $false
+        Test-KitDownloadUrl 'https://github.com/nefarius/ViGEmBus/releases/download/%2e%2e/%2e%2e/x.exe' | Should Be $false
+        Test-KitDownloadUrl 'https://github.com/nefarius/ViGEmBusEvil/releases/download/x.exe' | Should Be $false
+        Test-KitDownloadUrl 'https://github.com@evil.example/nefarius/ViGEmBus/releases/download/x.exe' | Should Be $false
+        Test-KitDownloadUrl 'https://github.com:8443/nefarius/ViGEmBus/releases/download/x.exe' | Should Be $false
+        Test-KitDownloadUrl 'http://github.com/nefarius/ViGEmBus/releases/download/x.exe' | Should Be $false
+        Test-KitDownloadUrl 'https://github.com/someone/else/releases/download/x.exe' | Should Be $false
     }
 
     It 'accepts HTTPS URLs on allowed hosts' {

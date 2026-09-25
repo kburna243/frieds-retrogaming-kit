@@ -2,7 +2,8 @@
 # Mapped drives belong to the logon session and are missing in the elevated session,
 # so script paths are converted to UNC before relaunching. When the elevated process
 # runs as a different account (over-the-shoulder UAC), HKCU would be the wrong profile:
-# callers pass the original SID and lock registry steps if Test-KitSameUser is $false.
+# callers pass the original SID and lock registry steps if Test-KitSameUser is $false. Started directly
+# "as administrator" (no SID), the interactively logged-on user decides (Get-KitInteractiveUserSid).
 
 function Test-KitAdmin {
     [CmdletBinding()]
@@ -23,21 +24,58 @@ function Test-KitSameUser {
     $OriginalSid -eq (Get-KitUserSid)
 }
 
-# Registry steps write to HKCU. Elevated without the SID of the user who started the kit, nobody can tell
-# whose HKCU that is (over-the-shoulder UAC runs as the administrator), so they are locked as well.
+# SID of the user logged on interactively in this session: owner of explorer.exe in the current session,
+# otherwise Win32_ComputerSystem.UserName (console user). $null when nobody can be determined.
+function Get-KitInteractiveUserSid {
+    [CmdletBinding()]
+    param()
+    $session = [Diagnostics.Process]::GetCurrentProcess().SessionId
+    foreach ($p in @(Get-CimInstance -ClassName Win32_Process -Filter "Name='explorer.exe' AND SessionId=$session" -ErrorAction SilentlyContinue)) {
+        $owner = Invoke-CimMethod -InputObject $p -MethodName GetOwnerSid -ErrorAction SilentlyContinue
+        if ($owner -and $owner.Sid) { return [string]$owner.Sid }
+    }
+    $name = (Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction SilentlyContinue).UserName
+    if (-not $name) { return $null }
+    try { (New-Object Security.Principal.NTAccount $name).Translate([Security.Principal.SecurityIdentifier]).Value } catch { $null }
+}
+
+# SID of the user whose HKCU the kit may write: the SID passed by the elevation; not elevated: the current
+# user; elevated directly ("Run as administrator", no SID): the current user only when the interactively
+# logged-on user is the same account, otherwise $null. -InteractiveSid injects the query result (tests).
+function Get-KitStartUserSid {
+    [CmdletBinding()]
+    param(
+        [AllowEmptyString()] [string] $OriginalSid,
+        [bool] $IsAdmin = (Test-KitAdmin),
+        [AllowEmptyString()] [AllowNull()] [string] $InteractiveSid
+    )
+    if ($OriginalSid) { return $OriginalSid }
+    $current = Get-KitUserSid
+    if (-not $IsAdmin) { return $current }
+    if (-not $PSBoundParameters.ContainsKey('InteractiveSid')) { $InteractiveSid = Get-KitInteractiveUserSid }
+    if ($InteractiveSid -and $InteractiveSid -eq $current) { return $current }
+    $null
+}
+
+# Registry steps write to HKCU. Elevated as a DIFFERENT account than the one logged on (over-the-shoulder UAC)
+# HKCU is the wrong profile, so they are locked; the same when nobody can tell who is logged on.
 # Returns $null (go ahead) or the reason for NeedsUser.
 function Get-KitRegistryUserLock {
     [CmdletBinding()]
     param(
         [AllowEmptyString()] [string] $OriginalSid,
-        [bool] $IsAdmin = (Test-KitAdmin)
+        [bool] $IsAdmin = (Test-KitAdmin),
+        [AllowEmptyString()] [AllowNull()] [string] $InteractiveSid
     )
     if ($OriginalSid) {
         if (Test-KitSameUser -OriginalSid $OriginalSid) { return $null }
         return Get-KitText 'Elevation.DifferentUser'
     }
-    if ($IsAdmin) { return Get-KitText 'Elevation.NoSid' }
-    $null
+    if (-not $IsAdmin) { return $null }
+    if (-not $PSBoundParameters.ContainsKey('InteractiveSid')) { $InteractiveSid = Get-KitInteractiveUserSid }
+    if (-not $InteractiveSid) { return Get-KitText 'Elevation.NoSid' }
+    if ($InteractiveSid -eq (Get-KitUserSid)) { return $null }
+    Get-KitText 'Elevation.DifferentUser'
 }
 
 function Convert-KitMappedDriveToUnc {

@@ -42,7 +42,8 @@ $script:KitRootDir = $kitRoot
 $script:StepsDir = Join-Path $kitRoot 'pinball\steps'
 $script:StateFile = $StatePath
 $script:WizardScript = $PSCommandPath
-$script:UserSid = $KitUserSid
+# Started directly "as administrator": the logged-on user counts when it is the same account.
+$script:UserSid = Get-KitStartUserSid -OriginalSid $KitUserSid
 $script:MonitorOverride = $Monitors
 $script:ShotPath = $Screenshot
 $script:RoleColors = @{ Playfield = 'SteelBlue'; Backglass = 'DarkOrange'; DMD = 'MediumPurple'; FullDMD = 'Teal'; Topper = 'Goldenrod' }
@@ -233,7 +234,7 @@ $pages = @(
             foreach ($r in $risks) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Acl.Risk' -f $r.Path, $r.Name, $r.Rights) -Level Warn }
             if (-not $risks) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Acl.Ok' -f $v); return }
             if (-not (Test-KitAdmin)) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Pinball.Step.NeedsAdmin') -Level Warn; return }
-            if (-not $script:UserSid) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitText 'Elevation.NoSid') -Level Warn; return }
+            if (-not $script:UserSid) { Write-KitWizardLog -Wizard $script:W -Text (Get-KitRegistryUserLock) -Level Warn; return }
             if (Test-KitWizardDryRun -Wizard $script:W) { return }
             try { $left = @(Protect-PinballBuildFolder -Root $root -UserSid $script:UserSid -Approve $script:Approve -Confirm:$false) }
             catch { Write-KitWizardLog -Wizard $script:W -Text $_.Exception.Message -Level Error; return }
