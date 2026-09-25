@@ -1,9 +1,16 @@
 # tools/Assemble-LaunchPack.ps1
 param(
-    [string]$PackDir = "C:\Users\Fried\Downloads\Frieds-Retrogaming-Kit-Launch-Pack"
+    [string]$PackDir = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+$downloadsDir = Join-Path ([Environment]::GetFolderPath("UserProfile")) "Downloads"
+if (-not $PackDir) {
+    $PackDir = Join-Path $downloadsDir "Frieds-Retrogaming-Kit-Launch-Pack"
+}
+
+$repoRoot = (Get-Item $PSScriptRoot).Parent.FullName
 
 Write-Host "Creating launch pack at $PackDir..." -ForegroundColor Cyan
 
@@ -20,8 +27,15 @@ New-Item -ItemType Directory -Force -Path $sub03 | Out-Null
 New-Item -ItemType Directory -Force -Path $sub04 | Out-Null
 
 # 1. Social posts
-Copy-Item "C:\Users\Fried\Downloads\Facebook_Posts_Lunatics_EN.md" (Join-Path $sub01 "Facebook_Posts_Lunatics_EN.md") -Force
-Copy-Item "C:\Users\Fried\Downloads\Facebook_Posts_Lunatics.md" (Join-Path $sub01 "Facebook_Posts_Lunatics_DE.md") -Force
+$postEn = Join-Path $downloadsDir "Facebook_Posts_Lunatics_EN.md"
+$postDe = Join-Path $downloadsDir "Facebook_Posts_Lunatics.md"
+
+if (Test-Path $postEn) {
+    Copy-Item $postEn (Join-Path $sub01 "Facebook_Posts_Lunatics_EN.md") -Force
+}
+if (Test-Path $postDe) {
+    Copy-Item $postDe (Join-Path $sub01 "Facebook_Posts_Lunatics_DE.md") -Force
+}
 
 # 2. Optimized graphics
 $graphics = @(
@@ -31,14 +45,14 @@ $graphics = @(
     "frieds-rgk-core.webp", "frieds-rgk-core.png"
 )
 foreach ($g in $graphics) {
-    $src = Join-Path "C:\Users\Fried\Downloads" $g
+    $src = Join-Path $downloadsDir $g
     if (Test-Path $src) {
         Copy-Item -Path $src -Destination (Join-Path $sub02 $g) -Force
     }
 }
 
 # Mascots
-$mascotFiles = Get-ChildItem "I:\claude-system\data\projects\retro-cabinet-kit\docs\images\character-*.svg"
+$mascotFiles = Get-ChildItem (Join-Path $repoRoot "docs\images\character-*.svg")
 foreach ($m in $mascotFiles) {
     Copy-Item -Path $m.FullName -Destination $sub02Mascots -Force
 }
@@ -50,14 +64,14 @@ $manuals = @(
     "03_Core_Platform_und_Tools.md"
 )
 foreach ($doc in $manuals) {
-    $src = Join-Path "C:\Users\Fried\Downloads" $doc
+    $src = Join-Path $downloadsDir $doc
     if (Test-Path $src) {
         Copy-Item -Path $src -Destination (Join-Path $sub03 $doc) -Force
     }
 }
 
 # 4. Release package
-$zipSrc = "C:\Users\Fried\Downloads\frieds-retrogaming-kit-v0.1.zip"
+$zipSrc = Join-Path $downloadsDir "frieds-retrogaming-kit-v0.1.zip"
 if (Test-Path $zipSrc) {
     Copy-Item -Path $zipSrc -Destination (Join-Path $sub04 "frieds-retrogaming-kit-v0.1.zip") -Force
 }

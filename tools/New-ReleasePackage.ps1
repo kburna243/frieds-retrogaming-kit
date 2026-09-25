@@ -3,7 +3,7 @@
 
 param(
     [string]$Version = "0.1",
-    [string]$DestinationDir = "C:\Users\Fried\Downloads"
+    [string]$DestinationDir = (Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads')
 )
 
 $ErrorActionPreference = "Stop"
