@@ -10,7 +10,7 @@ $script:PinballDir = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 
-foreach ($name in 'Common', 'Build', 'Dependencies', 'Copy', 'Relocate', 'Register', 'FpBam') {
+foreach ($name in 'Common', 'Build', 'Dependencies', 'Copy', 'Relocate', 'Register', 'FpBam', 'Screens', 'Finish') {
     . (Join-Path $PSScriptRoot "modules\$name.ps1")
 }
 
