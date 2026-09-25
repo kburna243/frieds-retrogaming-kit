@@ -75,6 +75,10 @@ function ConvertTo-RegFileKey([string] $Path) {
         -replace '^HKU(?=\\|$)', 'HKEY_USERS' -replace '^HKCR(?=\\|$)', 'HKEY_CLASSES_ROOT'
 }
 
+# Control characters a .reg line must not contain (tab excepted; a CR left after splitting at CRLF/LF is a lone
+# CR). U+2028/U+2029 are added as [char] so the source file itself carries no line separator characters.
+$script:RegControlPattern = '[\x00-\x08\x0B-\x1F\x7F\x85' + [char]0x2028 + [char]0x2029 + ']'
+
 # A .reg text may only MERGE values below -AllowedRoots: no key deletion ([-...]), no value deletion (data
 # starting with -), no key outside the roots, no line reg.exe could read as something else: control characters
 # (NUL, NEL, U+2028/9, a CR without LF ...) are refused, they could end a line for reg.exe but not for this
@@ -92,7 +96,7 @@ function Assert-KitRegText {
     $header = $false; $inKey = $false; $continued = $false
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $n = $i + 1
-        if ($lines[$i] -match '[\x00-\x08\x0B\x0C\x0D\x0E-\x1F\x7F\u0085  ]') { throw (Get-KitText 'Registry.Refused.Control' -f $n) }
+        if ($lines[$i] -match $script:RegControlPattern) { throw (Get-KitText 'Registry.Refused.Control' -f $n) }
         $t = $lines[$i].Trim()
         if ($continued) {
             if ($t -notmatch '^[0-9A-Fa-f,\s]*\\?$') { throw (Get-KitText 'Registry.Refused.Syntax' -f $n, $t) }
