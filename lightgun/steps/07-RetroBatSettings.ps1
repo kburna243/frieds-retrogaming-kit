@@ -36,7 +36,7 @@ function Get-Plan {
 
 if ($paths) {
     $plan = @(Get-Plan)
-    Write-KitLog (Get-KitText 'Lightgun.Settings.Preview' -f ([string]$plan.Count))
+    Write-KitLog (Get-KitText 'Lightgun.Settings.Preview' -f $plan.Count)
     foreach ($c in $plan) {
         $old = if ($null -eq $c.Old) { '-' } else { $c.Old }
         Write-KitLog ('  {0}: {1}: {2} -> {3}' -f (Split-Path -Leaf $c.File), $c.Name, $old, $c.New)

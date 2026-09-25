@@ -2,7 +2,7 @@
 # A step is only green ("Done") when Verify returns exactly $true after Invoke.
 #   Verify already $true before Invoke -> Skipped (resume without redoing work)
 #   Test not $true                      -> NeedsUser (Invoke is not run)
-#   -WhatIf                             -> Skipped with WhatIf = $true, nothing persisted
+#   -WhatIf                             -> Skipped with WhatIf = $true; the state file is never written
 
 function Test-IsTrue([scriptblock] $Block) {
     $last = & $Block | Select-Object -Last 1
@@ -55,7 +55,8 @@ function Invoke-KitStep {
         $level   = @{ Skipped = 'Info'; Done = 'Info'; Failed = 'Error'; NeedsUser = 'Warn' }[$status]
         Write-KitLog $message -Level $level
 
-        if ($StatePath -and -not $whatIf) {
+        # A dry run never changes the state, whatever the status (Skipped, NeedsUser) says.
+        if ($StatePath -and -not $WhatIfPreference) {
             Set-KitStepStatus -Path $StatePath -Name $Step.Name -Status $status -Message $message
         }
         [pscustomobject]@{

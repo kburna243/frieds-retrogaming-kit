@@ -41,6 +41,7 @@ function Get-KitText {
         if ($table.ContainsKey($Key)) { $text = $table[$Key]; break }
     }
     if ($null -eq $text) { return "[[$Key]]" }
-    if ($FormatArgs) { return ($text -f $FormatArgs) }
+    # Bound, not truthy: a single 0 or '' is a real argument; an empty list formats nothing.
+    if ($PSBoundParameters.ContainsKey('FormatArgs') -and ($null -eq $FormatArgs -or $FormatArgs.Count)) { return ($text -f $FormatArgs) }
     $text
 }

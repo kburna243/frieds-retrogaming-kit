@@ -12,6 +12,15 @@ Describe 'I18n with the real text files' {
         Get-KitText 'Culture.Current' 'en-US' | Should BeExactly 'Language: en-US'
     }
 
+    It 'formats a single argument that is 0, empty or $null' {
+        Set-KitCulture -Culture 'en-US'
+        Get-KitText 'Culture.Current' -f 0 | Should BeExactly 'Language: 0'
+        Get-KitText 'Culture.Current' -f '' | Should BeExactly 'Language: '
+        Get-KitText 'Culture.Current' -f $null | Should BeExactly 'Language: '
+        Get-KitText 'Culture.Current' -f @() | Should BeExactly 'Language: {0}'
+        Get-KitText 'Culture.Current' | Should BeExactly 'Language: {0}'
+    }
+
     It 'falls back to en-US for a culture without a file' {
         Set-KitCulture -Culture 'fr-FR'
         Get-KitText 'Admin.Yes' | Should BeExactly 'Running with administrator rights.'

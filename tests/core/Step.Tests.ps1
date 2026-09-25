@@ -58,6 +58,20 @@ Describe 'Step' {
         $state | Should Not Exist
     }
 
+    It 'does not write Skipped or NeedsUser into the state under -WhatIf' {
+        $state = New-Marker 'whatif-state2.json'
+        $verified = New-KitStep -Name 'verified' -Invoke { } -Verify { $true }
+        (Invoke-KitStep -Step $verified -StatePath $state -WhatIf).Status | Should Be 'Skipped'
+        $blocked = New-KitStep -Name 'blocked' -Test { $false } -Invoke { } -Verify { $false }
+        (Invoke-KitStep -Step $blocked -StatePath $state -WhatIf).Status | Should Be 'NeedsUser'
+        $state | Should Not Exist
+        # An existing state stays byte for byte the same.
+        $null = Invoke-KitStep -Step $blocked -StatePath $state
+        $before = [IO.File]::ReadAllText($state)
+        $null = Invoke-KitStep -Step $verified -StatePath $state -WhatIf
+        [IO.File]::ReadAllText($state) | Should BeExactly $before
+    }
+
     It 'records the status in the state file' {
         $m = New-Marker 'stated.txt'
         $state = New-Marker 'state.json'
