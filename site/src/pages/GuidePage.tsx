@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import { ArrowLeft, CheckCircle2, Construction, Download, Info, Package } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, Construction, Download, Info, Package } from "lucide-react";
 import { FriedCharacter, type FriedExpression, type FriedPose } from "../components/FriedCharacter";
 import { LegalNote } from "../sections/Footer";
 import { Reveal } from "../lib/retro";
 import { hrefOf } from "../lib/router";
 import { useI18n } from "../i18n";
+import { REPO_URL } from "../config";
 
 /** Renders `code` spans inside dictionary strings. */
 export function Txt({ s }: { s: string }) {
@@ -100,8 +101,10 @@ export function Notes({ items }: { items: string[] }) {
 }
 
 export default function GuidePage({ kind }: { kind: "pinball" | "lightgun" }) {
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
   const g = t[kind];
+  const docFile = `${kind}-guide${lang === "de" ? ".de" : ""}.md`;
+  const docUrl = `${REPO_URL}/blob/main/docs/${docFile}`;
 
   return (
     <GuideShell
@@ -155,6 +158,21 @@ export default function GuidePage({ kind }: { kind: "pinball" | "lightgun" }) {
       </section>
 
       <Notes items={g.notes} />
+
+      <div className="border-[3px] border-pixel/60 bg-night-2 p-5 sm:flex sm:items-center sm:justify-between">
+        <div>
+          <h3 className="font-pixel text-[10px] text-pixel">{t.guide.viewDoc}</h3>
+          <p className="mt-1 font-term text-base text-cream/80">docs/{docFile}</p>
+        </div>
+        <a
+          href={docUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex items-center gap-2 border-2 border-pixel bg-pixel/10 px-4 py-2 font-pixel text-[9px] text-pixel transition hover:bg-pixel hover:text-night sm:mt-0"
+        >
+          <BookOpen size={14} aria-hidden="true" /> {docFile}
+        </a>
+      </div>
     </GuideShell>
   );
 }

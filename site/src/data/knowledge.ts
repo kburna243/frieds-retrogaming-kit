@@ -85,7 +85,7 @@ export const CATEGORIES: { id: string; label: string; blurb: string }[] = [
   { id: "crt", label: "CRT / 15 kHz", blurb: "GroovyMAME, Switchres, CRT Emudriver" },
   { id: "vpin", label: "Virtual Pinball", blurb: "VPX, VPinMAME, B2S, DOF, Pinscape" },
   { id: "frontend", label: "Frontends", blurb: "LaunchBox, RetroBat, ES-DE, Batocera gaps" },
-  { id: "kit", label: "Retro Cabinet Kit", blurb: "Installers and skills of this project (work in progress)" },
+  { id: "kit", label: "Fried's Retrogaming Kit", blurb: "Installers and skills of this project (work in progress)" },
   { id: "agent", label: "Agent Rules", blurb: "Permanent guardrails derived from QA" },
 ];
 

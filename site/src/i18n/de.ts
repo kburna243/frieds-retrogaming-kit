@@ -1,6 +1,6 @@
 const de = {
   meta: {
-    title: "Fried's Retro Cabinet Kit",
+    title: "Fried's Retrogaming Kit",
     description:
       "Geführte Installer für Virtual-Pinball- und Lightgun-Setups plus Retro-Skills für Coding-Agenten. Open Source, in Entwicklung.",
   },
@@ -27,13 +27,13 @@ const de = {
       "SKILL SKILL.MD LOADED ............... OK",
       "RULE  JEDER SCHRITT WIRD GEPRÜFT .... OK",
       "",
-      "> RETRO CABINET KIT ... START",
+      "> RETROGAMING KIT ... START",
     ],
     skip: "Überspringen",
     hint: "KLICK ODER TASTE ZUM ÜBERSPRINGEN",
   },
   hud: {
-    title: "FRIED'S RETRO CABINET KIT",
+    title: "FRIED'S RETROGAMING KIT",
     credit: "CREDIT",
     coin: "Münze einwerfen",
     soundOn: "Ton an",
@@ -44,7 +44,7 @@ const de = {
   hero: {
     kicker: "OPEN SOURCE · MIT",
     title1: "Fried’s",
-    title2: "Retro Cabinet Kit",
+    title2: "Retrogaming Kit",
     claim: "Pinball-Cabinet und Lightgun-Setup einrichten — geführt, und jeder Schritt wird geprüft.",
     sub: "Zwei Installer mit gemeinsamem Kern und Retro-Skills für deinen Coding-Agenten.",
     ctaGuides: "ZU DEN ANLEITUNGEN",
@@ -100,6 +100,7 @@ const de = {
   footer: {
     license: "Lizenz: MIT (eigener Code)",
     repo: "Repository",
+    docs: "Dokumentation",
     credits: "Danksagung",
     tagline: "RETRO CABINET + GEPRÜFTE SCHRITTE = KEINE KOPFSCHMERZEN",
     status: "Work in Progress — Installer noch nicht fertig",
@@ -112,6 +113,7 @@ const de = {
     steps: "Ablauf — jeder Schritt: prüfen · ausführen · nachprüfen",
     notes: "Gut zu wissen",
     modes: "Zwei Modi",
+    viewDoc: "Vollständiges technisches Handbuch auf GitHub lesen",
     back: "ZURÜCK ZUR STARTSEITE",
   },
   pinball: {

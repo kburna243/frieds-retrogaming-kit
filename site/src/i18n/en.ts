@@ -2,7 +2,7 @@ import type { Dict } from "./de";
 
 const en: Dict = {
   meta: {
-    title: "Fried's Retro Cabinet Kit",
+    title: "Fried's Retrogaming Kit",
     description:
       "Guided installers for virtual pinball and lightgun setups, plus retro skills for coding agents. Open source, work in progress.",
   },
@@ -29,13 +29,13 @@ const en: Dict = {
       "SKILL SKILL.MD LOADED ............... OK",
       "RULE  EVERY STEP IS VERIFIED ........ OK",
       "",
-      "> RETRO CABINET KIT ... START",
+      "> RETROGAMING KIT ... START",
     ],
     skip: "Skip",
     hint: "CLICK OR PRESS ANY KEY TO SKIP",
   },
   hud: {
-    title: "FRIED'S RETRO CABINET KIT",
+    title: "FRIED'S RETROGAMING KIT",
     credit: "CREDIT",
     coin: "Insert coin",
     soundOn: "Sound on",
@@ -46,7 +46,7 @@ const en: Dict = {
   hero: {
     kicker: "OPEN SOURCE · MIT",
     title1: "Fried’s",
-    title2: "Retro Cabinet Kit",
+    title2: "Retrogaming Kit",
     claim: "Set up your pinball cabinet and lightgun rig — guided, and every step is verified.",
     sub: "Two installers on a shared core, plus retro skills for your coding agent.",
     ctaGuides: "SEE THE GUIDES",
@@ -102,6 +102,7 @@ const en: Dict = {
   footer: {
     license: "License: MIT (own code)",
     repo: "Repository",
+    docs: "Documentation",
     credits: "Credits",
     tagline: "RETRO CABINET + VERIFIED STEPS = NO HEADACHES",
     status: "Work in progress — installers not finished yet",
@@ -114,6 +115,7 @@ const en: Dict = {
     steps: "Flow — every step: check · run · verify",
     notes: "Good to know",
     modes: "Two modes",
+    viewDoc: "Read full technical manual on GitHub",
     back: "BACK TO HOME",
   },
   pinball: {

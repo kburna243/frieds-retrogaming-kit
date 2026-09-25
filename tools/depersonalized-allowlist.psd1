@@ -39,7 +39,7 @@
         @{
             Path   = '*.md'
             Kind   = 'DrivePath'
-            Match  = '^[CDE]:\\((Games|Pinball|RetroBat|Old Build|New Build)(\\[^\\]*)*|Windows|Program Files( \(x86\))?|ProgramData)?$'
+            Match  = '^[CDE]:\\((Games|Pinball|RetroBat|Old Build|New Build|ProgramData)(\\[^\\]*)*|Windows|Program Files( \(x86\))?|Program|Old)?$'
             Reason = 'Guides use a small fixed set of example folders (D:\Pinball, C:\RetroBat, E:\Old Build, ...) and Windows system folders.'
         }
         # --- this tool --------------------------------------------------------------------------------------
