@@ -1,12 +1,24 @@
 ﻿<#
 .SYNOPSIS
-    Runs all Pester tests with the Pester 3.x that ships with Windows. Exit code 1 on any failure.
+    Runs the Pester tests with the Pester 3.x that ships with Windows. Exit code 1 on any failure,
+    skip or pending test.
+.PARAMETER Path
+    Test files or folders. Default: tests\core and tests\pinball.
+.PARAMETER Local
+    Runs tests\local instead: tests against real (non-synthetic) files in tests\fixtures-local\,
+    which only exist on the developer's machine and are never committed.
 #>
 [CmdletBinding()]
-param([string] $Path)
+param(
+    [string[]] $Path,
+    [switch] $Local
+)
 
 $ErrorActionPreference = 'Stop'
-if (-not $Path) { $Path = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'core' }
+$testsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if (-not $Path) {
+    $Path = if ($Local) { @(Join-Path $testsDir 'local') } else { @((Join-Path $testsDir 'core'), (Join-Path $testsDir 'pinball')) }
+}
 Import-Module Pester -MaximumVersion 3.99
 $result = Invoke-Pester -Script $Path -PassThru
 Write-Host ''

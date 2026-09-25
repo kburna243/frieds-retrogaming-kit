@@ -29,7 +29,8 @@ Describe 'I18n with the real text files' {
     }
 
     It 'stores every PowerShell file of the kit as UTF-8 with BOM' {
-        $files = Get-ChildItem -LiteralPath (Join-Path $kitRoot 'core'), (Join-Path $kitRoot 'i18n'), (Join-Path $kitRoot 'tests') -Recurse -File -Include *.ps1, *.psm1, *.psd1
+        $files = Get-ChildItem -LiteralPath (Join-Path $kitRoot 'core'), (Join-Path $kitRoot 'i18n'), (Join-Path $kitRoot 'tests') -Recurse -File |
+            Where-Object { $_.Extension -in '.ps1', '.psm1', '.psd1' -and $_.FullName -notlike '*\fixtures-local\*' }
         $withoutBom = $files | Where-Object {
             $b = [IO.File]::ReadAllBytes($_.FullName)
             -not ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)

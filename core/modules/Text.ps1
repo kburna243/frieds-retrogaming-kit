@@ -39,8 +39,11 @@ function Edit-KitTextFile {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string] $Path,
-        [Parameter(Mandatory)] [System.Collections.IDictionary] $Replace,
-        [switch] $CaseInsensitive
+        [Parameter(Mandatory, ParameterSetName = 'Replace')] [System.Collections.IDictionary] $Replace,
+        [Parameter(ParameterSetName = 'Replace')] [switch] $CaseInsensitive,
+        # { param($Text) ... } returning @{ Text = <new text>; Count = <replacements> } for rules that a
+        # literal map cannot express (e.g. path boundaries). Same encoding guarantees as -Replace.
+        [Parameter(Mandatory, ParameterSetName = 'Rewrite')] [scriptblock] $Rewrite
     )
     $full  = Resolve-FullPath $Path
     $bytes = [IO.File]::ReadAllBytes($full)
@@ -51,6 +54,11 @@ function Edit-KitTextFile {
     $roundTrip = $encoding.GetBytes($body)
     if ([Convert]::ToBase64String($roundTrip) -ne [Convert]::ToBase64String($bytes, $info.BomLength, $bytes.Length - $info.BomLength)) {
         throw "File does not round-trip in its encoding ($($info.Name)), refusing to edit: $full"
+    }
+
+    if ($Rewrite) {
+        $rewritten = & $Rewrite $body
+        return Write-EditedText $PSCmdlet $full $bytes $info $encoding ([string]$rewritten.Text) ([int]$rewritten.Count)
     }
 
     $keys = @($Replace.Keys | ForEach-Object { [string]$_ } | Where-Object { $_ } | Sort-Object { $_.Length } -Descending)
@@ -71,17 +79,21 @@ function Edit-KitTextFile {
         $match.Value
     }.GetNewClosure()
     $newBody = [regex]::Replace($body, $pattern, $evaluator, $options)
-    if ($hits.Count -eq 0) { return 0 }
+    Write-EditedText $PSCmdlet $full $bytes $info $encoding $newBody $hits.Count
+}
+
+function Write-EditedText($cmdlet, [string] $full, [byte[]] $bytes, $info, [Text.Encoding] $encoding, [string] $newBody, [int] $count) {
+    if ($count -eq 0) { return 0 }
 
     $encoded = $encoding.GetBytes($newBody) # throws if a replacement is not representable
     $buffer  = New-Object IO.MemoryStream
     $buffer.Write($bytes, 0, $info.BomLength)
     $buffer.Write($encoded, 0, $encoded.Length)
     $newBytes = $buffer.ToArray()
-    if ($PSCmdlet.ShouldProcess($full, "Replace $($hits.Count) occurrence(s)")) {
+    if ($cmdlet.ShouldProcess($full, "Replace $count occurrence(s)")) {
         $tmp = "$full.tmp"
         [IO.File]::WriteAllBytes($tmp, $newBytes)
         [IO.File]::Replace($tmp, $full, [NullString]::Value)
     }
-    $hits.Count
+    $count
 }
