@@ -116,3 +116,47 @@ Describe 'Lightgun steps 5-7 as stand-alone scripts' {
         (@(& "$steps\06-GunmoteLayouts.ps1" @common -GunmotePath $g2)[0]).Status | Should Be 'NeedsUser'
     }
 }
+
+Describe 'Lightgun steps 8-9 as stand-alone scripts' {
+    Set-KitCulture -Culture 'en-US'
+    $rb = Join-Path $TestDrive 'RetroBat'
+    & $newRetroBat -Root $rb
+    $state = Join-Path $TestDrive 'install-state.json'
+    $common = @{ StatePath = $state; Culture = 'en-US' }
+    Set-KitStateValue -Path $state -Key 'RetroBatRoot' -Value $rb
+    $auto = Join-Path $TestDrive 'Sim\lightgun'
+
+    It '8 automation: without the layout titles of step 6 it needs the user and writes nothing' {
+        (& "$steps\08-ProfileAutomation.ps1" @common -AutomationDir $auto -TaskPrefix 'RCK-TEST Profile' -Tasks @()).Status | Should Be 'NeedsUser'
+        $auto | Should Not Exist
+        (Get-LightgunRetroBatPath -Root $rb).HookStart | Should Not Exist
+    }
+
+    It '8 automation: dry run with titles writes nothing (no administrator rights in tests: needs the user)' {
+        Set-KitStateValue -Path $state -Key 'LayoutTitles' -Value ([pscustomobject]@{ Menu = 'RCK Menu (no pointer)'; Pad43 = 'RCK Pad 4:3'; TP = 'RCK TeknoParrot'; Mouse = 'RCK Mouse' })
+        $r = & "$steps\08-ProfileAutomation.ps1" @common -AutomationDir $auto -TaskPrefix 'RCK-TEST Profile' -Tasks @() -WhatIf
+        @('Skipped', 'NeedsUser') -contains $r.Status | Should Be $true
+        $auto | Should Not Exist
+    }
+
+    It '9 verify: pad pressed, profile switch in the log, last start without gun automation -> all green' {
+        $log = Join-Path $TestDrive 'profile.log'
+        [IO.File]::WriteAllLines($log, @("2026-01-01 10:05:01 SENT layout='RCK TeknoParrot' (start)"))
+        $script:k = 0
+        $reader = { param($p) if ($p -ne 0) { return [pscustomobject]@{ Connected = $false; Buttons = @() } }; $script:k++; [pscustomobject]@{ Connected = $true; Buttons = $(if ($script:k -gt 3) { @('A') } else { @() }) } }
+        $r = @(& "$steps\09-Verify.ps1" @common -XInputReader $reader -XInputTimeoutSeconds 5 -ProfileLog $log)
+        ($r | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'lightgun-9-xinput=Done,lightgun-9-profile=Skipped,lightgun-9-launcher=Skipped'
+        @(Get-KitStateValue -Path $state -Key 'XInputPressed') -join ',' | Should Be '0'
+    }
+
+    It '9 verify: no pad and no profile switch need the user; gun automation for a gun system is reported' {
+        $none = { param($p) [pscustomobject]@{ Connected = $false; Buttons = @() } }
+        $log = Join-Path $TestDrive 'menu-only.log'
+        [IO.File]::WriteAllLines($log, @("2026-01-01 10:00:01 SENT layout='RCK Menu (no pointer)' (once)"))
+        $launcher = (Get-LightgunRetroBatPath -Root $rb).LauncherLog
+        $lines = [IO.File]::ReadAllLines($launcher)
+        [IO.File]::WriteAllLines($launcher, $lines[0..2])
+        $r = @(& "$steps\09-Verify.ps1" @common -XInputReader $none -Again -ProfileLog $log)
+        ($r | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join ',' | Should Be 'lightgun-9-xinput=NeedsUser,lightgun-9-profile=NeedsUser,lightgun-9-launcher=NeedsUser'
+    }
+}

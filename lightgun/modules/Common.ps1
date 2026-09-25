@@ -163,7 +163,7 @@ function Get-LightgunTaskByProgram {
     $want = [IO.Path]::GetFullPath($Execute)
     foreach ($t in $Tasks) {
         foreach ($a in @($t.Actions)) {
-            $exe = ([string]$a.Execute).Trim('"')
+            $exe = "$(Get-JsonProperty $a 'Execute')".Trim('"') # COM handler actions have no Execute
             if (-not $exe) { continue }
             try { $full = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($exe)) } catch { continue }
             if ([string]::Equals($full, $want, [StringComparison]::OrdinalIgnoreCase)) {

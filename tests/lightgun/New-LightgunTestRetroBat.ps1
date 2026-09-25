@@ -47,6 +47,7 @@ $gamelist = @(
     '<gameList>'
     '	<game><path>./alien3.zip</path><name>Alien 3</name></game>'
     '	<game><path>./area51.zip</path><name>Area 51</name><emulator>libretro</emulator><core>mame</core></game>'
+    '	<game><path>./same.zip</path><name>Same as the kit</name><emulator>mame64</emulator></game>'
     '</gameList>'
 ) -join $nl
 [IO.File]::WriteAllText((Join-Path $Root 'roms\mame\gamelist.xml'), $gamelist + $nl, $utf8)

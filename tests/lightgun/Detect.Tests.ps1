@@ -122,8 +122,11 @@ Describe 'Gunmote' {
         $high = [pscustomobject]@{ TaskName = 'x'; TaskPath = '\'; State = 'Ready'; Actions = @($action); Principal = [pscustomobject]@{ RunLevel = 'Highest' } }
         $low = [pscustomobject]@{ TaskName = 'y'; TaskPath = '\'; State = 'Ready'; Actions = @($action); Principal = [pscustomobject]@{ RunLevel = 'Limited' } }
         $other = [pscustomobject]@{ TaskName = 'z'; TaskPath = '\'; State = 'Ready'; Actions = @([pscustomobject]@{ Execute = 'C:\other.exe' }); Principal = [pscustomobject]@{ RunLevel = 'Highest' } }
-        Test-LightgunGunmoteTask -Exe "$dir\Gunmote.exe" -Tasks @($high) | Should Be $true
-        Test-LightgunGunmoteTask -Exe "$dir\Gunmote.exe" -Tasks @($low, $other) | Should Be $false
+        # COM handler actions have no Execute property; tasks without actions exist too.
+        $com = [pscustomobject]@{ TaskName = 'c'; TaskPath = '\'; State = 'Ready'; Actions = @([pscustomobject]@{ ClassId = '{0}' }); Principal = [pscustomobject]@{ RunLevel = 'Highest' } }
+        $empty = [pscustomobject]@{ TaskName = 'e'; TaskPath = '\'; State = 'Ready'; Actions = @(); Principal = [pscustomobject]@{ RunLevel = 'Highest' } }
+        Test-LightgunGunmoteTask -Exe "$dir\Gunmote.exe" -Tasks @($com, $empty, $high) | Should Be $true
+        Test-LightgunGunmoteTask -Exe "$dir\Gunmote.exe" -Tasks @($low, $other, $com) | Should Be $false
     }
 
     It 'refuses a task with highest rights for a Gunmote outside Program Files' {

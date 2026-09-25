@@ -169,17 +169,23 @@ function Get-LightgunEsOverride {
     }
 }
 
-# Games of the gun systems whose gamelist.xml hard-wires <emulator> or <core> (reported only).
+# Games of the gun systems whose gamelist.xml hard-wires an <emulator>/<core> OTHER than the kit's choice for
+# the system (reported only; an entry that names the same emulator changes nothing).
 function Get-LightgunGamelistOverride {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $RetroBatRoot)
+    $target = Get-LightgunEsSettingsTarget
     foreach ($s in $script:LightgunGunSystems) {
+        $wantEmu = if ($target.Contains("$s.emulator")) { $target["$s.emulator"] } else { $null }
+        $wantCore = if ($target.Contains("$s.core")) { $target["$s.core"] } else { $null }
         $file = Join-Path $RetroBatRoot "roms\$s\gamelist.xml"
         if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { continue }
         try { $doc = Read-LightgunXml $file } catch { Write-KitLog "$file`: $($_.Exception.Message)" -Level Warn; continue }
         foreach ($g in @($doc.SelectNodes('/gameList/game'))) {
             $emu = $g.SelectSingleNode('emulator'); $core = $g.SelectSingleNode('core')
             if ($emu -or $core) {
+                $same = $wantEmu -and $emu -and $emu.InnerText -eq $wantEmu -and (-not $core -or $core.InnerText -eq $wantCore)
+                if ($same) { continue }
                 $path = $g.SelectSingleNode('path')
                 [pscustomobject]@{
                     System = $s; Game = if ($path) { $path.InnerText } else { '' }

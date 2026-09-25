@@ -96,6 +96,7 @@ function Read-LightgunJson([string] $Path) {
     [IO.File]::ReadAllText($Path) | ConvertFrom-Json
 }
 
+# Property value or $null (StrictMode-safe; also used for scheduled task objects).
 function Get-JsonProperty($Object, [string] $Name) {
     if ($null -eq $Object) { return $null }
     $p = $Object.PSObject.Properties[$Name]
