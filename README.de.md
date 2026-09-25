@@ -39,25 +39,9 @@ Entwickelt von **Fried ([@kburna243](https://github.com/kburna243))** — von Ar
 
 ## 🏛️ Die drei Kernsäulen
 
-```
-                      ┌─────────────────────────────────────────┐
-                      │        Fried's Retrogaming Kit          │
-                      │       (Gemeinsame Kernplattform)        │
-                      └────────────────────┬────────────────────┘
-                                           │
-         ┌─────────────────────────────────┼─────────────────────────────────┐
-         ▼                                 ▼                                 ▼
-┌──────────────────┐              ┌──────────────────┐              ┌──────────────────┐
-│ Virtual Pinball  │              │ Wiimote Lightgun │              │  Kernplattform   │
-│      Suite       │              │      Suite       │              │    & Engine      │
-├──────────────────┤              ├──────────────────┤              ├──────────────────┤
-│• Baller-Umzug    │              │• DolphinBar (M4) │              │• Zero-Dep SQLite │
-│• SQLite-Pfad-Fix │              │• ViGEmBus X360   │              │• Test-Invoke-Ver │
-│• COM-Regsvr32    │              │• Gunmote-Layouts │              │• Dry-Run Support │
-│• FP / BAM Setup  │              │• RetroBat-Tuning │              │• ACL-Härtung     │
-│• Multi-Screen 4K │              │• Auto-Profile    │              │• Auto-Backups    │
-└──────────────────┘              └──────────────────┘              └──────────────────┘
-```
+<p align="center">
+  <img src="docs/images/frieds-rgk-3pillars.webp" alt="Die drei Kernsäulen von Fried's Retrogaming Kit" width="860" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); margin: 16px 0;" />
+</p>
 
 ### 1. 🎱 Virtual Pinball Suite (`pinball\`)
 - **Nahtloser Umzug & Wiederherstellung**: Verschiebt ein komplettes **Baller Installer**-Layout (PinUP Popper, Visual Pinball X, VPinMAME, B2S, FlexDMD, Future Pinball) auf ein neues Laufwerk (z. B. `E:\Old Build` ➔ `D:\Pinball`) oder stellt es auf einem frisch installierten Windows sauber wieder her.

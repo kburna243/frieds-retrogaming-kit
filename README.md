@@ -39,25 +39,9 @@ Created by **Fried ([@kburna243](https://github.com/kburna243))** — built by a
 
 ## 🏛️ The Three Core Pillars
 
-```
-                      ┌─────────────────────────────────────────┐
-                      │        Fried's Retrogaming Kit          │
-                      │         (Shared Core Platform)          │
-                      └────────────────────┬────────────────────┘
-                                           │
-         ┌─────────────────────────────────┼─────────────────────────────────┐
-         ▼                                 ▼                                 ▼
-┌──────────────────┐              ┌──────────────────┐              ┌──────────────────┐
-│ Virtual Pinball  │              │ Wiimote Lightgun │              │  Core Platform   │
-│      Suite       │              │      Suite       │              │    & Engine      │
-├──────────────────┤              ├──────────────────┤              ├──────────────────┤
-│• Baller Relocate │              │• DolphinBar (M4) │              │• Zero-Dep SQLite │
-│• SQLite Path Fix │              │• ViGEmBus X360   │              │• Test-Invoke-Ver │
-│• COM Regsvr32    │              │• Gunmote Layouts │              │• Dry-Run Support │
-│• FP / BAM Setup  │              │• RetroBat Tuner  │              │• ACL Hardening   │
-│• Multi-Screen 4K │              │• Auto Profiles   │              │• Auto Backups    │
-└──────────────────┘              └──────────────────┘              └──────────────────┘
-```
+<p align="center">
+  <img src="docs/images/frieds-rgk-3pillars.webp" alt="The Three Core Pillars of Fried's Retrogaming Kit" width="860" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); margin: 16px 0;" />
+</p>
 
 ### 1. 🎱 Virtual Pinball Suite (`pinball\`)
 - **Seamless Relocation & Rebuild**: Move an entire **Baller Installer** layout (PinUP Popper, Visual Pinball X, VPinMAME, B2S, FlexDMD, Future Pinball) to a new drive (e.g. `E:\Old Build` ➔ `D:\Pinball`) or restore it onto a fresh Windows installation.
