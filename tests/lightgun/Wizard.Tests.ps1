@@ -7,16 +7,16 @@ $wizardScript = Join-Path $kitRoot 'lightgun\ui\Wizard.ps1'
 Describe 'Lightgun wizard (smoke test, no window is shown)' {
     $state = Join-Path $TestDrive 'install-state.json'
 
-    It 'lists start, steps 1-9, calibration and thanks and builds every page without errors (de and en)' {
+    It 'lists start, steps 1-14, calibration, verify and credits and builds every page without errors (de and en)' {
         foreach ($culture in 'de-DE', 'en-US') {
             $w = . $wizardScript -NoShow -Culture $culture -StatePath $state
             try {
-                $w.Pages.Count | Should Be 12
-                $w.List.Items.Count | Should Be 12
+                $w.Pages.Count | Should Be 17
+                $w.List.Items.Count | Should Be 17
                 $w.DryRunBox.Checked | Should Be $true # first run
                 for ($i = 0; $i -lt $w.Pages.Count; $i++) { Show-KitWizardPage -Wizard $w -Index $i }
                 $w.Log.Text | Should Not Match '\[X\]'
-                $w.List.Items[11] | Should Be (Get-KitText 'Lightgun.Ui.Page.Credits')
+                $w.List.Items[16] | Should Be (Get-KitText 'Lightgun.Ui.Page.Credits')
                 @($w.List.Items | Where-Object { $_ -match '^\[\[' }).Count | Should Be 0
             } finally { $w.Form.Dispose() }
         }
@@ -43,10 +43,10 @@ Describe 'Lightgun wizard (smoke test, no window is shown)' {
     }
 
     It 'shows the calibration guide and the credits' {
-        $w = . $wizardScript -NoShow -Culture 'en-US' -StatePath $state -Page 10
+        $w = . $wizardScript -NoShow -Culture 'en-US' -StatePath $state -Page 14
         try {
             (@($w.Content.Controls[0].Controls | ForEach-Object { $_.Text }) -join ' ') | Should Match 'only ONE Wiimote'
-            Show-KitWizardPage -Wizard $w -Index 11
+            Show-KitWizardPage -Wizard $w -Index 16
             $box = @($w.Content.Controls[0].Controls | Where-Object { $_ -is [Windows.Forms.RichTextBox] })[0]
             $box.Text | Should Match 'https://github.com/gunmotelabs/Gunmote'
         } finally { $w.Form.Dispose() }

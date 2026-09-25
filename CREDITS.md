@@ -22,12 +22,15 @@ verteilt sie nie selbst weiter. **Danke!**
 | **Lichtknarre** | Lightgun-Wissen und -Werkzeuge | _Link folgt_ |
 | **Touchmote** | Wiimote-Treiber-Grundlage, Vorläufer der heutigen Wiimote-Lightgun-Setups | _Link folgt_ |
 | **Gunmote** (gunmotelabs) | Wiimote → virtuelles Xbox-Pad, Layouts, Kalibrierung; baut auf Touchmote und Lichtknarre auf | <https://github.com/gunmotelabs/Gunmote> |
-| **DemulShooter** (argonlefou) | Lightgun-Eingaben für Demul, Model 2 u. a. | _Link folgt_ |
-| **RetroBat** (RetroBat-Team) | Frontend und Emulator-Verwaltung | <https://github.com/RetroBat-Official/retrobat-setup> |
-| **ViGEmBus** (Nefarius) | virtuelle Xbox-360-Pads (Projekt seit 2023 archiviert) | <https://github.com/nefarius/ViGEmBus> |
-| **MAMEHooker** (Howard Casto) und offene Nachfolger (OutputHooker, QMamehook) | Rumble/Force-Feedback-Ausgaben — das Kit setzt auf einen offenen Nachfolger | _Links folgen_ |
-| **TeknoParrot** (Teknogods) | moderne Arcade-Spiele | _Link folgt_ |
-| Emulatoren und ihre Maintainer: **MAME**, **Demul**, **Model 2 Emulator** (ElSemi), **Supermodel**, **DuckStation**, **PCSX2**, **Flycast**, **RetroArch/libretro** und alle Core-Autoren | Emulation | _Links folgen_ |
+| **DemulShooter** (argonlefou) | Lightgun-Eingaben für Demul, Model 2 u. a. | <https://github.com/argonlefou/DemulShooter> (keine Lizenzdatei, Link only) |
+| **Supermodel** (trzy, Ian Rice) | Sega Model 3 Emulator mit XInput und Fadenkreuz | <https://github.com/trzy/Supermodel> (GPL-3.0) |
+| **RetroBat** (RetroBat-Team) | Frontend und Emulator-Verwaltung | <https://github.com/RetroBat-Official/retrobat-setup> (GPL-3.0) |
+| **ViGEmBus** (Nefarius) | virtuelle Xbox-360-Pads (Projekt seit 2023 archiviert) | <https://github.com/nefarius/ViGEmBus> (MIT) |
+| **MAMEHooker** (Howard Casto) und offene Nachfolger (**OutputHooker** / **QMamehook**) | Rumble/Force-Feedback-Ausgaben — OutputHooker (GPL-3.0) als evaluierter Nachfolger | OutputHooker: <https://github.com/PolybiusExtreme/OutputHooker> · QMamehook: <https://github.com/SeongGino/QMamehook> |
+| **TeknoParrot** (Teknogods) | moderne Arcade-Spiele | <https://teknoparrot.com> |
+| **DuckStation** (stenzek) | PlayStation 1 Standalone-Emulator | <https://github.com/stenzek/duckstation> (GPL-3.0) |
+| **PCSX2** (PCSX2 Team) | PlayStation 2 Standalone-Emulator | <https://github.com/PCSX2/pcsx2> (GPL-3.0) |
+| Emulatoren und ihre Maintainer: **MAME**, **Demul**, **Model 2 Emulator** (ElSemi), **Flycast**, **RetroArch/libretro** und alle Core-Autoren | Emulation | Nutzer stellt bereit bzw. RetroBat-Updater |
 
 ## Virtual Pinball
 

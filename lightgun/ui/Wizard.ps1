@@ -197,6 +197,40 @@ $pages = @(
         $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.Automation.Desc')
         $null = Add-RunButton $p { Invoke-WizardStep 8 '08-ProfileAutomation.ps1' (Add-UserSid @{ Approve = $script:Approve }) }
     } }
+    @{ TitleKey = 'Lightgun.Ui.Page.TeknoParrot'; StepNames = @('lightgun-10-tp-paths', 'lightgun-10-tp-bind', 'lightgun-10-tp-settings'); Build = {
+        param($w, $p)
+        $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.TeknoParrot.Desc')
+        $null = Add-RunButton $p { Invoke-WizardStep 9 '10-TeknoParrot.ps1' }
+    } }
+    @{ TitleKey = 'Lightgun.Ui.Page.GameLists'; StepNames = @('lightgun-11-tp-duplicates', 'lightgun-11-tp-gamelist'); Build = {
+        param($w, $p)
+        $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.GameLists.Desc')
+        $null = Add-RunButton $p { Invoke-WizardStep 10 '11-GameLists.ps1' @{ Approve = $script:Approve } }
+    } }
+    @{ TitleKey = 'Lightgun.Ui.Page.Demul'; StepNames = @('lightgun-12-demul', 'lightgun-12-demulshooter', 'lightgun-12-demul-settings', 'lightgun-12-demul-gamelist'); Build = {
+        param($w, $p)
+        $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.Demul.Desc')
+        Add-LinkButton $p (Get-LightgunDemulShooterReleaseUrl)
+        $null = Add-KitUiCheck $p (Get-KitText 'Lightgun.Ui.Demul.RemoveHardwired') ([bool]$w.Values['RemoveHardwired']) { $script:W.Values['RemoveHardwired'] = $this.Checked }
+        $null = Add-RunButton $p { Invoke-WizardStep 11 '12-Demul.ps1' @{ RemoveHardwired = [bool]$script:W.Values['RemoveHardwired'] } }
+    } }
+    @{ TitleKey = 'Lightgun.Ui.Page.Model2Supermodel'; StepNames = @('lightgun-13-model2', 'lightgun-13-supermodel', 'lightgun-13-model-settings'); Build = {
+        param($w, $p)
+        $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.Model2Supermodel.Desc')
+        Add-LinkButton $p (Get-LightgunSupermodelReleaseUrl)
+        $null = Add-RunButton $p { Invoke-WizardStep 12 '13-Model2Supermodel.ps1' }
+    } }
+    @{ TitleKey = 'Lightgun.Ui.Page.DuckStationPcsx2'; StepNames = @('lightgun-14-duckstation-pcsx2'); Build = {
+        param($w, $p)
+        $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.DuckStationPcsx2.Desc')
+        $null = Add-RunButton $p { Invoke-WizardStep 13 '14-DuckStationPcsx2.ps1' }
+    } }
+    @{ TitleKey = 'Lightgun.Ui.Page.Calibration'; Build = {
+        param($w, $p)
+        foreach ($k in 'Lightgun.Ui.Calibration.Last', 'Lightgun.Ui.Calibration.One', 'Lightgun.Ui.Calibration.How', 'Lightgun.Ui.Calibration.Check') {
+            $null = Add-KitUiText $p (Get-KitText $k)
+        }
+    } }
     @{ TitleKey = 'Lightgun.Ui.Page.Verify'; StepNames = @('lightgun-9-xinput', 'lightgun-9-profile', 'lightgun-9-launcher'); Build = {
         param($w, $p)
         $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.Verify.Desc')
@@ -205,14 +239,8 @@ $pages = @(
         $null = Add-RunButton $p {
             $dry = $script:W.DryRunBox.Checked
             $script:W.DryRunBox.Checked = $false
-            try { Invoke-WizardStep 9 '09-Verify.ps1' @{ Again = [bool]$script:W.Values['VerifyAgain'] } (Get-KitText 'Lightgun.Ui.Verify.Confirm') }
+            try { Invoke-WizardStep 15 '09-Verify.ps1' @{ Again = [bool]$script:W.Values['VerifyAgain'] } (Get-KitText 'Lightgun.Ui.Verify.Confirm') }
             finally { $script:W.DryRunBox.Checked = $dry }
-        }
-    } }
-    @{ TitleKey = 'Lightgun.Ui.Page.Calibration'; Build = {
-        param($w, $p)
-        foreach ($k in 'Lightgun.Ui.Calibration.Last', 'Lightgun.Ui.Calibration.One', 'Lightgun.Ui.Calibration.How', 'Lightgun.Ui.Calibration.Check') {
-            $null = Add-KitUiText $p (Get-KitText $k)
         }
     } }
     @{ TitleKey = 'Lightgun.Ui.Page.Credits'; Build = {

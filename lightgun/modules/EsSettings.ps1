@@ -24,6 +24,9 @@ $script:LightgunEsExtra = [ordered]@{
     'naomi.emulator'              = 'demul'
     'naomi.core'                  = 'naomi'
     'naomi.use_demulshooter'      = '0'
+    'atomiswave.emulator'         = 'demul'
+    'atomiswave.core'             = 'atomiswave'
+    'atomiswave.use_demulshooter' = '0'
     'psx.emulator'                = 'duckstation'
     'psx.core'                    = 'duckstation'
 }

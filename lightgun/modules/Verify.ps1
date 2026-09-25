@@ -91,30 +91,71 @@ function Test-LightgunProfileSwitch {
 
 # The last game start in emulatorLauncher.log: Time, System, Emulator, Core, Rom, Lightgun (the -lightgun flag),
 # GunAutomation (RetroBat assigned guns: "[LightGun] Assigned ..."), Running (command line). $null = no start.
+# -System: filters for the most recent start of this specific system (e.g. teknoparrot, naomi, demul).
 function Get-LightgunLauncherReport {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $Path)
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [string] $System
+    )
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
     $stream = [IO.File]::Open($Path, 'Open', 'Read', 'ReadWrite') # RetroBat may still have it open
     try { $lines = (New-Object IO.StreamReader ($stream, [Text.Encoding]::UTF8, $true)).ReadToEnd() -split '\r?\n' } finally { $stream.Dispose() }
-    $start = -1
-    for ($i = $lines.Count - 1; $i -ge 0; $i--) { if ($lines[$i] -match '\[Startup\].*\s-gameinfo\s') { $start = $i; break } }
-    if ($start -lt 0) { return $null }
-    $head = $lines[$start]
-    function Get-Arg([string] $Name) {
-        $m = [regex]::Match($head, "\s-$Name\s+(?:`"([^`"]*)`"|(\S+))")
-        if (-not $m.Success) { '' } elseif ($m.Groups[1].Success) { $m.Groups[1].Value } else { $m.Groups[2].Value }
+
+    # Find all startup indices
+    $starts = New-Object Collections.Generic.List[int]
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '\[Startup\].*\s-gameinfo\s') { $starts.Add($i) }
     }
-    $block = @($lines[$start..($lines.Count - 1)])
-    $running = @($block | Where-Object { $_ -match '\[Running\]\s+(.*)$' } | ForEach-Object { $Matches[1] }) | Select-Object -First 1
+    if ($starts.Count -eq 0) { return $null }
+
+    for ($k = $starts.Count - 1; $k -ge 0; $k--) {
+        $startIdx = $starts[$k]
+        $endIdx = if ($k -eq $starts.Count - 1) { $lines.Count - 1 } else { $starts[$k + 1] - 1 }
+        $head = $lines[$startIdx]
+        $block = @($lines[$startIdx..$endIdx])
+
+        $mSystem = [regex]::Match($head, '\s-system\s+(?:"([^"]*)"|(\S+))')
+        $sysVal = if ($mSystem.Groups[1].Success) { $mSystem.Groups[1].Value } elseif ($mSystem.Groups[2].Success) { $mSystem.Groups[2].Value } else { '' }
+
+        if ($System -and $sysVal.ToLowerInvariant() -ne $System.ToLowerInvariant()) { continue }
+
+        function Get-Arg([string] $Name) {
+            $m = [regex]::Match($head, "\s-$Name\s+(?:`"([^`"]*)`"|(\S+))")
+            if (-not $m.Success) { '' } elseif ($m.Groups[1].Success) { $m.Groups[1].Value } else { $m.Groups[2].Value }
+        }
+        $running = @($block | Where-Object { $_ -match '\[Running\]\s+(.*)$' } | ForEach-Object { $Matches[1] }) | Select-Object -First 1
+
+        return [pscustomobject]@{
+            Time          = if ($head -match '^(\S+ \S+)') { $Matches[1] } else { '' }
+            System        = $sysVal
+            Emulator      = Get-Arg 'emulator'
+            Core          = Get-Arg 'core'
+            Rom           = Get-Arg 'rom'
+            Lightgun      = $head -match '\s-lightgun(\s|$)'
+            GunAutomation = [bool](@($block | Where-Object { $_ -match '\[LightGun( core)?\]\s+Assigned' }).Count)
+            Running       = [string]$running
+        }
+    }
+    return $null
+}
+
+# Verifies that a launch report used the expected system, emulator, and that use_guns=0 took effect (no gun automation).
+function Test-LightgunLauncherLaunch {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [object] $Report,
+        [Parameter(Mandatory)] [string] $ExpectedSystem,
+        [Parameter(Mandatory)] [string] $ExpectedEmulator
+    )
+    $systemMatch = $Report.System -and ($Report.System.ToLowerInvariant() -eq $ExpectedSystem.ToLowerInvariant())
+    $emuMatch = $Report.Emulator -and ($Report.Emulator.ToLowerInvariant() -eq $ExpectedEmulator.ToLowerInvariant())
+    $noGunAuto = -not $Report.GunAutomation
     [pscustomobject]@{
-        Time          = if ($head -match '^(\S+ \S+)') { $Matches[1] } else { '' }
-        System        = Get-Arg 'system'
-        Emulator      = Get-Arg 'emulator'
-        Core          = Get-Arg 'core'
-        Rom           = Get-Arg 'rom'
-        Lightgun      = $head -match '\s-lightgun(\s|$)'
-        GunAutomation = [bool](@($block | Where-Object { $_ -match '\[LightGun( core)?\]\s+Assigned' }).Count)
-        Running       = [string]$running
+        Valid         = $systemMatch -and $emuMatch -and $noGunAuto
+        SystemMatch   = $systemMatch
+        EmulatorMatch = $emuMatch
+        NoGunAuto     = $noGunAuto
+        Report        = $Report
     }
 }

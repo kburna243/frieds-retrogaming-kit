@@ -9,7 +9,7 @@ $script:LightgunDir = $PSScriptRoot
 $script:KitRoot     = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 
-foreach ($name in 'Common', 'Detect', 'Hardware', 'ViGEm', 'Gunmote', 'Steam', 'Layouts', 'EsSettings', 'Automation', 'Verify', 'TeknoParrot') {
+foreach ($name in 'Common', 'Detect', 'Hardware', 'ViGEm', 'Gunmote', 'Steam', 'Layouts', 'EsSettings', 'Automation', 'Verify', 'TeknoParrot', 'Demul', 'Model2Supermodel', 'DuckStationPcsx2') {
     . (Join-Path $PSScriptRoot "modules\$name.ps1")
 }
 
