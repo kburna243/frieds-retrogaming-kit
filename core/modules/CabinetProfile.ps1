@@ -624,7 +624,9 @@ function Import-KitCabinetProfile {
         [string] $GunmoteDir,
         [string] $SteamDir,
         [object[]] $Monitors,
-        [switch] $AutoInstall
+        [switch] $AutoInstall,
+        # Answers the installer's plan (SHA-256, signature). Without it the console asks; never answered by the kit.
+        [scriptblock] $Approve
     )
 
     $isWhatIf = [bool]$WhatIfPreference
@@ -858,7 +860,7 @@ function Import-KitCabinetProfile {
                 if ($AutoInstall -and (Test-KitAdmin)) {
                     if (-not $isWhatIf) {
                         try {
-                            $null = Install-LightgunViGEm -Approve { $true }
+                            $null = Install-LightgunViGEm -Approve $Approve -Confirm:$false
                             $results.Add([pscustomobject]@{ Name = 'lightgun-vigem'; Status = 'Done'; Detail = 'ViGEmBus installed.' })
                         } catch {
                             $results.Add([pscustomobject]@{ Name = 'lightgun-vigem'; Status = 'NeedsUser'; Detail = "ViGEmBus install failed: $($_.Exception.Message)" })

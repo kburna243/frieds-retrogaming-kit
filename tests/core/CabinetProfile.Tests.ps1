@@ -285,4 +285,19 @@ Describe 'CabinetProfile: Lightgun export on A and import on B' {
         ($results | Where-Object { $_.Status -eq 'Done' }).Count | Should Be 0
         ($results | Where-Object { $_.Status -eq 'Skipped' }).Count | Should BeGreaterThan 0
     }
+
+    It '-AutoInstall hands the installer plan to -Approve and never answers it itself' {
+        Mock -ModuleName 'RetroCabinetKit.Core' Get-LightgunViGEmState { [pscustomobject]@{ Installed = $false } }
+        Mock -ModuleName 'RetroCabinetKit.Core' Test-KitAdmin { $true }
+        Mock -ModuleName 'RetroCabinetKit.Core' Install-LightgunViGEm { if ($Approve -and (& $Approve 'ViGEmBus plan')) { 0 } else { throw 'declined' } }
+        $profileZip = @(Get-ChildItem -LiteralPath $zipDest -Filter 'cabinet-profile-lightgun_*.zip')[0].FullName
+
+        $declined = @(Import-KitCabinetProfile -Path $profileZip -RetroBatRoot $rbB -GunmoteDir $gmB -AutoInstall -Approve { param($t) $false })
+        @($declined | Where-Object { $_.Name -eq 'lightgun-vigem' })[0].Status | Should Be 'NeedsUser'
+
+        $script:seen = $null
+        $approved = @(Import-KitCabinetProfile -Path $profileZip -RetroBatRoot $rbB -GunmoteDir $gmB -AutoInstall -Approve { param($t) $script:seen = $t; $true })
+        @($approved | Where-Object { $_.Name -eq 'lightgun-vigem' })[0].Status | Should Be 'Done'
+        $script:seen | Should Be 'ViGEmBus plan'
+    }
 }
