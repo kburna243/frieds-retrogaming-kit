@@ -5,7 +5,7 @@
 
 Set-StrictMode -Version 2.0
 
-$script:ApiVersion = '1.1'
+$script:ApiVersion = '1.2'
 $script:ApiDir     = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 # The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
@@ -124,7 +124,9 @@ function Get-KitOperation {
     $fixed = @(
         @{ Name = 'operations'; Kind = 'Read'; Description = 'This catalog.'; Parameters = @() }
         @{ Name = 'status'; Kind = 'Read'; Description = 'Health check of system, pinball, lightgun and security (doctor).'; Parameters = @() }
-        @{ Name = 'components'; Kind = 'Read'; Description = 'Detected components: Windows, RetroBat, Gunmote, ViGEmBus, DolphinBar, Steam, pinball build.'; Parameters = @() }
+        @{ Name = 'components'; Kind = 'Read'; Description = 'Detected components: Windows, RetroBat, Gunmote, ViGEmBus, DolphinBar, Steam, pinball build, PinballY.'; Parameters = @() }
+        # The second front end is not part of a build, so its folder is asked for, not derived from the state.
+        @{ Name = 'pinbally.detect'; Kind = 'Read'; Description = 'Inspect a PinballY installation: version, systems, table databases and which path references do not resolve on this machine. Reads only.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'backups.list'; Kind = 'Read'; Description = 'The kit''s backups, newest first.'; Parameters = @([pscustomobject]@{ Name = 'Root'; Type = 'String[]'; Mandatory = $false }) }
         @{ Name = 'backup.check'; Kind = 'Read'; Description = 'Checks a backup against its checksums (zip) or its original (file copy).'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'backup.restore'; Kind = 'Change'; Description = 'Restores a backup; the current file is saved first. Zip backups need AllowedRoot.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'AllowedRoot'; Type = 'String[]'; Mandatory = $false }) }
@@ -221,6 +223,16 @@ function Get-KitApiComponent([string] $PinballStatePath, [string] $LightgunState
         $problem = if ($root) { Get-PinballRootProblem -Root $root } else { '' }
         Add-Row 'PinballBuild' ($root -and -not $problem) '' $root $problem
     } catch { Add-Row 'PinballBuild' $false '' '' $_.Exception.Message }
+    try {
+        # The second front end is not part of a build: its folder comes from the kit state, and an unknown one
+        # stays unknown. Searching drives for it here would make a cheap probe expensive and would guess.
+        $y = if (Test-Path -LiteralPath $PinballStatePath) { [string](Get-KitStateValue -Path $PinballStatePath -Key 'PinballYRoot') } else { '' }
+        $yOk = Test-PinballYInstall -Path $y
+        $detail = if ($yOk) { Get-KitText 'PinballY.ComponentKnown' }
+                  elseif ($y) { Get-KitText 'PinballY.NotAnInstall' -f $y, 'PinballY.exe + Settings.txt' }
+                  else { Get-KitText 'PinballY.NotInState' }
+        Add-Row 'PinballY' $yOk $(if ($yOk) { (Get-PinballYVersion -Path $y).Version }) $y $detail
+    } catch { Add-Row 'PinballY' $false '' '' $_.Exception.Message }
     $rows.ToArray()
 }
 
@@ -270,6 +282,30 @@ function Invoke-KitOperation {
                 $status = 'Ok'; $msg = Get-KitText 'Doctor.Result' -f $s.Error, $s.Warn, $s.Ok
             }
             'components' { $data = [pscustomobject]@{ Components = @(Get-KitApiComponent -PinballStatePath $PinballStatePath -LightgunStatePath $LightgunStatePath) }; $status = 'Ok'; $msg = '' }
+            'pinbally.detect' {
+                # Reads only, so there is nothing to dry run and nothing to approve: the result is the description.
+                # A folder that is not an installation throws and lands in Failed, like an unknown backup path.
+                $info = Get-PinballYInfo -Path $p.Path
+                $warnings = @(foreach ($r in @(@($info.ReferenceMissing) + @($info.ReferenceForeign))) {
+                    if ($r.Status -eq 'ForeignDrive') {
+                        Get-KitText 'PinballY.RefForeign' -f $r.Key, $r.Line, (Get-PinballYDriveLetter -Path $r.Value)
+                    } else {
+                        Get-KitText 'PinballY.RefMissing' -f $r.Key, $r.Line, $(if ($r.Resolved) { $r.Resolved } else { $r.Value })
+                    }
+                })
+                return New-KitOperationResult -Operation $Name -Kind Read -Status Ok -Message $info.Detail `
+                    -Warnings $warnings -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                    -Data ([pscustomobject]@{
+                        Root = $info.Root; Version = $info.Version; Encoding = $info.Encoding
+                        SettingsLine = $info.SettingsLine; Setting = $info.Setting
+                        System = $info.System; SystemEnabled = $info.SystemEnabled
+                        Reference = $info.Reference; ReferenceAbsolute = $info.ReferenceAbsolute
+                        ReferenceToken = $info.ReferenceToken; ReferenceMissing = @($info.ReferenceMissing)
+                        ReferenceForeign = @($info.ReferenceForeign)
+                        Database = $info.Database; Game = $info.Game; Companion = $info.Companion
+                        Running = $info.Running; WriteSafe = $info.WriteSafe
+                    })
+            }
             'backups.list' {
                 $roots = if ($p.ContainsKey('Root')) { @($p.Root) } else { @(@(Get-PinballBackupRoot -StatePath $PinballStatePath) + @(Get-LightgunBackupRoot -StatePath $LightgunStatePath) | Sort-Object -Unique) }
                 $list = @(Get-KitBackup -Path $roots | ForEach-Object {
