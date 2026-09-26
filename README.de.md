@@ -93,6 +93,7 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 | **Supermodel** (Model 3) | ✅ Automatisiert | Fadenkreuz, XInput-Gun-Belegung, Schritt 13 |
 | **DuckStation / PCSX2** | 🔎 Geführte Prüfung | Prüft Einstellungen und erklärt die Zuordnung, Schritt 14 |
 | **Flycast** | ⛔ Nicht abgedeckt | — |
+| **Doctor, Backups, Support-Paket** | ✅ Nur lesend / abgesichert | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
 | **Rumble / Force-Feedback** | 🚧 Geplant | Siehe [ROADMAP](ROADMAP.md) |
 
 ---
@@ -165,6 +166,19 @@ powershell -ExecutionPolicy Bypass -File lightgun\steps\14-DuckStationPcsx2.ps1
 
 > [!TIP]
 > Schritt 9 ist das Ende der **Basis**-Einrichtung, nicht des Kits: Die Schritte 10–14 ergänzen die Arcade- und Konsolen-Emulatoren. Emulatoren, die du nicht nutzt, werden einfach als fehlend gemeldet.
+
+### 4. Doctor, Backups & Support-Paket
+```cmd
+:: Reine Prüfung von System, Pinball und Lightgun (OK / INFO / WARN / ERROR, Exit-Code 1 bei Fehlern)
+Start-Kit.cmd -Doctor
+
+:: Alle Backups des Kits auflisten (ZIP-Backups und <datei>.bak_*-Kopien), neueste zuerst
+Start-Kit.cmd -Backups
+
+:: Anonymisiertes Support-Paket für ein Issue (Doctor-Bericht, Umgebung, Schrittstatus, neueste Logs)
+Start-Kit.cmd -SupportBundle
+```
+Einzelne Backups prüfen, wiederherstellen, exportieren und löschen: `core\Start-KitTools.ps1` (`-CheckBackup`, `-RestoreBackup` mit `-WhatIf`, `-ExportBackup`, `-RemoveBackup`). Beim Wiederherstellen einer Dateikopie wird die aktuelle Datei zuerst gesichert, jede Wiederherstellung lässt sich also rückgängig machen.
 
 ---
 

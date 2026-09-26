@@ -52,6 +52,7 @@ step follows. User documentation lives in [`docs/`](docs/); the security model i
 | `pinball\`, `lightgun\` | One module per suite (`RetroCabinetKit.Pinball`, `RetroCabinetKit.Lightgun`) with `modules\`, numbered `steps\` and a `ui\Wizard.ps1`. Suites depend on the core, never on each other. |
 | `i18n\` | `en-US.psd1` (fallback) and `de-DE.psd1`, same keys (checked by `tests\core\I18n.Tests.ps1`). |
 | `tests\` | Pester 3.4 tests per suite with synthetic fixtures; `tests\local\` runs against real files that only exist on a developer machine (`tests\fixtures-local\`, git-ignored). |
+| `core\Start-KitTools.ps1` | Doctor (`Invoke-KitDoctor` over `Get-KitSystemCheck`, `Get-PinballDoctorCheck`, `Get-LightgunDoctorCheck`), recovery (`Get-KitBackup`, `Test-KitBackup`, `Restore-KitFileBackup`, `Export-KitBackup`) and support bundle (`Export-KitSupportBundle`). `Start-Kit.cmd -Doctor / -Backups / -SupportBundle` forwards here. Doctor checks only read. |
 | `tools\` | Repository tooling: depersonalization scan, static checks, release package build and check, launch pack. |
 | `site\` | Website (Vite/React, GitHub Pages). Not part of the release zip. |
 

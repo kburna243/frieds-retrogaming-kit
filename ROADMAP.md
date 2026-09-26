@@ -11,12 +11,15 @@ when they ship.
 - [x] One version source (`VERSION`), release workflow with `SHA256SUMS.txt` and build provenance attestation
 - [x] README, quickstart (lightgun steps 10-14) and emulator status in sync with the code
 - [x] `ARCHITECTURE.md`, step Definition of Done, issue and pull request templates
-- [ ] **Doctor** — one read-only command (`Start-Kit.cmd -Doctor`) that runs the Verify blocks of all suites
-      and prints OK / WARN / ERROR per area (system, pinball, lightgun, security) without changing anything
-- [ ] **Recovery center** — list, inspect, restore, export and delete the kit's backups (manifest, file count,
-      registry keys), built on `Get-KitBackupManifest` and `Restore-KitBackup`
-- [ ] **Support bundle** — `Export-KitSupportBundle`: summary, environment, displays, installed components,
-      step states and logs in one zip, depersonalized automatically (same rules as `tools\Test-Depersonalized.ps1`)
+- [x] **Doctor** — `Start-Kit.cmd -Doctor`: read-only OK / INFO / WARN / ERROR per area (system, pinball,
+      lightgun, security)
+- [x] **Recovery** — list, check, restore, export and delete the kit's backups (`Start-Kit.cmd -Backups`,
+      `core\Start-KitTools.ps1`)
+- [x] **Support bundle** — `Start-Kit.cmd -SupportBundle`: anonymized zip with doctor report, environment, step
+      states and logs
+- [ ] Doctor, backups and support bundle as pages in both wizards (today: command line)
+- [ ] Restoring the registry part of a zip backup from the recovery tool (today: files only; the pinball wizard
+      restores its own registry backups)
 
 ## v0.3 — cabinet migration
 

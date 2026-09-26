@@ -93,6 +93,7 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 | **Supermodel** (Model 3) | ✅ Automated | Crosshairs, XInput gun bindings, step 13 |
 | **DuckStation / PCSX2** | 🔎 Guided check | Audits settings and explains the mapping, step 14 |
 | **Flycast** | ⛔ Not covered | — |
+| **Doctor, backups, support bundle** | ✅ Read-only / guarded | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
 | **Rumble / force feedback** | 🚧 Planned | See [ROADMAP](ROADMAP.md) |
 
 ---
@@ -165,6 +166,19 @@ powershell -ExecutionPolicy Bypass -File lightgun\steps\14-DuckStationPcsx2.ps1
 
 > [!TIP]
 > Step 9 is the end of the **base** setup, not of the kit: steps 10–14 add the arcade and console emulators. Emulators you do not use are simply reported as missing.
+
+### 4. Doctor, Backups & Support Bundle
+```cmd
+:: Read-only health check of system, pinball and lightgun (OK / INFO / WARN / ERROR, exit code 1 on errors)
+Start-Kit.cmd -Doctor
+
+:: List all backups the kit made (zip backups and <file>.bak_* copies), newest first
+Start-Kit.cmd -Backups
+
+:: Anonymized support bundle for an issue (doctor report, environment, step states, newest logs)
+Start-Kit.cmd -SupportBundle
+```
+Restoring, checking, exporting and deleting single backups: `core\Start-KitTools.ps1` (`-CheckBackup`, `-RestoreBackup` with `-WhatIf`, `-ExportBackup`, `-RemoveBackup`). Restoring a file copy first saves the current file, so every restore can be undone.
 
 ---
 

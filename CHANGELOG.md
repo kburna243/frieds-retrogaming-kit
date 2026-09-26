@@ -8,6 +8,17 @@ that matches it.
 ## [Unreleased]
 
 ### Added
+- **Doctor** (`Start-Kit.cmd -Doctor`): read-only health check with OK / INFO / WARN / ERROR per area. System
+  (Windows build, PowerShell, 64-bit, elevation, file system, download marks), step states of both suites,
+  pinball (build, prerequisites, COM registration, build folder rights) and lightgun (RetroBat, DolphinBar mode,
+  refresh rates, ViGEmBus, Gunmote and its autostart, Steam blacklist, automation folder ACL and hooks).
+  A missing part is an error only once that suite's setup was started.
+- **Recovery** (`Start-Kit.cmd -Backups`, `core\Start-KitTools.ps1`): lists zip backups and `<file>.bak_*` copies,
+  checks zips against their SHA-256 manifest, restores file copies (the current file is saved first as
+  `.bak_recovery_*`), restores zip backups into named roots, exports with `SHA256SUMS.txt`, deletes on request.
+- **Support bundle** (`Start-Kit.cmd -SupportBundle`): anonymized zip with doctor report, environment, step
+  states and the newest logs; profile paths, user and computer names, SIDs, private IPs, e-mail addresses and
+  other accounts' profile folders are replaced.
 - `VERSION` file as the single source of the kit version; the module manifests are checked against it.
 - GitHub Actions CI (`.github/workflows/ci.yml`, replaces `checks.yml`): depersonalization scan, static checks, Pester tests on
   Windows PowerShell 5.1, package build with integrity check, website build.
@@ -30,6 +41,9 @@ that matches it.
   steps 10-14; lightgun guides list the real emulator status.
 
 ### Fixed
+- CI on Windows: the fixtures' synthetic drives E and X are provided with `subst`, and three tests that relied
+  on running without elevation now set the folder owner explicitly (first Windows run: 378/385 passed; the
+  seven failures were test environment assumptions, not product bugs).
 - `tools/Assemble-LaunchPack.ps1` was saved without UTF-8 BOM (umlauts, dashes and emoji were garbled under
   Windows PowerShell 5.1) and lost every markdown backtick in the generated launch pack README.
 
