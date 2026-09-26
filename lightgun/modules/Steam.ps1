@@ -146,7 +146,7 @@ function Set-LightgunSteamBlacklist {
     if ([string]$current -ceq $wanted) { return 0 }
     Write-KitLog (Get-KitText 'Lightgun.Steam.Blacklist' -f $(if ($null -eq $current) { '-' } else { $current }), $wanted)
     if (-not $PSCmdlet.ShouldProcess($ConfigVdf, "controller_blacklist = $wanted")) { return 0 }
-    Assert-LightgunProcessesClosed
+    Assert-LightgunProcessesClosed -IncludeSteam
     $null = Backup-LightgunFile -Path $ConfigVdf
     $path = $script:LightgunSteamConfigPath
     Edit-KitTextFile -Path $ConfigVdf -Rewrite { param($t) Set-LightgunVdfValue -Text $t -Path $path -Key 'controller_blacklist' -Value $wanted } -Confirm:$false

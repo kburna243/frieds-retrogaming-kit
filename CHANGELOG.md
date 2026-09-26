@@ -44,6 +44,9 @@ that matches it.
   Both wizards log one summary line per step (changes, backups, duration) plus the backup paths.
 
 ### Changed
+- A running Steam client no longer blocks the lightgun steps: Steam is only checked before the kit writes Steam's
+  own files (step 5, `config.vdf`) and before restoring a Steam or zip backup (`Get-LightgunProcessName
+  -IncludeSteam`, `Assert-/Test-LightgunProcessesClosed -IncludeSteam`).
 - Lightgun step 11: its help block was ignored by PowerShell (a line started with `.parrot`); `Get-Help` and the
   API catalog show its description again.
 - GitHub Actions: checkout 7, setup-node 7, upload-artifact 7, attest-build-provenance 4, configure-pages 6,

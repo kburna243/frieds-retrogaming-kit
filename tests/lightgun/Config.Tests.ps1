@@ -75,6 +75,16 @@ Describe 'Steam VDF editing' {
         { Set-LightgunSteamBlacklist -ConfigVdf $f -Confirm:$false } | Should Throw 'steam'
         Get-Hash $f | Should Be $hash
     }
+
+    It 'a running Steam blocks only the writes to Steam''s own files' {
+        Mock -ModuleName 'RetroCabinetKit.Lightgun' Test-KitProcessesClosed { if ($Names -contains 'steam') { [pscustomobject]@{ Name = 'steam'; Id = 1 } } }
+        { Assert-LightgunProcessesClosed } | Should Not Throw
+        Test-LightgunProcessesClosed | Should Be $true
+        { Assert-LightgunProcessesClosed -IncludeSteam } | Should Throw 'steam'
+        Test-LightgunProcessesClosed -IncludeSteam | Should Be $false
+        @(Get-LightgunProcessName) -contains 'steam' | Should Be $false
+        @(Get-LightgunProcessName -IncludeSteam) -contains 'steam' | Should Be $true
+    }
 }
 
 Describe 'GunmoteVMultiGuard task' {

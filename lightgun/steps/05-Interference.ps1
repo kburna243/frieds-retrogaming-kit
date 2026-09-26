@@ -43,7 +43,7 @@ else {
 }
 
 $blacklist = New-KitStep -Name 'lightgun-5-steam-blacklist' `
-    -Test { $hasSteam -and (Test-LightgunProcessesClosed) } `
+    -Test { $hasSteam -and (Test-LightgunProcessesClosed -IncludeSteam) } `
     -Invoke { $null = Set-LightgunSteamBlacklist -ConfigVdf $config -Confirm:$false } `
     -Verify { -not $hasSteam -or (Test-LightgunSteamBlacklist -ConfigVdf $config) }
 Invoke-KitStep -Step $blacklist -StatePath $StatePath -WhatIf:$WhatIfPreference

@@ -102,7 +102,9 @@ Umfassende Diagnose, Fehlercodes und praxiserprobte Lösungen für **Fried's Ret
 - **Symptom**: Nach dem Schließen von RetroBat sind Gun-Zuweisungen verloren oder reagieren nicht mehr auf Schüsse.
 - **Ursache**: RetroBats eigene Lightgun-Verwaltung wurde wieder aktiv, oder RetroBat lief während der Konfigurationsschritte.
 - **Lösung**:
-  1. **Schließe RetroBat, Gunmote und Steam immer vollständig vor dem Ausführen der Kit-Schritte.**
+  1. **Schließe RetroBat und Gunmote immer vollständig vor dem Ausführen der Kit-Schritte.** Steam darf offen
+     bleiben, außer für Schritt 5 (Steams `config.vdf`) und das Zurückspielen eines Steam-Backups; das Kit sagt dir,
+     wann es geschlossen sein muss.
   2. Führe Schritt 7 (`07-RetroBatSettings.ps1`) erneut aus, damit `use_guns=0` und `disableautocontrollers=1` in `es_settings.cfg` dauerhaft gesetzt sind.
 
 ### 5. Profil-Automation wechselt Layouts beim Spielstart nicht

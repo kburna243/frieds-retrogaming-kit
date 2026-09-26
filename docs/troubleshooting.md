@@ -102,7 +102,8 @@ Comprehensive diagnosis, error codes, and practical remedies for **Fried's Retro
 - **Symptom**: After closing RetroBat, gun mappings revert to default or games stop responding to triggers.
 - **Cause**: RetroBat's internal gun management was re-enabled, or RetroBat was running while config files were modified.
 - **Remedy**:
-  1. **Always close RetroBat, Gunmote, and Steam before running kit configuration steps.**
+  1. **Always close RetroBat and Gunmote before running kit configuration steps.** Steam may stay open, except for
+     Step 5 (Steam's `config.vdf`) and restoring a Steam backup; the kit tells you when it has to be closed.
   2. Re-run Step 7 (`07-RetroBatSettings.ps1`) to ensure `use_guns=0` and `disableautocontrollers=1` are enforced in `es_settings.cfg`.
 
 ### 5. Profile Automation Does Not Switch Layouts During Game Launch

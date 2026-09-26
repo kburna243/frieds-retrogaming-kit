@@ -272,7 +272,9 @@ function Invoke-KitOperation {
                 $msg = Get-KitText $(if ($r.Ok) { 'Recovery.CheckOk' } else { 'Recovery.CheckBad' }) -f $r.Path
             }
             'backup.restore' {
-                if ($apply) { Assert-PinballProcessesClosed; Assert-LightgunProcessesClosed }
+                # Steam counts only when Steam's own files may come back: a .vdf copy or a zip backup (any content).
+                $steam = ($p.Path -match '\.vdf\.bak_') -or -not (ConvertFrom-KitFileBackupName -Path $p.Path)
+                if ($apply) { Assert-PinballProcessesClosed; Assert-LightgunProcessesClosed -IncludeSteam:$steam }
                 if (ConvertFrom-KitFileBackupName -Path $p.Path) {
                     $r = Restore-KitFileBackup -Path $p.Path -WhatIf:(-not $apply) -Confirm:$false
                     $changes = @(if ($r.Action -eq 'Restored') { [pscustomobject]@{ Kind = 'File'; Target = $r.Target; Detail = 'restored from backup' } })
