@@ -116,6 +116,7 @@ function Get-KitOperation {
         @{ Name = 'backups.list'; Kind = 'Read'; Description = 'The kit''s backups, newest first.'; Parameters = @([pscustomobject]@{ Name = 'Root'; Type = 'String[]'; Mandatory = $false }) }
         @{ Name = 'backup.check'; Kind = 'Read'; Description = 'Checks a backup against its checksums (zip) or its original (file copy).'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'backup.restore'; Kind = 'Change'; Description = 'Restores a backup; the current file is saved first. Zip backups need AllowedRoot.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'AllowedRoot'; Type = 'String[]'; Mandatory = $false }) }
+        @{ Name = 'backup.remove'; Kind = 'Change'; Description = 'Deletes one backup of the kit (nothing else can be deleted).'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'backup.export'; Kind = 'Change'; Description = 'Copies a backup to a folder and records its SHA-256.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'support.bundle'; Kind = 'Change'; Description = 'Writes an anonymized support bundle (doctor, environment, step states, logs).'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $false }) }
     )
@@ -271,7 +272,9 @@ function Invoke-KitOperation {
                 $msg = Get-KitText $(if ($r.Ok) { 'Recovery.CheckOk' } else { 'Recovery.CheckBad' }) -f $r.Path
             }
             'backup.restore' {
-                if ($apply) { Assert-PinballProcessesClosed; Assert-LightgunProcessesClosed }
+                # Steam counts only when Steam's own files may come back: a .vdf copy or a zip backup (any content).
+                $steam = ($p.Path -match '\.vdf\.bak_') -or -not (ConvertFrom-KitFileBackupName -Path $p.Path)
+                if ($apply) { Assert-PinballProcessesClosed; Assert-LightgunProcessesClosed -IncludeSteam:$steam }
                 if (ConvertFrom-KitFileBackupName -Path $p.Path) {
                     $r = Restore-KitFileBackup -Path $p.Path -WhatIf:(-not $apply) -Confirm:$false
                     $changes = @(if ($r.Action -eq 'Restored') { [pscustomobject]@{ Kind = 'File'; Target = $r.Target; Detail = 'restored from backup' } })
@@ -288,6 +291,17 @@ function Invoke-KitOperation {
                 return New-KitOperationResult -Operation $Name -Kind Change -Status $(if ($apply) { 'Done' } else { 'WhatIf' }) -Applied $apply `
                     -Message (Get-KitText 'Api.RestoredFiles' -f $rows.Count) -Changes $changes -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
                     -Data ([pscustomobject]@{ Files = @($rows | ForEach-Object { $_.Target }) })
+            }
+            'backup.remove' {
+                # Same recognition as the delete itself (a kit zip with manifest or a <file>.bak_* copy), also in the dry run.
+                try { $null = Test-KitBackup -Path $p.Path } catch {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status Failed -Message $_.Exception.Message -Errors @($_.Exception.Message) -StartedAt $started
+                }
+                if (-not $apply) { return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf -Message (Get-KitText 'Api.RemovePlan' -f $p.Path) -StartedAt $started }
+                Remove-KitBackup -Path $p.Path -Confirm:$false
+                return New-KitOperationResult -Operation $Name -Kind Change -Status Done -Applied $true -Message (Get-KitText 'Recovery.Deleted' -f $p.Path) `
+                    -Changes @([pscustomobject]@{ Kind = 'File'; Target = $p.Path; Detail = 'backup deleted' }) -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                    -Data ([pscustomobject]@{ Removed = $p.Path })
             }
             'backup.export' {
                 if (-not $apply) {
@@ -309,13 +323,45 @@ function Invoke-KitOperation {
             }
             { $_ -in 'profile.export', 'profile.import' } {
                 $cmd = if ($Name -eq 'profile.export') { 'Export-KitCabinetProfile' } else { 'Import-KitCabinetProfile' }
+                $info = Get-Command -Name $cmd
                 $call = @{} + $p
-                if ((Get-Command -Name $cmd).Parameters.ContainsKey('WhatIf') -and -not $apply) { $call.WhatIf = $true }
+                # Rule 2: an automatic install is a plan a person approves. A command that cannot ask (no -Approve)
+                # would answer itself, so the API refuses the install instead of letting it through.
+                if ($p.ContainsKey('AutoInstall') -and $p.AutoInstall -and -not $info.Parameters.ContainsKey('Approve')) {
+                    $m = Get-KitText 'Api.NoApproval' -f $cmd, 'AutoInstall'
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status Failed -Message $m -Errors @($m) -StartedAt $started
+                }
+                if (-not $apply) {
+                    # Rule 1: a command without a dry run of its own is not run at all; the plan is the call.
+                    if (-not $info.Parameters.ContainsKey('WhatIf')) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf -Message (Get-KitText 'Api.CallPlan' -f $cmd) `
+                            -StartedAt $started -Data ([pscustomobject]@{ Parameters = [pscustomobject]$p })
+                    }
+                    $call.WhatIf = $true
+                }
+                $script:ApiApprovals = New-Object Collections.Generic.List[string]
+                $script:ApiApprovalAnswer = [bool]$Approved
+                if ($info.Parameters.ContainsKey('Approve')) {
+                    $call.Approve = { param($text) $script:ApiApprovals.Add([string]$text); [bool]$script:ApiApprovalAnswer }
+                }
                 $out = @(& $cmd @call 6>$null)
-                $stepResults = @($out | Where-Object { $_ -and $_.PSObject.TypeNames -contains 'RetroCabinetKit.StepResult' })
-                $st = if ($stepResults.Count) { Get-WorstStatus @($stepResults | ForEach-Object { if ($_.WhatIf) { 'WhatIf' } else { $_.Status } }) } elseif ($apply -or $Name -eq 'profile.export') { 'Done' } else { 'WhatIf' }
-                return New-KitOperationResult -Operation $Name -Kind Change -Status $st -Applied $apply -Message '' `
-                    -Changes @($stepResults | ForEach-Object { $_.Changes }) -Backups @($stepResults | ForEach-Object { $_.Backups }) `
+                # Step results and the import's own rows (Name, Status, Detail) both count: a row that needs a person
+                # or failed makes the operation not succeed.
+                $rows = @($out | Where-Object { $_ -and $_.PSObject.Properties['Status'] })
+                $statuses = @($rows | ForEach-Object { if ($_.PSObject.Properties['WhatIf'] -and $_.WhatIf) { 'WhatIf' } else { [string]$_.Status } })
+                $st = if ($statuses.Count) { Get-WorstStatus $statuses } elseif ($apply) { 'Done' } else { 'WhatIf' }
+                $detail = { param($r) if ($r.PSObject.Properties['Detail']) { '{0}: {1}' -f $r.Name, $r.Detail } elseif ($r.PSObject.Properties['Message']) { '{0}: {1}' -f $r.Name, $r.Message } else { [string]$r.Name } }
+                $warnings = @($rows | Where-Object { $_.Status -eq 'NeedsUser' } | ForEach-Object { & $detail $_ })
+                $errors = @($rows | Where-Object { $_.Status -eq 'Failed' } | ForEach-Object { & $detail $_ })
+                $steps = @($rows | Where-Object { $_.PSObject.TypeNames -contains 'RetroCabinetKit.StepResult' })
+                $written = @($out | Where-Object { $_ -and $_.PSObject.Properties['Path'] } | Select-Object -First 1)
+                $msg = if ($Name -eq 'profile.export') { if ($written.Count) { Get-KitText 'Profile.Exported' -f $written[0].Path } else { '' } }
+                       elseif ($st -eq 'WhatIf') { Get-KitText 'Api.ImportPlan' -f $p.Path }
+                       elseif ($st -eq 'Done' -or $st -eq 'Skipped') { Get-KitText 'Profile.Imported' -f $p.Path }
+                       else { Get-KitText 'Api.ImportOpen' -f ($warnings.Count + $errors.Count) }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $st -Applied $apply -Message $msg `
+                    -Warnings $warnings -Errors $errors -Approvals @($script:ApiApprovals) `
+                    -Changes @($steps | ForEach-Object { $_.Changes }) -Backups @($steps | ForEach-Object { $_.Backups }) `
                     -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data ([pscustomobject]@{ Result = $out })
             }
         }
@@ -323,6 +369,36 @@ function Invoke-KitOperation {
     } catch {
         New-KitOperationResult -Operation $Name -Kind $kind -Status Failed -Message $_.Exception.Message -Errors @($_.Exception.Message) -Applied $apply -Duration $clock.Elapsed.TotalSeconds -StartedAt $started
     }
+}
+
+# Runs one operation in its own PowerShell instance without a console host: "What if:" lines and host output of
+# the engine go nowhere, only the result object comes back (same process, live objects). For every client that
+# owns standard output (the JSON command, the MCP server).
+function Invoke-KitOperationIsolated {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Name,
+        [hashtable] $Parameters = @{},
+        [switch] $Apply,
+        [switch] $Approved,
+        [string] $Culture = (Get-KitCulture)
+    )
+    $ps = [PowerShell]::Create()
+    try {
+        $null = $ps.AddScript({
+            param($KitRoot, $Culture, $Name, $Parameters, $Apply, $Approved)
+            Import-Module (Join-Path $KitRoot 'core\RetroCabinetKit.Core.psd1')
+            Import-Module (Join-Path $KitRoot 'api\RetroCabinetKit.Api.psd1')
+            Set-KitCulture -Culture $Culture
+            Invoke-KitOperation -Name $Name -Parameters $Parameters -Apply:$Apply -Approved:$Approved
+        }).AddArgument($script:KitRoot).AddArgument($Culture).AddArgument($Name).AddArgument($Parameters).AddArgument([bool]$Apply).AddArgument([bool]$Approved)
+        $result = @($ps.Invoke() | Where-Object { $_ -and $_.PSObject.TypeNames -contains 'RetroCabinetKit.OperationResult' }) | Select-Object -Last 1
+        if (-not $result) {
+            $why = @($ps.Streams.Error | ForEach-Object { $_.Exception.Message }) -join ' '
+            $result = New-KitOperationResult -Operation $Name -Status Failed -Message "No result. $why" -Errors @($why)
+        }
+        $result
+    } finally { $ps.Dispose() }
 }
 
 # --- convenience wrappers (same result type) ------------------------------------------------------------------------
@@ -355,5 +431,5 @@ function ConvertTo-KitApiJson {
     }
 }
 
-Export-ModuleMember -Function 'Get-KitApiVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation',
+Export-ModuleMember -Function 'Get-KitApiVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation', 'Invoke-KitOperationIsolated',
     'Get-KitCabinetStatus', 'Get-KitCabinetComponent', 'Get-KitBackupList', 'ConvertTo-KitApiJson'

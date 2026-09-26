@@ -7,7 +7,20 @@ that matches it.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-26
+
 ### Added
+- **Cabinet migration A → B** (`core\modules\CabinetProfile.ps1`): `Export-KitCabinetProfile` writes one zip per
+  suite (pinball, lightgun) with paths as placeholders, tokenized registry settings, PinUP emulator and playlist
+  settings as `sqlite-settings.json`, RetroBat, TeknoParrot and Gunmote settings, and screens only as a
+  suggestion; never ROMs, BIOS files or tables. `Import-KitCabinetProfile` checks before it changes, backs up
+  before every write, writes nothing with `-WhatIf` and changes nothing on a second run; the manifest is treated
+  as untrusted (path traversal, absolute paths and SIDs refused, `.reg` content remapped and allowlisted).
+  `-AutoInstall` installs a missing ViGEmBus only after showing its plan (SHA-256, signature) and asking.
+  `Start-Kit.cmd -ExportProfile -Suite ... [-ProfileDestination ...]`, `-ImportProfile <zip> [-WhatIf]
+  [-AutoInstall]`.
+- **Migrate mode** in the dashboard: export on cabinet A, choose the zip, dry run and import on cabinet B;
+  approvals are shown to the person before an installer runs.
 - **Kit API v1** (`API.md`, `api\`): one facade for GUI, CLI, tests and external clients such as an agent
   harness. `Invoke-KitOperation` returns an `OperationResult` (status, changes, backups, warnings, errors,
   approvals, duration, data); change operations are dry runs unless `-Apply`; plans that need a person's approval
@@ -16,12 +29,24 @@ that matches it.
   scripts. `api\Invoke-KitApi.ps1` serves other processes with exactly one JSON document on standard output (no
   network port), `-Anonymize` for anything sent to a cloud model. Migration operations appear automatically once
   `Export-/Import-KitCabinetProfile` exist. Contract tests in `tests\api\`.
+- API operation `backup.remove` (dry run unless `-Apply`) and `Invoke-KitOperationIsolated`, which runs an
+  operation hostless so no engine output reaches the caller's standard output.
+- **MCP server over stdio** (`api\Start-KitMcpServer.ps1`): the Kit API as MCP tools for the agent harness and
+  any other MCP client, without a network port (JSON-RPC 2.0, one message per line). Tools come from the API
+  catalog; change tools are dry runs unless `apply=true`, approvals need `approved=true`, interactive steps are
+  not offered. Results are anonymized unless `-NoAnonymize`; `-ReadOnly` offers only the read tools. Tests in
+  `tests\api\Mcp.Tests.ps1` drive the server as a child process.
+- API rules for the migration operations: `profile.export` without its own dry run is not run without `-Apply`;
+  import rows that need a person or failed make the result not succeed; `AutoInstall` is refused unless the
+  import can ask for approval (`-Approve`), so no installer runs past the person.
 - `handoff/AGENT-HARNESS.md`: the boundary between the kit and a separate agent harness repository.
 - **Desktop dashboard** (`Start-Kit.cmd` without switches, `gui\`): a WPF app on Windows PowerShell 5.1 (nothing
   to install) in the brand design (Night / Cream, Pixel Green, Retro Red, Crown Gold, mascot). Three modes:
   new cabinet (starts the pinball / lightgun wizards), migrate (placeholder until v0.3) and recover (backup
   list with check, dry-run restore, export, delete). The system status comes from the doctor, runs in the
-  background and shows one row per area. A thin layer: every action calls the engine modules.
+  background and shows one row per area. A thin layer: every action is a Kit API operation (`status`,
+  `backups.list`, `backup.check`, `backup.restore`, `backup.export`, `backup.remove`), so the dashboard and an
+  agent see and do exactly the same.
   `Start-Kit.cmd -Demo` still runs the core demo; `-Doctor`, `-Backups`, `-SupportBundle` stay command-line tools.
 - Each suite knows where its backups live (`Get-PinballBackupRoot`, `Get-LightgunBackupRoot`); the command
   line, the wizards' maintenance pages and the dashboard use them.
@@ -32,6 +57,9 @@ that matches it.
   Both wizards log one summary line per step (changes, backups, duration) plus the backup paths.
 
 ### Changed
+- A running Steam client no longer blocks the lightgun steps: Steam is only checked before the kit writes Steam's
+  own files (step 5, `config.vdf`) and before restoring a Steam or zip backup (`Get-LightgunProcessName
+  -IncludeSteam`, `Assert-/Test-LightgunProcessesClosed -IncludeSteam`).
 - Lightgun step 11: its help block was ignored by PowerShell (a line started with `.parrot`); `Get-Help` and the
   API catalog show its description again.
 - GitHub Actions: checkout 7, setup-node 7, upload-artifact 7, attest-build-provenance 4, configure-pages 6,
@@ -105,6 +133,7 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kburna243/frieds-retrogaming-kit/releases/tag/v0.1.0

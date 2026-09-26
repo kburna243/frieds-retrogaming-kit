@@ -69,13 +69,17 @@ Change operations built from steps also carry `Data.Steps`: one entry per step r
 | `backup.check` | Read | `Path` | `Ok`, `Differs`, `Problems[]` |
 | `backup.restore` | Change | `Path`; `AllowedRoot` (string[]) for zip backups | `Target`, `SavedCurrent` |
 | `backup.export` | Change | `Path`, `Destination` | `Exported` |
+| `backup.remove` | Change | `Path` | `Removed` |
 | `support.bundle` | Change | `Destination` (optional) | `Path` |
 | `step.<suite>.<nn-name>` | Change | the step's plain parameters | `Steps[]` |
 | `profile.export`, `profile.import` | Change | the command's plain parameters | the command's result |
 
 `step.*` names come from the step scripts, e.g. `step.lightgun.10-teknoparrot`, `step.pinball.05-relocate`.
 `profile.*` appear as soon as the migration engine provides `Export-KitCabinetProfile` /
-`Import-KitCabinetProfile`; until then they report `NotAvailable`.
+`Import-KitCabinetProfile`; until then they report `NotAvailable`. A command without its own `-WhatIf` is not run
+at all without `-Apply` (the dry run returns the call). The import's rows (`Name`, `Status`, `Detail`) count like
+step results: a `NeedsUser` or `Failed` row makes the operation not succeed and appears in `Warnings` / `Errors`.
+`AutoInstall` is only accepted when the command takes `-Approve`, so installers go through rule 2.
 
 ## In-process (PowerShell)
 
@@ -97,6 +101,34 @@ powershell -NoProfile -ExecutionPolicy Bypass -File api\Invoke-KitApi.ps1 -Opera
 
 Standard output carries exactly one JSON document (the result); log lines never go to standard output. Exit code:
 `0` success, `1` the operation did not succeed, `2` the request was refused (unknown operation or parameter).
+
+## MCP server (stdio)
+
+`api\Start-KitMcpServer.ps1` offers the same operations as [MCP](https://modelcontextprotocol.io) tools to an
+agent (the separate harness, or any MCP client). Transport is stdio only: JSON-RPC 2.0, one message per line,
+UTF-8; the client starts the server as a child process. There is no network port.
+
+```json
+{
+  "mcpServers": {
+    "retro-cabinet": {
+      "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "<kit>\\api\\Start-KitMcpServer.ps1", "-ReadOnly"]
+    }
+  }
+}
+```
+
+- Tools: every available operation of the catalog except `operations`; the name has `.` replaced by `_`
+  (`backup.restore` → `backup_restore`, `step.lightgun.10-teknoparrot` → `step_lightgun_10-teknoparrot`). Input
+  schemas come from the parameter types; `readOnlyHint` marks `Read`, `destructiveHint` marks `Change`.
+- Change tools take `apply` and `approved` (booleans) with exactly the meaning of `-Apply` and `-Approved` (rules
+  1 and 2): without `apply` the call is a dry run. Read tools ignore both.
+- The result is the `OperationResult` as JSON text; `isError` is `true` when `Success` is `false`. Unknown tools,
+  methods and unreadable lines are JSON-RPC errors (`-32602`, `-32601`, `-32700`).
+- Results are anonymized (rule 5) unless the server is started with `-NoAnonymize` — only for a local model.
+  `-ReadOnly` offers only the read tools; `-Culture de-DE` returns German messages.
+- Supported protocol versions: `2025-06-18`, `2025-03-26`, `2024-11-05`. Log lines go to standard error.
 
 ## Versioning
 

@@ -1,5 +1,5 @@
 <!--
-  Main window: dashboard (three modes + system status) and the recover view. No text lives here: every element
+  Main window: dashboard (three modes + system status), the migrate view and the recover view. No text lives here: every element
   with Tag="i18n:<key>" gets its Text/Content/Header from i18n\<culture>.psd1 (Update-KitGuiText), so German
   and English stay in one place and a missing key shows up as [[Key]] in the tests.
   Logic lives in the engine modules; gui\RetroCabinetKit.Gui.psm1 only maps results to this view.
@@ -65,7 +65,7 @@
         <Border Style="{StaticResource Card}" Margin="8,0">
           <DockPanel>
             <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
-              <Button x:Name="MigrateButton" Tag="i18n:Gui.Migrate.Button" Style="{StaticResource SecondaryButton}" IsEnabled="False"/>
+              <Button x:Name="MigrateButton" Tag="i18n:Gui.Migrate.Button" Style="{StaticResource SecondaryButton}"/>
             </StackPanel>
             <StackPanel>
               <TextBlock Text="02" Style="{StaticResource Kicker}"/>
@@ -160,6 +160,60 @@
       <Border Grid.Row="3" Style="{StaticResource Card}" Background="{StaticResource ScreenBrush}" Padding="16,12">
         <ScrollViewer x:Name="RecoverLogScroll" VerticalScrollBarVisibility="Auto">
           <TextBlock x:Name="RecoverLog" Style="{StaticResource Terminal}"/>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+
+    <!-- migrate: cabinet profile A -> B (API: profile.export, profile.import) -->
+    <Grid x:Name="MigrateView" Grid.Row="1" Visibility="Collapsed">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <StackPanel Grid.Row="0" Margin="0,0,0,16">
+        <TextBlock Tag="i18n:Gui.Migrate.Kicker" Style="{StaticResource Kicker}" Margin="0,0,0,6"/>
+        <TextBlock Tag="i18n:Gui.Migrate.Title" Style="{StaticResource Headline}" FontSize="28"/>
+        <TextBlock Tag="i18n:Gui.Migrate.Steps" Style="{StaticResource Body}" Margin="0,6,0,0"/>
+      </StackPanel>
+      <UniformGrid Grid.Row="1" Columns="2" Margin="-8,0,-8,14">
+        <Border Style="{StaticResource Card}" Margin="8,0">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+              <Button x:Name="ExportPinballButton" Tag="i18n:Gui.Migrate.ExportPinball" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8"/>
+              <Button x:Name="ExportLightgunButton" Tag="i18n:Gui.Migrate.ExportLightgun" Style="{StaticResource SecondaryButton}"/>
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="A" Style="{StaticResource Kicker}"/>
+              <TextBlock Tag="i18n:Gui.Migrate.ATitle" Style="{StaticResource Headline}" Margin="0,4,0,8"/>
+              <TextBlock Tag="i18n:Gui.Migrate.AText" Style="{StaticResource Body}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="8,0">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+              <DockPanel Margin="0,0,0,10">
+                <Button DockPanel.Dock="Left" x:Name="ChooseProfileButton" Tag="i18n:Gui.Migrate.Choose" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"/>
+                <TextBlock x:Name="ProfilePathText" Style="{StaticResource Terminal}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+              </DockPanel>
+              <WrapPanel Margin="0,0,0,10">
+                <CheckBox x:Name="MigrateDryRunBox" Tag="i18n:Ui.DryRun" IsChecked="True" Foreground="{StaticResource CreamBrush}" VerticalAlignment="Center" Margin="0,0,18,4"/>
+                <CheckBox x:Name="AutoInstallBox" Tag="i18n:Gui.Migrate.AutoInstall" Foreground="{StaticResource CreamBrush}" VerticalAlignment="Center" Margin="0,0,0,4"/>
+              </WrapPanel>
+              <Button x:Name="ImportProfileButton" Tag="i18n:Gui.Migrate.Import" Style="{StaticResource PrimaryButton}"/>
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="B" Style="{StaticResource Kicker}"/>
+              <TextBlock Tag="i18n:Gui.Migrate.BTitle" Style="{StaticResource Headline}" Margin="0,4,0,8"/>
+              <TextBlock Tag="i18n:Gui.Migrate.BText" Style="{StaticResource Body}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+      </UniformGrid>
+      <Border Grid.Row="2" Style="{StaticResource Card}" Background="{StaticResource ScreenBrush}" Padding="16,12">
+        <ScrollViewer x:Name="MigrateLogScroll" VerticalScrollBarVisibility="Auto">
+          <TextBlock x:Name="MigrateLog" Style="{StaticResource Terminal}"/>
         </ScrollViewer>
       </Border>
     </Grid>

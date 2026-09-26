@@ -1,16 +1,15 @@
 ﻿#Requires -Version 5.1
 # WPF front end (Windows PowerShell 5.1, .NET Framework: nothing to install). A thin layer: it loads the views,
-# maps engine results (doctor rows, backups, step results) to them and calls the engine. No kit logic lives
-# here; everything it does is also available from the command line (core\Start-KitTools.ps1, the step scripts).
+# maps API results to them and calls the Kit API (api\, API.md) for everything the cabinet is asked or told.
+# It uses the core only for the language texts. Everything it does is also available from the command line.
 # Public functions follow Verb-KitGui*.
 
 Set-StrictMode -Version 2.0
 
 $script:GuiDir  = $PSScriptRoot
 $script:KitRoot = Split-Path -Parent $PSScriptRoot
-Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
-Import-Module (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
-Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
+Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')  # texts and culture only
+Import-Module (Join-Path $script:KitRoot 'api\RetroCabinetKit.Api.psd1')
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
 $script:LevelLook = @{
@@ -76,7 +75,8 @@ function Update-KitGuiText {
     $count
 }
 
-# One row per doctor area (worst level wins) and the summary line.
+# One row per doctor area (worst level wins) and the summary line. $Result: the checks of the API's status
+# operation (Area, Name, Level, Detail).
 function Get-KitGuiStatus {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $Result)
@@ -100,18 +100,29 @@ function Get-KitGuiStatus {
                 Add-Member -NotePropertyName DetailVisibility -NotePropertyValue $(if ($_.Detail.Count) { 'Visible' } else { 'Collapsed' }) -PassThru
         }
     }
-    $s = Get-KitDoctorSummary -Result $Result
-    $level = if ($s.Error) { 'Error' } elseif ($s.Warn) { 'Warn' } else { 'Ok' }
+    $errors = @($Result | Where-Object { $_.Level -eq 'Error' }).Count
+    $warnings = @($Result | Where-Object { $_.Level -eq 'Warn' }).Count
+    $level = if ($errors) { 'Error' } elseif ($warnings) { 'Warn' } else { 'Ok' }
     $text = switch ($level) {
-        'Error' { Get-KitText 'Gui.Status.Errors' -f $s.Error, $s.Warn }
-        'Warn'  { Get-KitText 'Gui.Status.Warnings' -f $s.Warn }
+        'Error' { Get-KitText 'Gui.Status.Errors' -f $errors, $warnings }
+        'Warn'  { Get-KitText 'Gui.Status.Warnings' -f $warnings }
         default { Get-KitText 'Gui.Status.Healthy' }
     }
     [pscustomobject]@{ Level = $level; Text = $text; Rows = @($rows) }
 }
 
-# Runs the doctor in a background runspace, so the window stays responsive. Receive-KitGuiDoctor returns the
-# rows once it has finished ($null before).
+# The checks as text lines for "Details".
+function Format-KitGuiCheck {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $Result)
+    foreach ($r in $Result) {
+        $line = '{0,-6} {1} / {2}' -f $r.Level.ToUpperInvariant(), $r.Area, $r.Name
+        if ($r.Detail) { "${line}: $($r.Detail)" } else { $line }
+    }
+}
+
+# Runs the API's status operation in a background runspace, so the window stays responsive. Receive-KitGuiDoctor
+# returns the checks once it has finished ($null before).
 function Start-KitGuiDoctor {
     [CmdletBinding()]
     param([string] $Culture = (Get-KitCulture))
@@ -119,10 +130,9 @@ function Start-KitGuiDoctor {
     $null = $ps.AddScript({
         param($KitRoot, $Culture)
         Import-Module (Join-Path $KitRoot 'core\RetroCabinetKit.Core.psd1')
-        Import-Module (Join-Path $KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
-        Import-Module (Join-Path $KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
+        Import-Module (Join-Path $KitRoot 'api\RetroCabinetKit.Api.psd1')
         Set-KitCulture -Culture $Culture
-        Invoke-KitDoctor -Check @(@(Get-KitSystemCheck) + @(Get-PinballDoctorCheck) + @(Get-LightgunDoctorCheck))
+        Invoke-KitOperation -Name 'status'
     }).AddArgument($script:KitRoot).AddArgument($Culture)
     [pscustomobject]@{ PowerShell = $ps; Handle = $ps.BeginInvoke() }
 }
@@ -131,7 +141,18 @@ function Receive-KitGuiDoctor {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [psobject] $Job)
     if (-not $Job.Handle.IsCompleted) { return $null }
-    try { , @($Job.PowerShell.EndInvoke($Job.Handle)) } finally { $Job.PowerShell.Dispose() }
+    try {
+        $result = @($Job.PowerShell.EndInvoke($Job.Handle)) | Select-Object -Last 1
+        if ($result -and $result.Success -and $result.Data) { , @($result.Data.Checks) }
+        else { , @(New-KitGuiCheck -Area 'Kit' -Name 'status' -Level Error -Detail $(if ($result) { $result.Message } else { 'no result' })) }
+    } finally { $Job.PowerShell.Dispose() }
+}
+
+# A check row in the shape of the API's status checks (tests, and an error row when the status fails).
+function New-KitGuiCheck {
+    [CmdletBinding()]
+    param([string] $Area, [string] $Name, [ValidateSet('Ok', 'Info', 'Warn', 'Error')] [string] $Level, [string] $Detail = '')
+    [pscustomobject]@{ Area = $Area; Name = $Name; Level = $Level; Detail = $Detail }
 }
 
 # Shows doctor rows in the dashboard (status rows, summary, crown when healthy, details, mascot mood).
@@ -144,7 +165,7 @@ function Show-KitGuiStatus {
     $c.StatusRows.ItemsSource = $status.Rows
     $c.StatusSummary.Text = $status.Text
     $c.StatusCrown.Visibility = if ($status.Level -eq 'Ok') { 'Visible' } else { 'Collapsed' }
-    $c.StatusDetails.Text = (Format-KitDoctorReport -Result $Result) -join [Environment]::NewLine
+    $c.StatusDetails.Text = (Format-KitGuiCheck -Result $Result) -join [Environment]::NewLine
     $mood = @{ Ok = 'mascot-thumbsup.png'; Warn = 'mascot-friendly.png'; Error = 'mascot-surprised.png' }[$status.Level]
     Set-KitGuiImage -Image $c.Mascot -Path (Get-KitGuiPath "Assets\$mood")
     $status
@@ -164,11 +185,6 @@ function Set-KitGuiImage {
 
 # --- recover --------------------------------------------------------------------------------------------------
 
-function Get-KitGuiBackupRoot {
-    [CmdletBinding()]
-    param([string] $PinballStatePath = (Get-PinballDefaultStatePath), [string] $LightgunStatePath = (Get-LightgunDefaultStatePath))
-    @(@(Get-PinballBackupRoot -StatePath $PinballStatePath) + @(Get-LightgunBackupRoot -StatePath $LightgunStatePath) | Sort-Object -Unique)
-}
 
 function Write-KitGuiRecoverLog {
     [CmdletBinding()]
@@ -178,18 +194,23 @@ function Write-KitGuiRecoverLog {
     if ($Ui.Controls.ContainsKey('RecoverLogScroll')) { $Ui.Controls.RecoverLogScroll.ScrollToEnd() }
 }
 
-# Fills the backup list from the given roots (default: the roots of both suites); returns the rows.
+# Fills the backup list through the API (backups.list; default roots: those of both suites); returns the rows.
+# $Ui.Values['BackupRoots'] overrides the roots (tests).
 function Update-KitGuiBackupList {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [psobject] $Ui, [string[]] $Root)
-    if (-not $PSBoundParameters.ContainsKey('Root')) { $Root = if ($Ui.Values.ContainsKey('BackupRoots')) { $Ui.Values['BackupRoots'] } else { Get-KitGuiBackupRoot } }
-    $rows = @(foreach ($b in Get-KitBackup -Path @($Root)) {
+    param([Parameter(Mandatory)] [psobject] $Ui)
+    $p = @{}
+    if ($Ui.Values.ContainsKey('BackupRoots')) { $p.Root = [string[]]@($Ui.Values['BackupRoots']) }
+    $r = Invoke-KitOperation -Name 'backups.list' -Parameters $p
+    if (-not $r.Success) { Write-KitGuiRecoverLog -Ui $Ui -Text $r.Message; $Ui.Controls.BackupList.ItemsSource = @(); return @() }
+    $rows = @(foreach ($b in @($r.Data.Backups)) {
         $target = if ($b.Kind -eq 'Zip') { '{0} - {1}' -f (Get-KitText 'Recovery.ZipDetail' -f $b.Files, $b.Registry), $b.Path } else { $b.Original }
-        $b | Add-Member -NotePropertyName CreatedText -NotePropertyValue ($b.Created.ToString('yyyy-MM-dd HH:mm')) -PassThru |
+        $created = [datetime]::Parse($b.Created, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind)
+        $b | Add-Member -NotePropertyName CreatedText -NotePropertyValue ($created.ToString('yyyy-MM-dd HH:mm')) -PassThru |
             Add-Member -NotePropertyName TargetText -NotePropertyValue $target -PassThru
     })
     $Ui.Controls.BackupList.ItemsSource = $rows
-    if (-not $rows.Count) { Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Recovery.None' -f (@($Root) -join '; ')) }
+    if (-not $rows.Count) { Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Recovery.None' -f (@($r.Data.Roots) -join '; ')) }
     $rows
 }
 
@@ -211,40 +232,31 @@ function Invoke-KitGuiCheckBackup {
     param([Parameter(Mandatory)] [psobject] $Ui)
     $b = Get-KitGuiSelectedBackup $Ui
     if (-not $b) { return }
-    try {
-        $r = Test-KitBackup -Path $b.Path
-        if ($r.Ok) { Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Recovery.CheckOk' -f $r.Path) }
-        else {
-            Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Recovery.CheckBad' -f $r.Path)
-            foreach ($p in $r.Problems) { Write-KitGuiRecoverLog -Ui $Ui -Text "  $p" }
-        }
-        $r
-    } catch { Write-KitGuiRecoverLog -Ui $Ui -Text $_.Exception.Message }
+    $r = Invoke-KitOperation -Name 'backup.check' -Parameters @{ Path = $b.Path }
+    Write-KitGuiRecoverLog -Ui $Ui -Text $r.Message
+    if ($r.Data) { foreach ($p in @($r.Data.Problems)) { Write-KitGuiRecoverLog -Ui $Ui -Text "  $p" } }
+    $r
 }
 
-# Restores the selected file copy. Follows the dry-run box; asks first; checks that no guarded program runs.
+# Restores the selected backup through the API. Follows the dry-run box (the API runs a dry run without -Apply);
+# asks first; -Guard lets the window say early that a guarded program still runs (the API checks it again).
 function Invoke-KitGuiRestoreBackup {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [psobject] $Ui,
         [scriptblock] $Confirm = { param($text) Confirm-KitGuiAction -Text $text },
-        [scriptblock] $Guard = { Assert-PinballProcessesClosed; Assert-LightgunProcessesClosed }
+        [scriptblock] $Guard = {}
     )
     $b = Get-KitGuiSelectedBackup $Ui
     if (-not $b) { return }
     if ($b.Kind -ne 'File') { Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Ui.Care.ZipOnCommandLine'); return }
     $dry = [bool]$Ui.Controls.DryRunBox.IsChecked
     if (-not $dry -and -not (& $Confirm (Get-KitText 'Ui.Care.ConfirmRestore' -f $b.Original, $b.Path))) { return }
-    try {
-        & $Guard
-        $r = Restore-KitFileBackup -Path $b.Path -WhatIf:$dry -Confirm:$false
-        if ($r.Action -eq 'WhatIf') { Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Ui.Care.RestorePlan' -f $r.Target, $r.Source) }
-        else {
-            Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Recovery.Restored' -f $r.Target, $r.Source)
-            $null = Update-KitGuiBackupList -Ui $Ui
-        }
-        $r
-    } catch { Write-KitGuiRecoverLog -Ui $Ui -Text $_.Exception.Message }
+    try { & $Guard } catch { Write-KitGuiRecoverLog -Ui $Ui -Text $_.Exception.Message; return }
+    $r = Invoke-KitOperation -Name 'backup.restore' -Parameters @{ Path = $b.Path } -Apply:(-not $dry)
+    Write-KitGuiRecoverLog -Ui $Ui -Text $r.Message
+    if ($r.Status -eq 'Done') { $null = Update-KitGuiBackupList -Ui $Ui }
+    $r
 }
 
 function Invoke-KitGuiExportBackup {
@@ -257,11 +269,10 @@ function Invoke-KitGuiExportBackup {
         $dialog = New-Object Windows.Forms.FolderBrowserDialog
         try { if ($dialog.ShowDialog() -ne 'OK') { return }; $Destination = $dialog.SelectedPath } finally { $dialog.Dispose() }
     }
-    try {
-        $item = Export-KitBackup -Path $b.Path -Destination $Destination
-        Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Recovery.Exported' -f $item.FullName)
-        $item
-    } catch { Write-KitGuiRecoverLog -Ui $Ui -Text $_.Exception.Message }
+    # Choosing the folder is the person's decision, so the export is applied.
+    $r = Invoke-KitOperation -Name 'backup.export' -Parameters @{ Path = $b.Path; Destination = $Destination } -Apply
+    Write-KitGuiRecoverLog -Ui $Ui -Text $r.Message
+    $r
 }
 
 function Invoke-KitGuiRemoveBackup {
@@ -270,19 +281,108 @@ function Invoke-KitGuiRemoveBackup {
     $b = Get-KitGuiSelectedBackup $Ui
     if (-not $b) { return }
     if (-not (& $Confirm (Get-KitText 'Ui.Care.ConfirmDelete' -f $b.Path))) { return }
-    try {
-        Remove-KitBackup -Path $b.Path -Confirm:$false
-        Write-KitGuiRecoverLog -Ui $Ui -Text (Get-KitText 'Recovery.Deleted' -f $b.Path)
-        $null = Update-KitGuiBackupList -Ui $Ui
-    } catch { Write-KitGuiRecoverLog -Ui $Ui -Text $_.Exception.Message }
+    $r = Invoke-KitOperation -Name 'backup.remove' -Parameters @{ Path = $b.Path } -Apply
+    Write-KitGuiRecoverLog -Ui $Ui -Text $r.Message
+    if ($r.Status -eq 'Done') { $null = Update-KitGuiBackupList -Ui $Ui }
+    $r
 }
 
-# Switches between the dashboard and the recover view.
+# --- migrate --------------------------------------------------------------------------------------------------
+
+function Write-KitGuiMigrateLog {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [AllowEmptyString()] [string] $Text)
+    $log = $Ui.Controls.MigrateLog
+    $log.Text = if ($log.Text) { $log.Text + [Environment]::NewLine + '> ' + $Text } else { '> ' + $Text }
+    if ($Ui.Controls.ContainsKey('MigrateLogScroll')) { $Ui.Controls.MigrateLogScroll.ScrollToEnd() }
+}
+
+# Parameters every profile call gets on top of its own: $Ui.Values['ProfileRoots'] (tests: RetroBatRoot,
+# GunmoteDir, PupDatabasePath, ... of a test cabinet). Without it the engine finds the installed programs itself.
+function Get-KitGuiProfileParameter([psobject] $Ui, [hashtable] $Own) {
+    $p = @{} + $Own
+    if ($Ui.Values.ContainsKey('ProfileRoots')) { foreach ($k in $Ui.Values['ProfileRoots'].Keys) { $p[$k] = $Ui.Values['ProfileRoots'][$k] } }
+    $p
+}
+
+# One line per row of the engine (Name, Status, Detail), so the person sees what an import checked or changed.
+function Write-KitGuiProfileRows([psobject] $Ui, $Result) {
+    Write-KitGuiMigrateLog -Ui $Ui -Text $Result.Message
+    if (-not $Result.Data -or -not $Result.Data.PSObject.Properties['Result']) { return }
+    foreach ($row in @($Result.Data.Result)) {
+        if ($row -and $row.PSObject.Properties['Status'] -and $row.PSObject.Properties['Name']) {
+            $detail = if ($row.PSObject.Properties['Detail']) { $row.Detail } else { '' }
+            Write-KitGuiMigrateLog -Ui $Ui -Text ('  [{0}] {1}: {2}' -f $row.Status, $row.Name, $detail)
+        }
+    }
+}
+
+# Cabinet A: writes the profile of one suite into a folder the person chooses (choosing it is the decision, so
+# the export is applied; it only reads the cabinet and writes the zip).
+function Invoke-KitGuiExportProfile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [ValidateSet('Pinball', 'Lightgun')] [string] $Suite, [string] $Destination)
+    if (-not $Destination) {
+        Add-Type -AssemblyName System.Windows.Forms
+        $dialog = New-Object Windows.Forms.FolderBrowserDialog
+        try { if ($dialog.ShowDialog() -ne 'OK') { return }; $Destination = $dialog.SelectedPath } finally { $dialog.Dispose() }
+    }
+    $r = Invoke-KitOperation -Name 'profile.export' -Parameters (Get-KitGuiProfileParameter $Ui @{ Suite = $Suite; Destination = $Destination }) -Apply
+    Write-KitGuiProfileRows $Ui $r
+    if (-not $r.Success) { foreach ($e in @($r.Errors)) { Write-KitGuiMigrateLog -Ui $Ui -Text "  $e" } }
+    $r
+}
+
+# Cabinet B: remembers the profile zip to import (file dialog unless -Path).
+function Select-KitGuiProfile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [string] $Path)
+    if (-not $Path) {
+        Add-Type -AssemblyName System.Windows.Forms
+        $dialog = New-Object Windows.Forms.OpenFileDialog
+        $dialog.Filter = 'Cabinet profile (*.zip)|cabinet-profile-*.zip|*.zip|*.zip'
+        try { if ($dialog.ShowDialog() -ne 'OK') { return }; $Path = $dialog.FileName } finally { $dialog.Dispose() }
+    }
+    $Ui.Values['ProfilePath'] = $Path
+    $Ui.Controls.ProfilePathText.Text = $Path
+    $Path
+}
+
+# Cabinet B: imports the chosen profile through the API. Follows the dry-run box (the engine checks everything and
+# writes nothing); a real import asks first. Plans that need approval (installers with SHA-256 and signature) come
+# back in Approvals: they are shown to the person, and only after a yes the import runs again with -Approved (the
+# engine skips what is already in place). Then the system status is the verification.
+function Invoke-KitGuiImportProfile {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [psobject] $Ui,
+        [scriptblock] $Confirm = { param($text) Confirm-KitGuiAction -Text $text }
+    )
+    if (-not $Ui.Values.ContainsKey('ProfilePath') -or -not $Ui.Values['ProfilePath']) { Write-KitGuiMigrateLog -Ui $Ui -Text (Get-KitText 'Gui.Migrate.ChooseFirst'); return }
+    $path = [string]$Ui.Values['ProfilePath']
+    $dry = [bool]$Ui.Controls.MigrateDryRunBox.IsChecked
+    $own = @{ Path = $path }
+    if ($Ui.Controls.AutoInstallBox.IsChecked) { $own.AutoInstall = $true }
+    if (-not $dry -and -not (& $Confirm (Get-KitText 'Gui.Migrate.ConfirmImport' -f $path))) { return }
+    $p = Get-KitGuiProfileParameter $Ui $own
+    $r = Invoke-KitOperation -Name 'profile.import' -Parameters $p -Apply:(-not $dry)
+    if (-not $dry -and @($r.Approvals).Count) {
+        $text = (Get-KitText 'Gui.Migrate.Approve') + [Environment]::NewLine + [Environment]::NewLine + (@($r.Approvals) -join ([Environment]::NewLine + [Environment]::NewLine))
+        if (& $Confirm $text) { $r = Invoke-KitOperation -Name 'profile.import' -Parameters $p -Apply -Approved }
+    }
+    Write-KitGuiProfileRows $Ui $r
+    if ($r.Status -eq 'Failed') { foreach ($e in @($r.Errors)) { Write-KitGuiMigrateLog -Ui $Ui -Text "  $e" } }
+    if (-not $dry -and $r.Success) { Write-KitGuiMigrateLog -Ui $Ui -Text (Get-KitText 'Gui.Migrate.Verify') }
+    $r
+}
+
+# Switches between the dashboard, the migrate and the recover view.
 function Show-KitGuiView {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [ValidateSet('Dashboard', 'Recover')] [string] $Name)
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [ValidateSet('Dashboard', 'Migrate', 'Recover')] [string] $Name)
     $c = $Ui.Controls
     $c.DashboardView.Visibility = if ($Name -eq 'Dashboard') { 'Visible' } else { 'Collapsed' }
+    $c.MigrateView.Visibility = if ($Name -eq 'Migrate') { 'Visible' } else { 'Collapsed' }
     $c.RecoverView.Visibility = if ($Name -eq 'Recover') { 'Visible' } else { 'Collapsed' }
     $c.BackButton.Visibility = if ($Name -eq 'Dashboard') { 'Collapsed' } else { 'Visible' }
     $Ui.Values['View'] = $Name

@@ -1,7 +1,8 @@
 ﻿<#
 .SYNOPSIS
     Entry of Start-Kit.cmd. Without switches it opens the dashboard (gui\Start-KitGui.ps1, WPF).
-    -Doctor, -Backups or -SupportBundle run that tool on the command line (core\Start-KitTools.ps1);
+    -Doctor, -Backups, -SupportBundle, -ExportProfile or -ImportProfile run that tool on the command line
+    (core\Start-KitTools.ps1);
     -Demo runs the core demo (unblock kit files, start the log, one example step with -WhatIf).
 .PARAMETER Culture
     Override the UI language (e.g. de-DE, en-US). Default: the Windows display language.
@@ -13,18 +14,29 @@
     Creates an anonymized support bundle in the logs folder.
 .PARAMETER Demo
     Runs the core demo instead of opening the dashboard.
+.PARAMETER ExportProfile
+    Cabinet A: writes the cabinet profile of -Suite (Pinball, Lightgun) as a zip (-ProfileDestination: folder or
+    zip path; default: Downloads).
+.PARAMETER ImportProfile
+    Cabinet B: imports this profile zip. Use -WhatIf first: it checks everything and changes nothing.
+    -AutoInstall installs missing drivers after showing their plan and asking.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess)]
 param(
     [string] $Culture,
     [switch] $Doctor,
     [switch] $Backups,
     [switch] $SupportBundle,
-    [switch] $Demo
+    [switch] $Demo,
+    [switch] $ExportProfile,
+    [string] $Suite,
+    [string] $ProfileDestination,
+    [string] $ImportProfile,
+    [switch] $AutoInstall
 )
 
 $ErrorActionPreference = 'Stop'
-if ($Doctor -or $Backups -or $SupportBundle) {
+if ($Doctor -or $Backups -or $SupportBundle -or $ExportProfile -or $ImportProfile) {
     & (Join-Path $PSScriptRoot 'Start-KitTools.ps1') @PSBoundParameters
     exit $LASTEXITCODE
 }

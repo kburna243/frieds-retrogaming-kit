@@ -55,24 +55,8 @@ if ($refused) {
     ConvertTo-KitApiJson -Result $result -Anonymize:$Anonymize
     exit 2
 }
-# The operation runs in its own PowerShell instance without a console host: "What if:" lines and Write-Host
-# output of the engine go to the host UI, which a redirection cannot catch, and would break the JSON. Without a
-# host they are dropped; only the result object comes back (same process, live objects).
-$ps = [PowerShell]::Create()
-try {
-    $null = $ps.AddScript({
-        param($KitRoot, $Culture, $Name, $Parameters, $Apply, $Approved)
-        Import-Module (Join-Path $KitRoot 'core\RetroCabinetKit.Core.psd1')
-        Import-Module (Join-Path $KitRoot 'api\RetroCabinetKit.Api.psd1')
-        Set-KitCulture -Culture $Culture
-        Invoke-KitOperation -Name $Name -Parameters $Parameters -Apply:$Apply -Approved:$Approved
-    }).AddArgument((Split-Path -Parent $PSScriptRoot)).AddArgument($Culture).AddArgument($Operation).AddArgument($parameters).AddArgument([bool]$Apply).AddArgument([bool]$Approved)
-    $result = @($ps.Invoke() | Where-Object { $_ -and $_.PSObject.TypeNames -contains 'RetroCabinetKit.OperationResult' }) | Select-Object -Last 1
-    if (-not $result) {
-        $why = @($ps.Streams.Error | ForEach-Object { $_.Exception.Message }) -join ' '
-        $result = New-KitOperationResult -Operation $Operation -Status Failed -Message "No result. $why" -Errors @($why)
-    }
-} finally { $ps.Dispose() }
+# Runs without a console host, so "What if:" lines cannot reach standard output (see Invoke-KitOperationIsolated).
+$result = Invoke-KitOperationIsolated -Name $Operation -Parameters $parameters -Apply:$Apply -Approved:$Approved -Culture $Culture
 ConvertTo-KitApiJson -Result $result -Anonymize:$Anonymize
 if ($result.Status -eq 'NotAvailable' -or ($result.Status -eq 'Failed' -and @($result.Errors) -match '^(Unknown|Missing) parameter')) { exit 2 }
 if ($result.Success) { exit 0 }

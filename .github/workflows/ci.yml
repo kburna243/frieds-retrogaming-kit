@@ -77,6 +77,7 @@ jobs:
           )
           foreach ($culture in 'en-US', 'de-DE') {
             .\gui\Start-KitGui.ps1 -Culture $culture -DoctorResult $rows -Screenshot "snapshots\dashboard-$culture.png"
+            .\gui\Start-KitGui.ps1 -Culture $culture -DoctorResult $rows -View Migrate -Screenshot "snapshots\migrate-$culture.png"
           }
       - name: Print snapshots into the log (opt-in with [snapshot-log] in the commit message)
         if: contains(github.event.head_commit.message, '[snapshot-log]')

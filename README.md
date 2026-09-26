@@ -94,6 +94,7 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 | **DuckStation / PCSX2** | 🔎 Guided check | Audits settings and explains the mapping, step 14 |
 | **Flycast** | ⛔ Not covered | — |
 | **Doctor, backups, support bundle** | ✅ Read-only / guarded | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
+| **Cabinet migration (A → B)** | ✅ Dry run first, backup before every write | Dashboard *migrate*, `Start-Kit.cmd -ExportProfile` / `-ImportProfile` |
 | **Rumble / force feedback** | 🚧 Planned | See [ROADMAP](ROADMAP.md) |
 
 ---
@@ -120,7 +121,7 @@ Clone or download the repository to your gaming PC and open the dashboard:
 :: Double-click or run from Command Prompt / PowerShell:
 Start-Kit.cmd
 ```
-The dashboard offers three modes: **new cabinet** (pinball or lightgun setup), **migrate** (arrives with v0.3) and **recover** (the kit's backups), plus the system status from the health check. Everything also works from the command line.
+The dashboard offers three modes: **new cabinet** (pinball or lightgun setup), **migrate** (take the settings to a new cabinet) and **recover** (the kit's backups), plus the system status from the health check. Everything also works from the command line.
 *Or launch specialized wizards directly:*
 - **Virtual Pinball Setup**: `Start-Pinball.cmd`
 - **Wiimote Lightgun Setup**: `Start-Lightgun.cmd`
@@ -180,6 +181,17 @@ Start-Kit.cmd -Backups
 Start-Kit.cmd -SupportBundle
 ```
 The same three tools are the last page of both wizards (**Maintenance**), no command line needed. Restoring, checking, exporting and deleting single backups from the command line: `core\Start-KitTools.ps1` (`-CheckBackup`, `-RestoreBackup` with `-WhatIf`, `-ExportBackup`, `-RemoveBackup`). Restoring a file copy first saves the current file, so every restore can be undone.
+
+### 5. Moving to a New Cabinet (A → B)
+```cmd
+:: Cabinet A: one zip per suite (settings only: paths as placeholders, no ROMs, BIOS files or tables)
+Start-Kit.cmd -ExportProfile -Suite Lightgun -ProfileDestination <usb-stick>
+
+:: Cabinet B: check first (changes nothing), then import (backup before every write)
+Start-Kit.cmd -ImportProfile <usb-stick>\cabinet-profile-lightgun_<date>.zip -WhatIf
+Start-Kit.cmd -ImportProfile <usb-stick>\cabinet-profile-lightgun_<date>.zip
+```
+The dashboard's **migrate** mode does the same with buttons: export on A, choose the zip on B, dry run, import. A second import changes nothing. Missing drivers (ViGEmBus) are reported; with `-AutoInstall` (or the box in the dashboard) the kit installs them after showing the plan with SHA-256 and signature and asking you. Screen layouts are only suggested, never applied: the new cabinet's screens are measured in the wizard. The builds themselves (tables, ROMs, DOF, Pinscape) move with your own copy of the build folders, not with the profile.
 
 ---
 

@@ -1,23 +1,28 @@
 ﻿# Common: process guard [W5], state location, RetroBat paths, file backup, uninstall entries, scheduled tasks.
 
-# Programs that read or write es_settings.cfg, es_input.cfg, Keymaps.json or the Steam VDFs, plus running
-# emulators (RetroBat writes its settings back when a game ends). Checked again right before EVERY write.
+# Programs that read or write es_settings.cfg, es_input.cfg or Keymaps.json, plus running emulators (RetroBat
+# writes its settings back when a game ends). Checked again right before EVERY write.
 $script:LightgunProcessNames = @(
-    'emulationstation', 'emulatorLauncher', 'Gunmote', 'steam',
+    'emulationstation', 'emulatorLauncher', 'Gunmote',
     'retroarch', 'mame', 'mame64', 'duckstation*', 'pcsx2*', 'TeknoParrotUi', 'demul', 'DemulShooter*',
     'supermodel', 'emulator_multicpu', 'Dolphin*'
 )
 
+# Steam only matters where the kit writes Steam's own files (config.vdf): Steam rewrites them on exit. Every other
+# step may run while Steam is open, so a running Steam client does not block the RetroBat or TeknoParrot steps.
+$script:LightgunSteamProcessNames = @('steam')
+
 function Get-LightgunProcessName {
     [CmdletBinding()]
-    param()
-    $script:LightgunProcessNames
+    param([switch] $IncludeSteam)
+    if ($IncludeSteam) { @($script:LightgunProcessNames) + @($script:LightgunSteamProcessNames) } else { $script:LightgunProcessNames }
 }
 
-# The kit never ends programs, it only asks.
+# The kit never ends programs, it only asks. -IncludeSteam before writing Steam's files.
 function Assert-LightgunProcessesClosed {
     [CmdletBinding()]
-    param([string[]] $Names = $script:LightgunProcessNames)
+    param([string[]] $Names, [switch] $IncludeSteam)
+    if (-not $Names) { $Names = Get-LightgunProcessName -IncludeSteam:$IncludeSteam }
     $running = @(Test-KitProcessesClosed -Names $Names)
     if ($running) {
         $list = ($running | ForEach-Object { $_.Name } | Sort-Object -Unique) -join ', '
@@ -28,8 +33,8 @@ function Assert-LightgunProcessesClosed {
 # For a step's Test: $true when all guarded programs are closed, otherwise logs which ones and returns $false.
 function Test-LightgunProcessesClosed {
     [CmdletBinding()]
-    param([string[]] $Names = $script:LightgunProcessNames)
-    try { Assert-LightgunProcessesClosed -Names $Names; $true } catch { Write-KitLog $_.Exception.Message -Level Warn; $false }
+    param([string[]] $Names, [switch] $IncludeSteam)
+    try { Assert-LightgunProcessesClosed -Names $Names -IncludeSteam:$IncludeSteam; $true } catch { Write-KitLog $_.Exception.Message -Level Warn; $false }
 }
 
 function Get-LightgunDefaultStatePath {

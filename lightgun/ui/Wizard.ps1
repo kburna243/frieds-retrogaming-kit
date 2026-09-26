@@ -249,7 +249,7 @@ $pages = @(
         $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.Credits.Desc')
         $null = Add-KitCreditsView -Panel $p -Path (Join-Path $script:KitRootDir 'CREDITS.md')
     } }
-    (New-KitCarePage -StatePath $StatePath -LogDir (Join-Path $kitRoot 'logs') -Guard { Assert-LightgunProcessesClosed } -Checks {
+    (New-KitCarePage -StatePath $StatePath -LogDir (Join-Path $kitRoot 'logs') -Guard { Assert-LightgunProcessesClosed -IncludeSteam } -Checks {
         Get-KitSystemCheck
         Get-LightgunDoctorCheck -StatePath $script:StateFile
     } -BackupRoots { Get-LightgunBackupRoot -StatePath $script:StateFile })
