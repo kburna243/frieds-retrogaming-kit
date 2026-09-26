@@ -321,13 +321,40 @@ function Invoke-KitOperation {
             }
             { $_ -in 'profile.export', 'profile.import' } {
                 $cmd = if ($Name -eq 'profile.export') { 'Export-KitCabinetProfile' } else { 'Import-KitCabinetProfile' }
+                $info = Get-Command -Name $cmd
                 $call = @{} + $p
-                if ((Get-Command -Name $cmd).Parameters.ContainsKey('WhatIf') -and -not $apply) { $call.WhatIf = $true }
+                # Rule 2: an automatic install is a plan a person approves. A command that cannot ask (no -Approve)
+                # would answer itself, so the API refuses the install instead of letting it through.
+                if ($p.ContainsKey('AutoInstall') -and $p.AutoInstall -and -not $info.Parameters.ContainsKey('Approve')) {
+                    $m = Get-KitText 'Api.NoApproval' -f $cmd, 'AutoInstall'
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status Failed -Message $m -Errors @($m) -StartedAt $started
+                }
+                if (-not $apply) {
+                    # Rule 1: a command without a dry run of its own is not run at all; the plan is the call.
+                    if (-not $info.Parameters.ContainsKey('WhatIf')) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf -Message (Get-KitText 'Api.CallPlan' -f $cmd) `
+                            -StartedAt $started -Data ([pscustomobject]@{ Parameters = [pscustomobject]$p })
+                    }
+                    $call.WhatIf = $true
+                }
+                $script:ApiApprovals = New-Object Collections.Generic.List[string]
+                $script:ApiApprovalAnswer = [bool]$Approved
+                if ($info.Parameters.ContainsKey('Approve')) {
+                    $call.Approve = { param($text) $script:ApiApprovals.Add([string]$text); [bool]$script:ApiApprovalAnswer }
+                }
                 $out = @(& $cmd @call 6>$null)
-                $stepResults = @($out | Where-Object { $_ -and $_.PSObject.TypeNames -contains 'RetroCabinetKit.StepResult' })
-                $st = if ($stepResults.Count) { Get-WorstStatus @($stepResults | ForEach-Object { if ($_.WhatIf) { 'WhatIf' } else { $_.Status } }) } elseif ($apply -or $Name -eq 'profile.export') { 'Done' } else { 'WhatIf' }
+                # Step results and the import's own rows (Name, Status, Detail) both count: a row that needs a person
+                # or failed makes the operation not succeed.
+                $rows = @($out | Where-Object { $_ -and $_.PSObject.Properties['Status'] })
+                $statuses = @($rows | ForEach-Object { if ($_.PSObject.Properties['WhatIf'] -and $_.WhatIf) { 'WhatIf' } else { [string]$_.Status } })
+                $st = if ($statuses.Count) { Get-WorstStatus $statuses } elseif ($apply) { 'Done' } else { 'WhatIf' }
+                $detail = { param($r) if ($r.PSObject.Properties['Detail']) { '{0}: {1}' -f $r.Name, $r.Detail } elseif ($r.PSObject.Properties['Message']) { '{0}: {1}' -f $r.Name, $r.Message } else { [string]$r.Name } }
+                $warnings = @($rows | Where-Object { $_.Status -eq 'NeedsUser' } | ForEach-Object { & $detail $_ })
+                $errors = @($rows | Where-Object { $_.Status -eq 'Failed' } | ForEach-Object { & $detail $_ })
+                $steps = @($rows | Where-Object { $_.PSObject.TypeNames -contains 'RetroCabinetKit.StepResult' })
                 return New-KitOperationResult -Operation $Name -Kind Change -Status $st -Applied $apply -Message '' `
-                    -Changes @($stepResults | ForEach-Object { $_.Changes }) -Backups @($stepResults | ForEach-Object { $_.Backups }) `
+                    -Warnings $warnings -Errors $errors -Approvals @($script:ApiApprovals) `
+                    -Changes @($steps | ForEach-Object { $_.Changes }) -Backups @($steps | ForEach-Object { $_.Backups }) `
                     -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data ([pscustomobject]@{ Result = $out })
             }
         }

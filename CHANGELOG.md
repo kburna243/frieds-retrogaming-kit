@@ -23,6 +23,9 @@ that matches it.
   catalog; change tools are dry runs unless `apply=true`, approvals need `approved=true`, interactive steps are
   not offered. Results are anonymized unless `-NoAnonymize`; `-ReadOnly` offers only the read tools. Tests in
   `tests\api\Mcp.Tests.ps1` drive the server as a child process.
+- API rules for the migration operations: `profile.export` without its own dry run is not run without `-Apply`;
+  import rows that need a person or failed make the result not succeed; `AutoInstall` is refused unless the
+  import can ask for approval (`-Approve`), so no installer runs past the person.
 - `handoff/AGENT-HARNESS.md`: the boundary between the kit and a separate agent harness repository.
 - **Desktop dashboard** (`Start-Kit.cmd` without switches, `gui\`): a WPF app on Windows PowerShell 5.1 (nothing
   to install) in the brand design (Night / Cream, Pixel Green, Retro Red, Crown Gold, mascot). Three modes:

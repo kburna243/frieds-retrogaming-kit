@@ -76,7 +76,10 @@ Change operations built from steps also carry `Data.Steps`: one entry per step r
 
 `step.*` names come from the step scripts, e.g. `step.lightgun.10-teknoparrot`, `step.pinball.05-relocate`.
 `profile.*` appear as soon as the migration engine provides `Export-KitCabinetProfile` /
-`Import-KitCabinetProfile`; until then they report `NotAvailable`.
+`Import-KitCabinetProfile`; until then they report `NotAvailable`. A command without its own `-WhatIf` is not run
+at all without `-Apply` (the dry run returns the call). The import's rows (`Name`, `Status`, `Detail`) count like
+step results: a `NeedsUser` or `Failed` row makes the operation not succeed and appears in `Warnings` / `Errors`.
+`AutoInstall` is only accepted when the command takes `-Approve`, so installers go through rule 2.
 
 ## In-process (PowerShell)
 

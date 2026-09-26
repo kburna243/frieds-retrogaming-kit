@@ -571,5 +571,7 @@
     'Api.RestoredFiles'             = '{0} file(s) in the plan.'
     'Api.ExportPlan'                = 'Dry run: {0} would be copied to {1}.'
     'Api.BundlePlan'                = 'Dry run: a support bundle would be written to {0}.'
+    'Api.CallPlan'                  = 'Dry run: {0} has no dry run of its own and was not run; nothing was changed.'
+    'Api.NoApproval'                = '{0} cannot ask for approval, so -{1} is refused here. Run it in the wizard.'
     'Api.RemovePlan'                = 'Dry run: the backup {0} would be deleted.'
 }

@@ -119,6 +119,56 @@ Describe 'Kit API operations' {
     }
 }
 
+# The migration commands are replaced by stand-ins in the API module's own scope (they shadow the real ones there),
+# so these rules hold before and after the migration engine is merged. The module is re-imported afterwards.
+Describe 'Kit API migration operations (stand-ins)' {
+    Set-KitCulture -Culture 'en-US'
+    $api = Get-Module RetroCabinetKit.Api
+    $marker = Join-Path $TestDrive 'called.txt'
+    & $api {
+        param($Marker)
+        $script:TestMarker = $Marker
+        # Export without a dry run of its own; import with -WhatIf, -Approve and rows like the real engine.
+        function script:Export-KitCabinetProfile { param([string] $Suite, [string] $Destination) [IO.File]::WriteAllText($script:TestMarker, 'export'); [pscustomobject]@{ Path = $Destination } }
+        function script:Import-KitCabinetProfile {
+            [CmdletBinding(SupportsShouldProcess)]
+            param([string] $Path, [switch] $AutoInstall, [scriptblock] $Approve)
+            $ok = if ($AutoInstall -and $Approve) { & $Approve 'Install ViGEmBus (SHA-256 ...)' } else { $false }
+            [pscustomobject]@{ Name = 'lightgun-vigem'; Status = $(if ($WhatIfPreference) { 'WhatIf' } elseif ($ok) { 'Done' } else { 'NeedsUser' }); Detail = 'ViGEmBus' }
+            [pscustomobject]@{ Name = 'lightgun-es'; Status = $(if ($WhatIfPreference) { 'WhatIf' } else { 'Done' }); Detail = 'es_settings' }
+        }
+    } $marker
+
+    It 'an export without a dry run of its own is not run without -Apply' {
+        $r = Invoke-KitOperation -Name 'profile.export' -Parameters @{ Suite = 'Lightgun'; Destination = 'x.zip' }
+        $r.Status | Should Be 'WhatIf'
+        $marker | Should Not Exist
+        (Invoke-KitOperation -Name 'profile.export' -Parameters @{ Suite = 'Lightgun'; Destination = 'x.zip' } -Apply).Status | Should Be 'Done'
+        $marker | Should Exist
+    }
+
+    It 'an import row that needs a person makes the operation not succeed; the approval goes to the client' {
+        (Invoke-KitOperation -Name 'profile.import' -Parameters @{ Path = 'p.zip'; AutoInstall = $true }).Status | Should Be 'WhatIf'
+        $r = Invoke-KitOperation -Name 'profile.import' -Parameters @{ Path = 'p.zip'; AutoInstall = $true } -Apply
+        $r.Status | Should Be 'NeedsUser'
+        $r.Success | Should Be $false
+        @($r.Approvals).Count | Should Be 1
+        @($r.Warnings) -join ' ' | Should Match 'lightgun-vigem'
+        (Invoke-KitOperation -Name 'profile.import' -Parameters @{ Path = 'p.zip'; AutoInstall = $true } -Apply -Approved).Status | Should Be 'Done'
+    }
+
+    It 'refuses an automatic install when the import cannot ask for approval' {
+        & $api { function script:Import-KitCabinetProfile { [CmdletBinding(SupportsShouldProcess)] param([string] $Path, [switch] $AutoInstall) [IO.File]::WriteAllText($script:TestMarker, 'import') } }
+        Remove-Item -LiteralPath $marker -ErrorAction SilentlyContinue
+        $r = Invoke-KitOperation -Name 'profile.import' -Parameters @{ Path = 'p.zip'; AutoInstall = $true } -Apply -Approved
+        $r.Status | Should Be 'Failed'
+        $r.Message | Should Match 'AutoInstall'
+        $marker | Should Not Exist
+    }
+
+    Import-Module (Join-Path $kitRoot 'api\RetroCabinetKit.Api.psd1') -Force
+}
+
 Describe 'Kit API over JSON (another process)' {
     $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 
