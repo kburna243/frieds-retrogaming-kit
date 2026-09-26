@@ -116,6 +116,7 @@ const de = {
   footer: {
     license: "Lizenz: MIT (eigener Code)",
     repo: "Repository",
+    agent: "KI-Agent (fagent)",
     credits: "Danksagung",
     tagline: "RETRO CABINET + GEPRÜFTE SCHRITTE = KEINE KOPFSCHMERZEN",
     status: "nur lokal · keine Telemetrie · jeder Schritt geprüft",

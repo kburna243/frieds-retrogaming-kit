@@ -1,6 +1,6 @@
 import { Heart, Scale, ShieldAlert } from "lucide-react";
 import { GithubMark } from "../components/ui";
-import { REPO_URL } from "../config";
+import { AGENT_SITE_URL, REPO_URL } from "../config";
 import { hrefOf } from "../lib/router";
 import { useI18n } from "../i18n";
 
@@ -37,6 +37,9 @@ export default function Footer({ showLegal = true }: { showLegal?: boolean }) {
           <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-5">
             <a href={hrefOf("credits")} className="flex items-center gap-1.5 text-gold underline-offset-4 hover:underline">
               <Heart size={14} aria-hidden="true" /> {t.footer.credits}
+            </a>
+            <a href={AGENT_SITE_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-pixel underline-offset-4 hover:underline">
+              🤖 {t.footer.agent}
             </a>
             <a href={REPO_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-cream/80 underline-offset-4 hover:text-cream hover:underline">
               <GithubMark size={15} /> {t.footer.repo}

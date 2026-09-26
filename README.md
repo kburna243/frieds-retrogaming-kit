@@ -8,6 +8,8 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
   [![Documentation](https://img.shields.io/badge/Docs-English%20%7C%20Deutsch-3DDC84?style=for-the-badge&logo=gitbook&logoColor=white)](docs/)
   [![Live Website](https://img.shields.io/badge/Website-kburna243.github.io%2Ffrieds--retrogaming--kit-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-kit/)
+  [![AI Companion Agent](https://img.shields.io/badge/AI%20Agent-fagent%20v0.2.0-00f0ff?style=for-the-badge&logo=openai)](https://github.com/kburna243/frieds-retrogaming-agent)
+  [![Agent Website](https://img.shields.io/badge/Agent%20Website-Live-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-agent/)
   [![Release](https://img.shields.io/github/v/release/kburna243/frieds-retrogaming-kit?style=for-the-badge&label=Release&color=FFC857)](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)
   [![CI](https://img.shields.io/github/actions/workflow/status/kburna243/frieds-retrogaming-kit/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/kburna243/frieds-retrogaming-kit/actions/workflows/ci.yml)
   [![Depersonalization](https://img.shields.io/badge/Privacy-0%20Data%20Leaks-success?style=for-the-badge&logo=shield)](tools/Test-Depersonalized.ps1)
@@ -18,14 +20,16 @@
     <a href="docs/pinball-guide.md"><strong>Pinball Guide</strong></a> •
     <a href="docs/lightgun-guide.md"><strong>Lightgun Guide</strong></a> •
     <a href="docs/troubleshooting.md"><strong>Troubleshooting</strong></a> •
-    <a href="docs/faq.md"><strong>FAQ</strong></a>
+    <a href="docs/faq.md"><strong>FAQ</strong></a> •
+    <a href="https://github.com/kburna243/frieds-retrogaming-agent"><strong>AI Agent</strong></a> •
+    <a href="https://kburna243.github.io/frieds-retrogaming-agent/"><strong>Agent Website</strong></a>
   </p>
 </div>
 
 ---
 
 > [!NOTE]
-> **Status: v0.3.1** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. New in v0.3.0: the desktop dashboard, cabinet migration A → B and a local API for scripts and agents. v0.3.1 adds the kit version to every API result (API 1.1) for agents and scripts. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
+> **Status: v0.3.1** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. New in v0.3.0: the desktop dashboard, cabinet migration A → B and a local API for scripts and agents. v0.3.1 adds the kit version to every API result (API 1.1) for [Fried's Retrogaming Agent](https://github.com/kburna243/frieds-retrogaming-agent) and custom scripts. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
 
 ---
 
@@ -36,7 +40,7 @@
 | 🖥️ **Desktop dashboard** | `Start-Kit.cmd` opens one window with three modes — **new cabinet**, **migrate**, **recover** — and the live system status. Windows PowerShell 5.1 and WPF: nothing to install. English and German. |
 | 🚚 **Cabinet migration A → B** | Export the settings of your old cabinet into one zip per suite, check it on the new one with a dry run, then import — with a backup before every write. Paths travel as placeholders; ROMs, BIOS files and tables never go into the profile. |
 | 🩺 **Maintenance built in** | Health check, every backup in one list (check, preview, restore, export, delete) and an anonymized support bundle — in the dashboard, the wizards and on the command line. |
-| 🤖 **Local API & MCP server** | Every operation through one [Kit API](API.md) with dry run by default and approvals from a person; an MCP server over stdio lets a local or cloud agent diagnose your cabinet without a network port. Results are anonymized by default. |
+| 🤖 **Local API & MCP server** | Every operation through one [Kit API](API.md) with dry run by default and approvals from a person; an MCP server over stdio lets [Fried's Retrogaming Agent](https://github.com/kburna243/frieds-retrogaming-agent) diagnose your cabinet without a network port. Results are anonymized by default. |
 | 🎮 **Steam may stay open** | A running Steam client only blocks the steps that write Steam's own files. |
 
 ---

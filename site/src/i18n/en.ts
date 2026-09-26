@@ -118,6 +118,7 @@ const en: Dict = {
   footer: {
     license: "License: MIT (own code)",
     repo: "Repository",
+    agent: "AI Agent (fagent)",
     credits: "Credits",
     tagline: "RETRO CABINET + VERIFIED STEPS = NO HEADACHES",
     status: "local only · no telemetry · every step verified",

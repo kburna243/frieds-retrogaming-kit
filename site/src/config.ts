@@ -4,3 +4,5 @@ export const REPO_URL = "https://github.com/kburna243/frieds-retrogaming-kit";
 export const KIT_VERSION = "0.3.1";
 export const RELEASES_URL = `${REPO_URL}/releases/latest`;
 export const CHANGELOG_URL = `${REPO_URL}/blob/main/CHANGELOG.md`;
+export const AGENT_REPO_URL = "https://github.com/kburna243/frieds-retrogaming-agent";
+export const AGENT_SITE_URL = "https://kburna243.github.io/frieds-retrogaming-agent/";
