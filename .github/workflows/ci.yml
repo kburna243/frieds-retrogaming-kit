@@ -62,6 +62,26 @@ jobs:
         run: |
           .\tests\Run-Tests.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Dashboard snapshots for review (sample status, nothing is read from the runner)
+        if: always()
+        shell: powershell
+        run: |
+          Import-Module .\gui\RetroCabinetKit.Gui.psd1
+          $rows = @(
+            New-KitCheckResult -Area 'System' -Name 'Windows' -Level Ok -Detail 'Windows 11 (build 26100)'
+            New-KitCheckResult -Area 'Pinball' -Name 'Build' -Level Ok
+            New-KitCheckResult -Area 'Lightgun' -Name 'DolphinBar' -Level Warn -Detail 'Connected in Mode12: switch it to Mode 4 (step 2).'
+            New-KitCheckResult -Area 'Security' -Name 'Profile automation folder' -Level Ok
+          )
+          foreach ($culture in 'en-US', 'de-DE') {
+            .\gui\Start-KitGui.ps1 -Culture $culture -DoctorResult $rows -Screenshot "snapshots\dashboard-$culture.png"
+          }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dashboard-snapshots
+          path: snapshots/
+          retention-days: 14
 
   package:
     name: Package build and integrity

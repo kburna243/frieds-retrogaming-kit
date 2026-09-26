@@ -11,7 +11,7 @@
 .PARAMETER Launcher
     { param($Suite) ... } instead of starting a wizard process (tests).
 .PARAMETER Screenshot
-    Show the window, save it as PNG to this path and close.
+    Render the window to this PNG without showing it (Save-KitGuiSnapshot) and exit.
 #>
 [CmdletBinding()]
 param(
@@ -82,20 +82,14 @@ Show-KitGuiView -Ui $ui -Name Dashboard
 Set-KitGuiImage -Image $c.Mascot -Path (Get-KitGuiPath 'Assets\mascot-friendly.png')
 if ($PSBoundParameters.ContainsKey('DoctorResult')) { $null = Show-KitGuiStatus -Ui $ui -Result @($DoctorResult) }
 
-if ($NoShow) { return $ui }
+if ($NoShow -and -not $Screenshot) { return $ui }
 
 if ($Screenshot) {
-    $ui.Window.add_ContentRendered({
-        $w = $ui.Window
-        $bmp = New-Object Windows.Media.Imaging.RenderTargetBitmap ([int]$w.ActualWidth), ([int]$w.ActualHeight), 96, 96, ([Windows.Media.PixelFormats]::Pbgra32)
-        $bmp.Render($w)
-        $enc = New-Object Windows.Media.Imaging.PngBitmapEncoder
-        $enc.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bmp))
-        $stream = [IO.File]::Create($Screenshot)
-        try { $enc.Save($stream) } finally { $stream.Dispose() }
-        $w.Close()
-    })
-} elseif (-not $PSBoundParameters.ContainsKey('DoctorResult')) {
+    $null = Save-KitGuiSnapshot -Ui $ui -Path $Screenshot
+    $ui.Window.Close()
+    return
+}
+if (-not $PSBoundParameters.ContainsKey('DoctorResult')) {
     $ui.Window.add_ContentRendered({ Start-Doctor })
 }
 [void]$ui.Window.ShowDialog()

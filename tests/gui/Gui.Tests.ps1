@@ -76,6 +76,17 @@ Describe 'Dashboard (WPF, no window is shown)' {
         } finally { $ui.Window.Close() }
     }
 
+    It 'renders a snapshot without showing a window (dashboard and recover view)' {
+        $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult $healthy
+        try {
+            $png = Save-KitGuiSnapshot -Ui $ui -Path (Join-Path $TestDrive 'dashboard.png')
+            $png.Length | Should BeGreaterThan 10000
+            Show-KitGuiView -Ui $ui -Name Recover
+            (Save-KitGuiSnapshot -Ui $ui -Path (Join-Path $TestDrive 'recover.png')).Length | Should BeGreaterThan 5000
+            $ui.Window.Content | Should Not BeNullOrEmpty # the content is back in the window
+        } finally { $ui.Window.Close() }
+    }
+
     It 'switching the language re-translates the window' {
         $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult $healthy
         try {

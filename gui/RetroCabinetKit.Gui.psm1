@@ -302,4 +302,41 @@ function Start-KitGuiWizard {
     Start-Process -FilePath $exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $script), '-Culture', $Culture)
 }
 
+# Renders the window's content to a PNG without showing the window (reviews, CI artifacts). The content is
+# moved into a Border with the window background, measured and arranged at the given size, then put back.
+# Its StaticResource references were resolved when the view was loaded, so it renders the same outside.
+function Save-KitGuiSnapshot {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [psobject] $Ui,
+        [Parameter(Mandatory)] [string] $Path,
+        [int] $Width = 1120,
+        [int] $Height = 760
+    )
+    $window = $Ui.Window
+    $content = $window.Content
+    $window.Content = $null
+    $frame = New-Object Windows.Controls.Border
+    $frame.Background = $window.FindResource('NightBrush')
+    $frame.Child = $content
+    try {
+        $size = New-Object Windows.Size $Width, $Height
+        $frame.Measure($size)
+        $frame.Arrange((New-Object Windows.Rect $size))
+        $frame.UpdateLayout()
+        $bitmap = New-Object Windows.Media.Imaging.RenderTargetBitmap $Width, $Height, 96, 96, ([Windows.Media.PixelFormats]::Pbgra32)
+        $bitmap.Render($frame)
+        $encoder = New-Object Windows.Media.Imaging.PngBitmapEncoder
+        $encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
+        $dir = Split-Path -Parent ([IO.Path]::GetFullPath($Path))
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $stream = [IO.File]::Create($Path)
+        try { $encoder.Save($stream) } finally { $stream.Dispose() }
+    } finally {
+        $frame.Child = $null
+        $window.Content = $content
+    }
+    Get-Item -LiteralPath $Path
+}
+
 Export-ModuleMember -Function '*-KitGui*'
