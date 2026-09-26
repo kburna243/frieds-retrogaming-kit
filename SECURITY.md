@@ -4,6 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| `0.2.x` (latest release) | :white_check_mark: |
 | `main` (development) | :white_check_mark: |
 
 ## Reporting a Vulnerability
