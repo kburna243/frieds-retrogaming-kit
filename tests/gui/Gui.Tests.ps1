@@ -1,4 +1,7 @@
 ﻿$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+# The core is imported here as well: the GUI module loads it only into its own scope, and this file must not
+# depend on another test file having imported it first.
+Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1') -Force
 Import-Module (Join-Path $kitRoot 'gui\RetroCabinetKit.Gui.psd1') -Force
 $guiScript = Join-Path $kitRoot 'gui\Start-KitGui.ps1'
 
@@ -85,6 +88,15 @@ Describe 'Dashboard (WPF, no window is shown)' {
             (Save-KitGuiSnapshot -Ui $ui -Path (Join-Path $TestDrive 'recover.png')).Length | Should BeGreaterThan 5000
             $ui.Window.Content | Should Not BeNullOrEmpty # the content is back in the window
         } finally { $ui.Window.Close() }
+    }
+
+    It 'starts in a fresh Windows PowerShell process like Start-Kit.cmd does (only the script, nothing preloaded)' {
+        $png = Join-Path $TestDrive 'fresh.png'
+        $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        $out = & $exe -NoProfile -ExecutionPolicy Bypass -File $guiScript -Culture 'en-US' -Screenshot $png 2>&1
+        $LASTEXITCODE | Should Be 0
+        ($out | Out-String) | Should Not Match 'not recognized|Exception'
+        $png | Should Exist
     }
 
     It 'switching the language re-translates the window' {

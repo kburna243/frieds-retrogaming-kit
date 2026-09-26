@@ -66,6 +66,8 @@ jobs:
         if: always()
         shell: powershell
         run: |
+          # The GUI module loads the core for itself; the rows below need the core in this session too.
+          Import-Module .\core\RetroCabinetKit.Core.psd1
           Import-Module .\gui\RetroCabinetKit.Gui.psd1
           $rows = @(
             New-KitCheckResult -Area 'System' -Name 'Windows' -Level Ok -Detail 'Windows 11 (build 26100)'

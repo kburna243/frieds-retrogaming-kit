@@ -27,6 +27,9 @@ $kitRoot = Split-Path -Parent $PSScriptRoot
 # Files downloaded as ZIP carry a Zone.Identifier; remove it from the kit's own files only.
 Get-ChildItem -LiteralPath (Join-Path $kitRoot 'core'), (Join-Path $kitRoot 'pinball'), (Join-Path $kitRoot 'lightgun'), (Join-Path $kitRoot 'gui'), (Join-Path $kitRoot 'i18n') -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
 
+# The core is imported here too: this script calls core functions itself (texts, culture), and the GUI module
+# loads the core only into its own scope.
+Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1')
 Import-Module (Join-Path $PSScriptRoot 'RetroCabinetKit.Gui.psd1')
 if ($Culture) { Set-KitCulture -Culture $Culture }
 if (-not $Launcher) { $Launcher = { param($Suite) Start-KitGuiWizard -Suite $Suite } }
