@@ -2,6 +2,8 @@
 # The core is imported here as well: the GUI module loads it only into its own scope, and this file must not
 # depend on another test file having imported it first.
 Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1') -Force
+Import-Module (Join-Path $kitRoot 'pinball\RetroCabinetKit.Pinball.psd1') -Force
+Import-Module (Join-Path $kitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1') -Force
 Import-Module (Join-Path $kitRoot 'gui\RetroCabinetKit.Gui.psd1') -Force
 $guiScript = Join-Path $kitRoot 'gui\Start-KitGui.ps1'
 

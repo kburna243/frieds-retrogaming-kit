@@ -1,5 +1,9 @@
 ﻿$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+# Core and suites are re-imported together, like in the suite tests: a suite still bound to a core instance from an
+# earlier test file would report its backups into that instance, not into the step running in the new one.
 Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1') -Force
+Import-Module (Join-Path $kitRoot 'pinball\RetroCabinetKit.Pinball.psd1') -Force
+Import-Module (Join-Path $kitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1') -Force
 Import-Module (Join-Path $kitRoot 'api\RetroCabinetKit.Api.psd1') -Force
 $apiScript = Join-Path $kitRoot 'api\Invoke-KitApi.ps1'
 $newRetroBat = Join-Path $kitRoot 'tests\lightgun\New-LightgunTestRetroBat.ps1'
