@@ -4,7 +4,7 @@ const en: Dict = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v0.3.0.",
+      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v0.3.1.",
   },
   nav: {
     home: "Home",
@@ -93,9 +93,9 @@ const en: Dict = {
     ],
   },
   release: {
-    kicker: "NEW IN v{v}",
+    kicker: "NEW IN v0.3",
     title: "One window for everything — and a move without headaches",
-    intro: "With v{v} the kit becomes a desktop app: set up, migrate, recover. Everything stays local on your PC.",
+    intro: "Since v0.3 the kit is a desktop app: set up, migrate, recover. Everything stays local on your PC.",
     download: "DOWNLOAD v{v}",
     changelog: "WHAT'S NEW",
     features: [

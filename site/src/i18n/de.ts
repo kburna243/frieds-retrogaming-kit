@@ -2,7 +2,7 @@ const de = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v0.3.0.",
+      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v0.3.1.",
   },
   nav: {
     home: "Start",
@@ -91,9 +91,9 @@ const de = {
     ],
   },
   release: {
-    kicker: "NEU IN v{v}",
+    kicker: "NEU IN v0.3",
     title: "Ein Fenster für alles — und ein Umzug ohne Kopfschmerzen",
-    intro: "Mit v{v} kommt das Kit als Desktop-App: einrichten, umziehen, retten. Alles bleibt lokal auf deinem PC.",
+    intro: "Seit v0.3 kommt das Kit als Desktop-App: einrichten, umziehen, retten. Alles bleibt lokal auf deinem PC.",
     download: "DOWNLOAD v{v}",
     changelog: "WAS IST NEU",
     features: [
