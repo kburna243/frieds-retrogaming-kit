@@ -94,6 +94,7 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 | **DuckStation / PCSX2** | 🔎 Geführte Prüfung | Prüft Einstellungen und erklärt die Zuordnung, Schritt 14 |
 | **Flycast** | ⛔ Nicht abgedeckt | — |
 | **Doctor, Backups, Support-Paket** | ✅ Nur lesend / abgesichert | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
+| **Kabinett-Umzug (A → B)** | ✅ Erst Probelauf, Backup vor jedem Schreiben | Dashboard *Umziehen*, `Start-Kit.cmd -ExportProfile` / `-ImportProfile` |
 | **Rumble / Force-Feedback** | 🚧 Geplant | Siehe [ROADMAP](ROADMAP.md) |
 
 ---
@@ -120,7 +121,7 @@ Lade das Repository auf deinen Gaming-PC herunter und öffne das Dashboard:
 :: Doppelklick im Explorer oder Aufruf in Eingabeaufforderung / PowerShell:
 Start-Kit.cmd
 ```
-Das Dashboard bietet drei Modi: **Neues Kabinett** (Pinball oder Lightgun einrichten), **Umziehen** (kommt mit v0.3) und **Retten** (die Backups des Kits), dazu den Systemstatus aus dem Gesundheitscheck. Alles funktioniert weiterhin auch über die Kommandozeile.
+Das Dashboard bietet drei Modi: **Neues Kabinett** (Pinball oder Lightgun einrichten), **Umziehen** (Einstellungen auf ein neues Kabinett bringen) und **Retten** (die Backups des Kits), dazu den Systemstatus aus dem Gesundheitscheck. Alles funktioniert weiterhin auch über die Kommandozeile.
 *Oder starte die spezialisierten Assistenten direkt:*
 - **Virtual Pinball Setup**: `Start-Pinball.cmd`
 - **Wiimote Lightgun Setup**: `Start-Lightgun.cmd`
@@ -180,6 +181,17 @@ Start-Kit.cmd -Backups
 Start-Kit.cmd -SupportBundle
 ```
 Dieselben drei Werkzeuge sind die letzte Seite beider Assistenten (**Wartung**), ganz ohne Kommandozeile. Einzelne Backups über die Kommandozeile prüfen, wiederherstellen, exportieren und löschen: `core\Start-KitTools.ps1` (`-CheckBackup`, `-RestoreBackup` mit `-WhatIf`, `-ExportBackup`, `-RemoveBackup`). Beim Wiederherstellen einer Dateikopie wird die aktuelle Datei zuerst gesichert, jede Wiederherstellung lässt sich also rückgängig machen.
+
+### 5. Umzug auf ein neues Kabinett (A → B)
+```cmd
+:: Kabinett A: eine Zip pro Suite (nur Einstellungen: Pfade als Platzhalter, keine ROMs, BIOS-Dateien oder Tische)
+Start-Kit.cmd -ExportProfile -Suite Lightgun -ProfileDestination <USB-Stick>
+
+:: Kabinett B: erst prüfen (ändert nichts), dann importieren (Backup vor jedem Schreiben)
+Start-Kit.cmd -ImportProfile <USB-Stick>\cabinet-profile-lightgun_<Datum>.zip -WhatIf
+Start-Kit.cmd -ImportProfile <USB-Stick>\cabinet-profile-lightgun_<Datum>.zip
+```
+Der Modus **Umziehen** im Dashboard macht dasselbe per Knopfdruck: auf A exportieren, auf B die Zip wählen, Probelauf, importieren. Ein zweiter Import ändert nichts mehr. Fehlende Treiber (ViGEmBus) werden gemeldet; mit `-AutoInstall` (oder dem Haken im Dashboard) installiert das Kit sie, nachdem es den Plan mit SHA-256 und Signatur gezeigt und dich gefragt hat. Bildschirm-Layouts werden nur vorgeschlagen, nie übernommen: Die Bildschirme des neuen Kabinetts werden im Assistenten vermessen. Die Builds selbst (Tische, ROMs, DOF, Pinscape) ziehen mit deiner eigenen Kopie der Build-Ordner um, nicht mit dem Profil.
 
 ---
 

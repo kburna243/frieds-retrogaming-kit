@@ -7,7 +7,20 @@ that matches it.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-26
+
 ### Added
+- **Cabinet migration A → B** (`core\modules\CabinetProfile.ps1`): `Export-KitCabinetProfile` writes one zip per
+  suite (pinball, lightgun) with paths as placeholders, tokenized registry settings, PinUP emulator and playlist
+  settings as `sqlite-settings.json`, RetroBat, TeknoParrot and Gunmote settings, and screens only as a
+  suggestion; never ROMs, BIOS files or tables. `Import-KitCabinetProfile` checks before it changes, backs up
+  before every write, writes nothing with `-WhatIf` and changes nothing on a second run; the manifest is treated
+  as untrusted (path traversal, absolute paths and SIDs refused, `.reg` content remapped and allowlisted).
+  `-AutoInstall` installs a missing ViGEmBus only after showing its plan (SHA-256, signature) and asking.
+  `Start-Kit.cmd -ExportProfile -Suite ... [-ProfileDestination ...]`, `-ImportProfile <zip> [-WhatIf]
+  [-AutoInstall]`.
+- **Migrate mode** in the dashboard: export on cabinet A, choose the zip, dry run and import on cabinet B;
+  approvals are shown to the person before an installer runs.
 - **Kit API v1** (`API.md`, `api\`): one facade for GUI, CLI, tests and external clients such as an agent
   harness. `Invoke-KitOperation` returns an `OperationResult` (status, changes, backups, warnings, errors,
   approvals, duration, data); change operations are dry runs unless `-Apply`; plans that need a person's approval
@@ -120,6 +133,7 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kburna243/frieds-retrogaming-kit/releases/tag/v0.1.0

@@ -29,15 +29,16 @@ when they ship.
 - [x] Dashboard uses the API only
 - [ ] Operation history (append-only, read-only for clients)
 - [x] MCP server over stdio on top of the API (for the separate agent harness and other agents)
-- [ ] Migrate mode on top of the migration engine (export → analyse → compatibility → import → verify)
+- [x] Migrate mode on top of the migration engine (export → dry run → import → verify)
 - [ ] Setup mode: the wizard steps as WPF pages with step result cards, replacing the WinForms wizards page by page
 - [ ] Brand fonts (Playfair Display, Inter, OFL) shipped with the app instead of the Windows fallbacks
 
-## v0.3 — cabinet migration
+## v0.3 — cabinet migration (released)
 
-- [ ] `Export-RetroCabinetProfile` / `Import-RetroCabinetProfile`: hardware profile, display layout, RetroBat
+- [x] `Export-KitCabinetProfile` / `Import-KitCabinetProfile`: display layout (as a suggestion), RetroBat
       configuration, lightgun profiles, pinball paths, registry settings and emulator settings from cabinet A
       to cabinet B — never ROMs, BIOS files or other copyrighted assets
+- [x] Kit API v1, MCP server over stdio, dashboard on the API with a migrate mode
 
 ## Later
 

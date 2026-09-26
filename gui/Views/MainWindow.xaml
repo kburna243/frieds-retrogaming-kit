@@ -197,11 +197,11 @@
                 <Button DockPanel.Dock="Left" x:Name="ChooseProfileButton" Tag="i18n:Gui.Migrate.Choose" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"/>
                 <TextBlock x:Name="ProfilePathText" Style="{StaticResource Terminal}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
               </DockPanel>
-              <DockPanel LastChildFill="False">
-                <CheckBox DockPanel.Dock="Left" x:Name="MigrateDryRunBox" Tag="i18n:Ui.DryRun" IsChecked="True" Foreground="{StaticResource CreamBrush}" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                <CheckBox DockPanel.Dock="Left" x:Name="AutoInstallBox" Tag="i18n:Gui.Migrate.AutoInstall" Foreground="{StaticResource CreamBrush}" VerticalAlignment="Center"/>
-                <Button DockPanel.Dock="Right" x:Name="ImportProfileButton" Tag="i18n:Gui.Migrate.Import" Style="{StaticResource PrimaryButton}"/>
-              </DockPanel>
+              <WrapPanel Margin="0,0,0,10">
+                <CheckBox x:Name="MigrateDryRunBox" Tag="i18n:Ui.DryRun" IsChecked="True" Foreground="{StaticResource CreamBrush}" VerticalAlignment="Center" Margin="0,0,18,4"/>
+                <CheckBox x:Name="AutoInstallBox" Tag="i18n:Gui.Migrate.AutoInstall" Foreground="{StaticResource CreamBrush}" VerticalAlignment="Center" Margin="0,0,0,4"/>
+              </WrapPanel>
+              <Button x:Name="ImportProfileButton" Tag="i18n:Gui.Migrate.Import" Style="{StaticResource PrimaryButton}"/>
             </StackPanel>
             <StackPanel>
               <TextBlock Text="B" Style="{StaticResource Kicker}"/>
