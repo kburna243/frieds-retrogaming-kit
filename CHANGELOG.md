@@ -9,7 +9,7 @@ that matches it.
 
 ### Added
 - `VERSION` file as the single source of the kit version; the module manifests are checked against it.
-- GitHub Actions CI (`.github/workflows/ci.yml`): depersonalization scan, static checks, Pester tests on
+- GitHub Actions CI (`.github/workflows/ci.yml`, replaces `checks.yml`): depersonalization scan, static checks, Pester tests on
   Windows PowerShell 5.1, package build with integrity check, website build.
 - Release workflow (`.github/workflows/release.yml`): tag check against `VERSION`, full test run, release zip,
   `SHA256SUMS.txt`, build provenance attestation, GitHub release with notes from this changelog.
@@ -18,6 +18,7 @@ that matches it.
   in `core/modules/Download.ps1`).
 - `tools/Test-ReleasePackage.ps1`: checks a release zip (checksum, required files, no runtime output or private
   files, safe entry paths, version, depersonalization of the shipped content).
+- `.github/workflows/pages.yml`: manual GitHub Pages deployment of the website.
 - Issue templates, pull request template with the step Definition of Done, Dependabot for Actions and the website.
 - `ARCHITECTURE.md` and `ROADMAP.md`.
 

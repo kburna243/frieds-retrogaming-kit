@@ -1,4 +1,4 @@
-# Runs on every push to main and every pull request:
+# Runs on every push (any branch except gh-pages) and every pull request:
 #   depersonalization scan -> static checks (parse, BOM, versions) -> Pester tests -> package build + integrity
 # The kit targets Windows PowerShell 5.1, so static checks, tests and packaging run with "shell: powershell"
 # (Windows PowerShell 5.1 and the Pester 3.4 that ships with Windows, exactly like tests\Run-Tests.ps1 expects).
@@ -6,7 +6,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches-ignore: [gh-pages]
   pull_request:
   workflow_dispatch:
 
