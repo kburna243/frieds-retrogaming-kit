@@ -24,7 +24,7 @@
 ---
 
 > [!NOTE]
-> **Status: v0.1.0 — frühe Version.** Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–14 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel und geführter DuckStation-/PCSX2-Prüfung) sind einsatzbereit. Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
+> **Status: v0.2.0.** Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–14 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel und geführter DuckStation-/PCSX2-Prüfung) sind einsatzbereit. Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
 
 ---
 
@@ -178,7 +178,7 @@ Start-Kit.cmd -Backups
 :: Anonymisiertes Support-Paket für ein Issue (Doctor-Bericht, Umgebung, Schrittstatus, neueste Logs)
 Start-Kit.cmd -SupportBundle
 ```
-Einzelne Backups prüfen, wiederherstellen, exportieren und löschen: `core\Start-KitTools.ps1` (`-CheckBackup`, `-RestoreBackup` mit `-WhatIf`, `-ExportBackup`, `-RemoveBackup`). Beim Wiederherstellen einer Dateikopie wird die aktuelle Datei zuerst gesichert, jede Wiederherstellung lässt sich also rückgängig machen.
+Dieselben drei Werkzeuge sind die letzte Seite beider Assistenten (**Wartung**), ganz ohne Kommandozeile. Einzelne Backups über die Kommandozeile prüfen, wiederherstellen, exportieren und löschen: `core\Start-KitTools.ps1` (`-CheckBackup`, `-RestoreBackup` mit `-WhatIf`, `-ExportBackup`, `-RemoveBackup`). Beim Wiederherstellen einer Dateikopie wird die aktuelle Datei zuerst gesichert, jede Wiederherstellung lässt sich also rückgängig machen.
 
 ---
 

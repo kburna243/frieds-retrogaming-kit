@@ -7,7 +7,11 @@ that matches it.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-26
+
 ### Added
+- **Maintenance page** in both wizards (last page): health check, backup list with check / restore / export /
+  delete, and the support bundle, without the command line. A restore follows the dry-run switch and asks first.
 - **Doctor** (`Start-Kit.cmd -Doctor`): read-only health check with OK / INFO / WARN / ERROR per area. System
   (Windows build, PowerShell, 64-bit, elevation, file system, download marks), step states of both suites,
   pinball (build, prerequisites, COM registration, build folder rights) and lightgun (RetroBat, DolphinBar mode,
@@ -34,6 +38,9 @@ that matches it.
 - `ARCHITECTURE.md` and `ROADMAP.md`.
 
 ### Changed
+- Lightgun wizard: the pages for steps 10-14 carry their step numbers (they were labelled 9-13).
+- i18n tables are validated with `Import-LocalizedData`, like the kit loads them (`Import-PowerShellDataFile`
+  refuses files of their size).
 - `tools/New-ReleasePackage.ps1` reads the version from `VERSION` (zip name `frieds-retrogaming-kit-vX.Y.Z.zip`),
   packages only files tracked by git, writes zip entries with `/` and creates `SHA256SUMS.txt`.
 - `tools/Assemble-LaunchPack.ps1` takes the zip name and version from `VERSION` and copies `SHA256SUMS.txt`.
@@ -62,5 +69,6 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kburna243/frieds-retrogaming-kit/releases/tag/v0.1.0

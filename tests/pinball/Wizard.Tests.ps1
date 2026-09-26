@@ -11,16 +11,17 @@ Describe 'Pinball wizard (smoke test, no window is shown)' {
     )
     $state = Join-Path $TestDrive 'install-state.json'
 
-    It 'loads, lists steps 1-9 plus start and thanks, and builds every page without errors (de and en)' {
+    It 'loads, lists steps 1-9 plus start, thanks and maintenance, and builds every page without errors (de and en)' {
         foreach ($culture in 'de-DE', 'en-US') {
             $w = . $wizardScript -NoShow -Culture $culture -StatePath $state -Monitors $monitors
             try {
-                $w.Pages.Count | Should Be 11
-                $w.List.Items.Count | Should Be 11
+                $w.Pages.Count | Should Be 12
+                $w.List.Items.Count | Should Be 12
                 $w.DryRunBox.Checked | Should Be $true # first run
                 for ($i = 0; $i -lt $w.Pages.Count; $i++) { Show-KitWizardPage -Wizard $w -Index $i }
                 $w.Log.Text | Should Not Match '\[X\]'
                 $w.List.Items[10] | Should Be (Get-KitText 'Pinball.Ui.Page.Credits')
+                $w.List.Items[11] | Should Be (Get-KitText 'Ui.Care.Page')
                 @($w.List.Items | Where-Object { $_ -match '^\[\[' }).Count | Should Be 0
             } finally { $w.Form.Dispose() }
         }
@@ -58,6 +59,30 @@ Describe 'Pinball wizard (smoke test, no window is shown)' {
             $box.DetectUrls | Should Be $true
             $box.Text | Should Match 'https://github.com/gunmotelabs/Gunmote'
             $box.Text | Should Not Match '\*\*'
+        } finally { $w.Form.Dispose() }
+    }
+
+    It 'maintenance page: doctor runs read-only, the backup folder next to the state is searched, bundle is written' {
+        $careState = Join-Path $TestDrive 'care\install-state.json'
+        $backups = Join-Path $TestDrive 'care\backups'
+        New-Item -ItemType Directory -Path $backups -Force | Out-Null
+        $zipPath = Join-Path $backups 'pinball-finish_20260301-100000.zip'
+        $file = Join-Path $TestDrive 'care\ScreenRes.txt'
+        [IO.File]::WriteAllText($file, 'x')
+        $null = New-KitBackup -Files $file -Destination $zipPath
+        $w = . $wizardScript -NoShow -Culture 'en-US' -StatePath $careState -Monitors $monitors -Page 11
+        try {
+            $w.Pages[11].Care.LogDir = Join-Path $TestDrive 'care-logs'
+            @(Invoke-KitCareDoctor -Wizard $w).Count | Should BeGreaterThan 5
+            $careState | Should Not Exist # the doctor only reads
+            $rows = @(Update-KitCareBackupList -Wizard $w)
+            $rows.Count | Should Be 1
+            $rows[0].Kind | Should Be 'Zip'
+            $w.Values['CareList'].SelectedIndex = 0
+            (Invoke-KitCareCheck -Wizard $w).Ok | Should Be $true
+            $null = Invoke-KitCareRestore -Wizard $w -Confirm { throw 'must not ask' }
+            $w.Log.Text | Should Match 'restored from the command line'
+            (Invoke-KitCareSupportBundle -Wizard $w).FullName | Should Match 'care-logs'
         } finally { $w.Form.Dispose() }
     }
 

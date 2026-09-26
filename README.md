@@ -24,7 +24,7 @@
 ---
 
 > [!NOTE]
-> **Status: v0.1.0 — early release.** The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
+> **Status: v0.2.0.** The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
 
 ---
 
@@ -178,7 +178,7 @@ Start-Kit.cmd -Backups
 :: Anonymized support bundle for an issue (doctor report, environment, step states, newest logs)
 Start-Kit.cmd -SupportBundle
 ```
-Restoring, checking, exporting and deleting single backups: `core\Start-KitTools.ps1` (`-CheckBackup`, `-RestoreBackup` with `-WhatIf`, `-ExportBackup`, `-RemoveBackup`). Restoring a file copy first saves the current file, so every restore can be undone.
+The same three tools are the last page of both wizards (**Maintenance**), no command line needed. Restoring, checking, exporting and deleting single backups from the command line: `core\Start-KitTools.ps1` (`-CheckBackup`, `-RestoreBackup` with `-WhatIf`, `-ExportBackup`, `-RemoveBackup`). Restoring a file copy first saves the current file, so every restore can be undone.
 
 ---
 

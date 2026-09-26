@@ -4,7 +4,7 @@ Direction for the next versions. Order matters: quality and release engineering 
 on the existing backup and verification engine, new integrations last. Items move to [CHANGELOG.md](CHANGELOG.md)
 when they ship.
 
-## v0.2 — release quality (in progress)
+## v0.2 — release quality (released)
 
 - [x] CI on every push and pull request: depersonalization, static checks, Pester on Windows PowerShell 5.1,
       package build and integrity check, website build
@@ -17,7 +17,7 @@ when they ship.
       `core\Start-KitTools.ps1`)
 - [x] **Support bundle** — `Start-Kit.cmd -SupportBundle`: anonymized zip with doctor report, environment, step
       states and logs
-- [ ] Doctor, backups and support bundle as pages in both wizards (today: command line)
+- [x] Doctor, backups and support bundle as a maintenance page in both wizards
 - [ ] Restoring the registry part of a zip backup from the recovery tool (today: files only; the pinball wizard
       restores its own registry backups)
 
