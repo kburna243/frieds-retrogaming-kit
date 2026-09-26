@@ -7,6 +7,16 @@ that matches it.
 
 ## [Unreleased]
 
+### Changed
+- GitHub Actions: checkout 7, setup-node 7, upload-artifact 7, attest-build-provenance 4, configure-pages 6,
+  deploy-pages 5, upload-pages-artifact 5 (all on Node 24; the inputs the workflows use are unchanged).
+  Pages builds on Node 22 like CI.
+- Website: react / react-dom 19.3.0, vite 8.3.0 with @vitejs/plugin-react 6.1.1, tailwindcss and
+  @tailwindcss/vite 4.3.3, @types/node 22.20.4. Replaces Dependabot PRs #4-#13, which updated pairs one side at
+  a time (react without react-dom, @tailwindcss/vite without tailwindcss) or could not build alone (vite 8 and
+  plugin-react 6 need each other).
+- Dependabot groups packages that must move together and skips @types/node majors beyond the Node runtime.
+
 ## [0.2.0] - 2026-09-26
 
 ### Added
