@@ -574,4 +574,11 @@
     'Api.CallPlan'                  = 'Dry run: {0} has no dry run of its own and was not run; nothing was changed.'
     'Api.NoApproval'                = '{0} cannot ask for approval, so -{1} is refused here. Run it in the wizard.'
     'Api.RemovePlan'                = 'Dry run: the backup {0} would be deleted.'
+    # --- Cabinet profile (migration) -------------------------------------------------------------------------
+    'Profile.Title'                 = 'Cabinet Profile'
+    'Profile.Exported'              = 'Cabinet profile exported: {0}'
+    'Profile.Imported'              = 'Cabinet profile imported from {0}.'
+    'Profile.Refused.Format'        = 'Profile format {0} is not supported (maximum supported: {1}).'
+    'Profile.Refused.Absolute'      = 'Profile contains absolute paths, refusing import.'
+    'Profile.Refused.Traverse'      = 'Profile contains invalid path traversal, refusing import.'
 }

@@ -20,11 +20,14 @@ param(
     [switch] $Doctor,
     [switch] $Backups,
     [switch] $SupportBundle,
-    [switch] $Demo
+    [switch] $Demo,
+    [switch] $ExportProfile,
+    [string] $Suite,
+    [string] $ImportProfile
 )
 
 $ErrorActionPreference = 'Stop'
-if ($Doctor -or $Backups -or $SupportBundle) {
+if ($Doctor -or $Backups -or $SupportBundle -or $ExportProfile -or $ImportProfile) {
     & (Join-Path $PSScriptRoot 'Start-KitTools.ps1') @PSBoundParameters
     exit $LASTEXITCODE
 }

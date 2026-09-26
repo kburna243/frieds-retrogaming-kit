@@ -574,4 +574,11 @@
     'Api.CallPlan'                  = 'Trockenlauf: {0} hat keinen eigenen Trockenlauf und wurde nicht ausgeführt; nichts wurde geändert.'
     'Api.NoApproval'                = '{0} kann keine Freigabe einholen, deshalb wird -{1} hier abgelehnt. Bitte im Assistenten ausführen.'
     'Api.RemovePlan'                = 'Trockenlauf: Das Backup {0} würde gelöscht.'
+    # --- Kabinett-Profil (Migration) -------------------------------------------------------------------------
+    'Profile.Title'                 = 'Kabinett-Profil'
+    'Profile.Exported'              = 'Kabinett-Profil exportiert: {0}'
+    'Profile.Imported'              = 'Kabinett-Profil importiert aus {0}.'
+    'Profile.Refused.Format'        = 'Profilformat {0} wird nicht unterstützt (maximal unterstützt: {1}).'
+    'Profile.Refused.Absolute'      = 'Profil enthält absolute Pfade, Import abgelehnt.'
+    'Profile.Refused.Traverse'      = 'Profil enthält ungültige Pfad-Navigation, Import abgelehnt.'
 }
