@@ -78,6 +78,17 @@ jobs:
           foreach ($culture in 'en-US', 'de-DE') {
             .\gui\Start-KitGui.ps1 -Culture $culture -DoctorResult $rows -Screenshot "snapshots\dashboard-$culture.png"
           }
+      - name: Print snapshots into the log (opt-in with [snapshot-log] in the commit message)
+        if: contains(github.event.head_commit.message, '[snapshot-log]')
+        shell: powershell
+        run: |
+          # For reviewers without access to artifact storage: base64 between markers, 4000 characters per line.
+          foreach ($f in Get-ChildItem snapshots\*.png) {
+            $b = [Convert]::ToBase64String([IO.File]::ReadAllBytes($f.FullName))
+            "SNAPSHOT-BEGIN $($f.Name)"
+            for ($i = 0; $i -lt $b.Length; $i += 4000) { $b.Substring($i, [Math]::Min(4000, $b.Length - $i)) }
+            "SNAPSHOT-END $($f.Name)"
+          }
       - uses: actions/upload-artifact@v7
         if: always()
         with:
