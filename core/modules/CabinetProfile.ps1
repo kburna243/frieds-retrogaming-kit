@@ -644,7 +644,7 @@ function Import-KitCabinetProfile {
                         }
                     }
                     $results.Add([pscustomobject]@{
-                        Name = 'pinball-sqlite'; Status = if ($WhatIf) { 'WhatIf' } elseif ($dbChanged) { 'Done' } else { 'Skipped' }
+                        Name = 'pinball-sqlite'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($dbChanged) { 'Done' } else { 'Skipped' }
                         Detail = "Popper database emulators/settings merged."
                     })
                 }
@@ -710,13 +710,13 @@ function Import-KitCabinetProfile {
                         }
                     }
 
-                    if ($cfgModified -and -not $WhatIf) {
+                    if ($cfgModified -and -not $isWhatIf) {
                         $null = New-KitBackup -Files $cfgPath -Purpose 'profile_import'
                         $xml.Save($cfgPath)
                     }
 
                     $results.Add([pscustomobject]@{
-                        Name = 'lightgun-essettings'; Status = if ($WhatIf) { 'WhatIf' } elseif ($cfgModified) { 'Done' } else { 'Skipped' }
+                        Name = 'lightgun-essettings'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($cfgModified) { 'Done' } else { 'Skipped' }
                         Detail = 'es_settings.cfg merged.'
                     })
                 }
@@ -763,13 +763,13 @@ function Import-KitCabinetProfile {
                         }
                     }
 
-                    if ($kmModified -and -not $WhatIf) {
+                    if ($kmModified -and -not $isWhatIf) {
                         $null = New-KitBackup -Files $kmJson -Purpose 'profile_import'
                         [IO.File]::WriteAllText($kmJson, (ConvertTo-Json $kmData -Depth 5), [Text.Encoding]::UTF8)
                     }
 
                     $results.Add([pscustomobject]@{
-                        Name = 'lightgun-gunmote'; Status = if ($WhatIf) { 'WhatIf' } elseif ($kmModified) { 'Done' } else { 'Skipped' }
+                        Name = 'lightgun-gunmote'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($kmModified) { 'Done' } else { 'Skipped' }
                         Detail = 'Gunmote layouts merged.'
                     })
                 }
@@ -801,7 +801,7 @@ function Import-KitCabinetProfile {
                         }
                     }
                     $results.Add([pscustomobject]@{
-                        Name = 'lightgun-teknoparrot'; Status = if ($WhatIf) { 'WhatIf' } elseif ($tpModified) { 'Done' } else { 'Skipped' }
+                        Name = 'lightgun-teknoparrot'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($tpModified) { 'Done' } else { 'Skipped' }
                         Detail = "$($tpEntries.Count) TeknoParrot profile(s) checked."
                     })
                 }
