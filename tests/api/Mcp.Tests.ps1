@@ -1,4 +1,4 @@
-$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+﻿$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $server = Join-Path $kitRoot 'api\Start-KitMcpServer.ps1'
 $exe = if ($env:SystemRoot) { Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe' } else { 'pwsh' }
 
@@ -83,7 +83,7 @@ Describe 'MCP server over stdio' {
         $dry.Status | Should Be 'WhatIf'
         $dry.Applied | Should Be $false
         [IO.File]::ReadAllText($f) | Should BeExactly 'current'
-        if ($env:USERPROFILE -and $TestDrive.StartsWith($env:USERPROFILE)) {
+        if ($env:USERPROFILE -and ([string]$TestDrive).StartsWith($env:USERPROFILE)) {
             $r[1].result.content[0].text | Should Not Match ([regex]::Escape($env:USERPROFILE))
         }
 
