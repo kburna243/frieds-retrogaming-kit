@@ -39,6 +39,7 @@ Describe 'MCP server over stdio' {
         $r[0].result.protocolVersion | Should BeExactly '2025-03-26'
         $r[0].result.serverInfo.name | Should BeExactly 'frieds-retrogaming-kit'
         $r[0].result.serverInfo.version | Should BeExactly ([IO.File]::ReadAllText((Join-Path $kitRoot 'VERSION')).Trim())
+        $r[0].result.serverInfo.version | Should Not BeNullOrEmpty
         $r[0].result.capabilities.tools | Should Not BeNullOrEmpty
         $r[1].id | Should Be 2
     }

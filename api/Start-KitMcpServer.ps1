@@ -31,7 +31,7 @@ Import-Module (Join-Path $PSScriptRoot 'RetroCabinetKit.Api.psd1') 6>$null
 Set-KitCulture -Culture $Culture
 
 $protocolVersions = @('2025-06-18', '2025-03-26', '2024-11-05')
-$kitVersion = ([IO.File]::ReadAllText((Join-Path (Split-Path -Parent $PSScriptRoot) 'VERSION'))).Trim()
+$kitVersion = Get-KitVersion
 $utf8 = New-Object Text.UTF8Encoding $false
 $reader = New-Object IO.StreamReader ([Console]::OpenStandardInput(), $utf8)
 $writer = New-Object IO.StreamWriter ([Console]::OpenStandardOutput(), $utf8)

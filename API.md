@@ -1,4 +1,4 @@
-# Kit API (v1)
+# Kit API (v1.1)
 
 One stable entry point for every client of the kit — the WPF dashboard, the command line, scripts, tests and
 external tools such as an agent harness. The API is a thin, versioned facade over the engine modules; it adds no
@@ -25,7 +25,9 @@ another process (stdin/stdout, no network port).
 3. **Only plain parameters.** A client can set string, number, switch and string-array parameters. Script blocks,
    objects and the parameters that bind security or tests (`StatePath`, `Culture`, `KitUserSid`, `TrustedOwner`,
    `TaskPrefix`, `AutomationDir`, `LayersKey`, `RegistryRoots`, `AppCompatRoots`, `AnswerFile`) are never
-   accepted. Unknown parameters are refused before anything runs.
+   accepted, nor `Apply` and `Approved` in any spelling: those names belong to the API's own switches (and the
+   MCP flags `apply` / `approved`), so a step parameter called that way is never offered. Unknown parameters are
+   refused before anything runs.
 4. **Interactive steps stay in the wizard.** Steps that need a person at the cabinet (screen calibration, the
    trigger test) are listed with `Interactive = true` and refused by the API.
 5. **Local only, no telemetry.** The API opens no port and sends nothing. `-Anonymize` replaces profile paths,
@@ -38,7 +40,8 @@ another process (stdin/stdout, no network port).
 
 | Field | Type | Meaning |
 | :--- | :--- | :--- |
-| `ApiVersion` | string | `1.0`; a new major version is a breaking change |
+| `ApiVersion` | string | `1.1`; a new major version is a breaking change |
+| `KitVersion` | string | the kit's version (`VERSION` file), e.g. `0.3.0`; empty if the file is missing |
 | `Operation` | string | the operation name as called |
 | `Kind` | string | `Read` or `Change` |
 | `Success` | bool | `Status` is `Ok`, `Done`, `Skipped` or `WhatIf` |
@@ -134,3 +137,8 @@ UTF-8; the client starts the server as a child process. There is no network port
 
 `ApiVersion` changes its minor version when fields or operations are added and its major version when a field or
 operation changes meaning or disappears. The contract tests in `tests\api\` pin the fields above.
+
+| ApiVersion | Kit | Change |
+| :--- | :--- | :--- |
+| `1.0` | 0.2.0 | first version |
+| `1.1` | 0.3.x | operation `backup.remove`, field `KitVersion`; `Apply` / `Approved` refused as parameter names |
