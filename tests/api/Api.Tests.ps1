@@ -11,13 +11,14 @@ $newRetroBat = Join-Path $kitRoot 'tests\lightgun\New-LightgunTestRetroBat.ps1'
 # Contract tests: the fields and rules of API.md. A change here is an API change (see "Versioning" there).
 Describe 'Kit API contract' {
     Set-KitCulture -Culture 'en-US'
-    $fields = 'ApiVersion', 'Operation', 'Kind', 'Success', 'Status', 'Applied', 'Message', 'Warnings', 'Errors',
+    $fields = 'ApiVersion', 'KitVersion', 'Operation', 'Kind', 'Success', 'Status', 'Applied', 'Message', 'Warnings', 'Errors',
               'Changes', 'Backups', 'Approvals', 'Duration', 'StartedAt', 'Data'
 
     It 'every result carries exactly the documented fields' {
         $r = Invoke-KitOperation -Name 'operations'
         ($r.PSObject.Properties.Name -join ',') | Should BeExactly ($fields -join ',')
         $r.ApiVersion | Should BeExactly (Get-KitApiVersion)
+        $r.KitVersion | Should BeExactly ([IO.File]::ReadAllText((Join-Path $kitRoot 'VERSION')).Trim())
         $r.Status | Should Be 'Ok'
         $r.Success | Should Be $true
     }
@@ -33,7 +34,7 @@ Describe 'Kit API contract' {
     }
 
     It 'never offers script blocks, objects or security bindings as parameters' {
-        $denied = 'Approve', 'StatePath', 'Culture', 'KitUserSid', 'TrustedOwner', 'TaskPrefix', 'AutomationDir', 'Devices', 'Monitors', 'Tasks', 'XInputReader'
+        $denied = 'Approve', 'Apply', 'Approved', 'StatePath', 'Culture', 'KitUserSid', 'TrustedOwner', 'TaskPrefix', 'AutomationDir', 'Devices', 'Monitors', 'Tasks', 'XInputReader'
         foreach ($op in Get-KitOperation) {
             foreach ($p in @($op.Parameters)) {
                 $denied -contains $p.Name | Should Be $false
@@ -48,6 +49,12 @@ Describe 'Kit API contract' {
         $r.Status | Should Be 'Failed'
         $r.Message | Should Match 'KitUserSid'
         (Invoke-KitOperation -Name 'step.lightgun.10-teknoparrot' -Parameters @{ Approve = { $true } }).Status | Should Be 'Failed'
+        # The API's own switches never pass as a parameter, in any spelling (MCP: apply / approved).
+        foreach ($n in 'Apply', 'approved') {
+            $r = Invoke-KitOperation -Name 'step.lightgun.07-retrobatsettings' -Parameters @{ $n = $true }
+            $r.Status | Should Be 'Failed'
+            $r.Message | Should Match $n
+        }
         (Invoke-KitOperation -Name 'backup.check').Message | Should Match 'Missing parameter: Path'
     }
 

@@ -46,7 +46,7 @@ Der [CHANGELOG](../CHANGELOG.md) führt jede Änderung einzeln auf.
   erledigt → Skipped), dann Test (Vorbedingung, sonst NeedsUser), dann WhatIf (nur Plan), dann Invoke und am Ende
   Verify (Done/Failed). Das Ergebnis enthält `Duration`, `Changed`, `Changes`, `Backups`, `Warnings`, `Errors`
   und `Log`.
-- **Kit-API v1** (`API.md`): `Invoke-KitOperation` liefert ein `OperationResult` (ApiVersion, Operation, Kind,
+- **Kit-API v1.1** (`API.md`): `Invoke-KitOperation` liefert ein `OperationResult` (ApiVersion, KitVersion, Operation, Kind,
   Success, Status, Applied, Message, Warnings, Errors, Changes, Backups, Approvals, Duration, StartedAt, Data).
   Den Katalog (`Get-KitOperation`) baut das Kit aus den Schritt-Skripten. Operationen: `status`, `components`,
   `backups.list`, `backup.check|restore|export|remove`, `support.bundle`, `step.<suite>.<nn-name>` sowie

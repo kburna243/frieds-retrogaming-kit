@@ -7,6 +7,17 @@ that matches it.
 
 ## [Unreleased]
 
+### Added
+- API: every result carries `KitVersion` (the kit's `VERSION`), so a client over JSON or MCP can name the kit it
+  talks to (#22). `Get-KitVersion`; the MCP server reports the same value as `serverInfo.version`.
+
+### Changed
+- `ApiVersion` is `1.1`: v0.3.0 added `backup.remove`, and `KitVersion` is new; no client breaks on major `1`
+  (#21). `API.md` has a version table.
+- API: `Apply` and `Approved` (any spelling) are refused as parameter names and never offered in the catalog, so a
+  step parameter cannot be mistaken for the API switches or the MCP flags `apply` / `approved` (#23).
+- `handoff/PROJECT-HANDOFF-v0.3.0.md`: handoff of the whole development up to v0.3.0.
+
 ## [0.3.0] - 2026-09-26
 
 ### Added

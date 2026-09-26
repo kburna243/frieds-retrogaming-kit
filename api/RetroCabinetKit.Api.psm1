@@ -5,16 +5,20 @@
 
 Set-StrictMode -Version 2.0
 
-$script:ApiVersion = '1.0'
+$script:ApiVersion = '1.1'
 $script:ApiDir     = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
+# The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
+$script:KitVersion = $(try { ([IO.File]::ReadAllText((Join-Path $script:KitRoot 'VERSION'))).Trim() } catch { '' })
 Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 Import-Module (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
 Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
 
 # Parameters a client may never set (security bindings, test injection, values the API controls itself).
+# Apply and Approved are the API's own switches (and the MCP flags apply / approved): a step parameter with that
+# name could be mistaken for them, so it is never offered (the comparison ignores case).
 $script:ApiDeniedParameters = @('StatePath', 'Culture', 'KitUserSid', 'TrustedOwner', 'TaskPrefix', 'AutomationDir',
-    'LayersKey', 'RegistryRoots', 'AppCompatRoots', 'AnswerFile', 'WhatIf', 'Confirm')
+    'LayersKey', 'RegistryRoots', 'AppCompatRoots', 'AnswerFile', 'WhatIf', 'Confirm', 'Apply', 'Approved')
 $script:ApiPlainTypes = @([string], [string[]], [int], [long], [bool], [switch], [Management.Automation.SwitchParameter])
 # Steps that need a person at the cabinet (measure windows, pull the trigger): wizard only.
 $script:ApiInteractiveSteps = @('step.pinball.08-screens', 'step.lightgun.09-verify')
@@ -25,6 +29,13 @@ function Get-KitApiVersion {
     [CmdletBinding()]
     param()
     $script:ApiVersion
+}
+
+# The version of the kit behind the API (VERSION file), e.g. 0.3.0.
+function Get-KitVersion {
+    [CmdletBinding()]
+    param()
+    $script:KitVersion
 }
 
 function New-KitOperationResult {
@@ -47,6 +58,7 @@ function New-KitOperationResult {
     [pscustomobject]@{
         PSTypeName = 'RetroCabinetKit.OperationResult'
         ApiVersion = $script:ApiVersion
+        KitVersion = $script:KitVersion
         Operation  = $Operation
         Kind       = $Kind
         Success    = $Status -in 'Ok', 'Done', 'Skipped', 'WhatIf'
@@ -431,5 +443,5 @@ function ConvertTo-KitApiJson {
     }
 }
 
-Export-ModuleMember -Function 'Get-KitApiVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation', 'Invoke-KitOperationIsolated',
+Export-ModuleMember -Function 'Get-KitApiVersion', 'Get-KitVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation', 'Invoke-KitOperationIsolated',
     'Get-KitCabinetStatus', 'Get-KitCabinetComponent', 'Get-KitBackupList', 'ConvertTo-KitApiJson'

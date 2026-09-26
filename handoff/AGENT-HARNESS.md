@@ -21,7 +21,8 @@ frieds-agent-harness (own repo)                     frieds-retrogaming-kit (this
 - The kit never imports harness code and never opens a port. The harness never reads kit internals (state files,
   module functions); it only calls operations.
 - Contract: `API.md` (API v1). Contract tests in the kit: `tests\api\Api.Tests.ps1`. Pin the harness to
-  `ApiVersion` major `1` and refuse a different major.
+  `ApiVersion` major `1` and refuse a different major. Every result also carries `KitVersion` (API 1.1+), e.g. to
+  record which kit a session talked to.
 
 ## 2. Calling the kit
 
