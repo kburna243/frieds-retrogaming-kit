@@ -7,6 +7,25 @@ that matches it.
 
 ## [Unreleased]
 
+### Added
+- Pinball: `pinball\modules\PinballY.ps1` describes a **PinballY** installation, the second front end for the same
+  tables. Read only: version from `PinballY.exe`, every `SystemN.*` with its enabled state, the settings file as it
+  is (UTF-8 with BOM, comment lines counted separately), the table databases with their game counts, other programs
+  that live inside the folder (`PINemHi\pinemhi.ini`) and which path values do not resolve on this machine — with
+  the difference between *broken here* and *from another machine* (`ReferenceForeign`), because a copied install is
+  the normal case and not an error. `[PinballY]`, `[STEAM]`, `[TABLEPATH]` and `[TABLEFILE]` are reported as what
+  they are: tokens PinballY expands itself, never a location to fix.
+- API 1.2: operation `pinbally.detect` (Read, one mandatory `Path`) and a `PinballY` row in `components`, which
+  shows the folder recorded as `PinballYRoot` in the pinball state and says so plainly while nothing is recorded.
+  `Get-KitOperation` names both.
+- Tests: `tests\pinball\New-PinballYTestInstall.ps1` builds a synthetic installation the way PinballY writes one
+  (including the path examples inside the comments and one database it cannot parse), 29 engine tests and 9 API
+  tests, among them that a read writes nothing and answers twice with the same words.
+
+### Known gap
+- Nothing in PinballY is changed yet. Retargeting the few absolute paths of a copied installation (with dry run,
+  backup, process guard and a second run that finds nothing left to do) is the next operation, not this one.
+
 ## [0.3.1] - 2026-09-26
 
 For clients of the Kit API such as the agent harness: API 1.1 with the kit version in every result.

@@ -1,4 +1,4 @@
-# Kit API (v1.1)
+# Kit API (v1.2)
 
 One stable entry point for every client of the kit — the WPF dashboard, the command line, scripts, tests and
 external tools such as an agent harness. The API is a thin, versioned facade over the engine modules; it adds no
@@ -40,7 +40,7 @@ another process (stdin/stdout, no network port).
 
 | Field | Type | Meaning |
 | :--- | :--- | :--- |
-| `ApiVersion` | string | `1.1`; a new major version is a breaking change |
+| `ApiVersion` | string | `1.2`; a new major version is a breaking change |
 | `KitVersion` | string | the kit's version (`VERSION` file), e.g. `0.3.0`; empty if the file is missing |
 | `Operation` | string | the operation name as called |
 | `Kind` | string | `Read` or `Change` |
@@ -68,6 +68,7 @@ Change operations built from steps also carry `Data.Steps`: one entry per step r
 | `operations` | Read | — | the catalog |
 | `status` | Read | — | `Summary` (`Ok`, `Info`, `Warn`, `Error`, `Level`), `Checks[]` (`Area`, `Name`, `Level`, `Detail`) |
 | `components` | Read | — | `Components[]` (`Name`, `Present`, `Version`, `Path`, `Detail`) |
+| `pinbally.detect` | Read | `Path` | `Root`, `Version`, `Encoding`, `SettingsLine`, `Setting`, `System[]`, `SystemEnabled`, `Reference[]` (`Line`, `Key`, `Value`, `Kind`, `Status`, `TokenName`, `Anchor`, `Resolved`), `ReferenceAbsolute`, `ReferenceToken`, `ReferenceMissing[]`, `ReferenceForeign[]`, `Database[]`, `Game`, `Companion[]`, `Running[]`, `WriteSafe` |
 | `backups.list` | Read | `Root` (string[], optional) | `Backups[]` (`Kind`, `Path`, `Created`, `Purpose`, `Original`, `Files`, `Registry`, `SizeBytes`) |
 | `backup.check` | Read | `Path` | `Ok`, `Differs`, `Problems[]` |
 | `backup.restore` | Change | `Path`; `AllowedRoot` (string[]) for zip backups | `Target`, `SavedCurrent` |
@@ -83,6 +84,13 @@ Change operations built from steps also carry `Data.Steps`: one entry per step r
 at all without `-Apply` (the dry run returns the call). The import's rows (`Name`, `Status`, `Detail`) count like
 step results: a `NeedsUser` or `Failed` row makes the operation not succeed and appears in `Warnings` / `Errors`.
 `AutoInstall` is only accepted when the command takes `-Approve`, so installers go through rule 2.
+
+`pinbally.detect` describes a **PinballY** installation, the second front end for the same tables. It is a Read:
+it asks for one folder, writes nothing (not with `-Apply`, which then changes nothing), and every path value that
+does not resolve on this machine comes back in `Warnings` — a value that only exists on the machine the folder
+came from is reported as `ReferenceForeign`, not as a broken setting. The folder is a parameter because PinballY
+is not part of a build: it sits wherever its owner put it, and the kit does not search drives for it.
+`components` shows it as soon as the pinball state holds `PinballYRoot`.
 
 ## In-process (PowerShell)
 
@@ -142,3 +150,4 @@ operation changes meaning or disappears. The contract tests in `tests\api\` pin 
 | :--- | :--- | :--- |
 | `1.0` | 0.2.0 | first version |
 | `1.1` | 0.3.x | operation `backup.remove`, field `KitVersion`; `Apply` / `Approved` refused as parameter names |
+| `1.2` | unreleased | operation `pinbally.detect` and the `PinballY` component row: the second front end can be described (reads only, never writes) |
