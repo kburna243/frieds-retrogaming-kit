@@ -354,7 +354,12 @@ function Invoke-KitOperation {
                 $warnings = @($rows | Where-Object { $_.Status -eq 'NeedsUser' } | ForEach-Object { & $detail $_ })
                 $errors = @($rows | Where-Object { $_.Status -eq 'Failed' } | ForEach-Object { & $detail $_ })
                 $steps = @($rows | Where-Object { $_.PSObject.TypeNames -contains 'RetroCabinetKit.StepResult' })
-                return New-KitOperationResult -Operation $Name -Kind Change -Status $st -Applied $apply -Message '' `
+                $written = @($out | Where-Object { $_ -and $_.PSObject.Properties['Path'] } | Select-Object -First 1)
+                $msg = if ($Name -eq 'profile.export') { if ($written.Count) { Get-KitText 'Profile.Exported' -f $written[0].Path } else { '' } }
+                       elseif ($st -eq 'WhatIf') { Get-KitText 'Api.ImportPlan' -f $p.Path }
+                       elseif ($st -eq 'Done' -or $st -eq 'Skipped') { Get-KitText 'Profile.Imported' -f $p.Path }
+                       else { Get-KitText 'Api.ImportOpen' -f ($warnings.Count + $errors.Count) }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $st -Applied $apply -Message $msg `
                     -Warnings $warnings -Errors $errors -Approvals @($script:ApiApprovals) `
                     -Changes @($steps | ForEach-Object { $_.Changes }) -Backups @($steps | ForEach-Object { $_.Backups }) `
                     -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data ([pscustomobject]@{ Result = $out })

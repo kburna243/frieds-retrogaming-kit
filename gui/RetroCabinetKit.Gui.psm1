@@ -287,12 +287,102 @@ function Invoke-KitGuiRemoveBackup {
     $r
 }
 
-# Switches between the dashboard and the recover view.
+# --- migrate --------------------------------------------------------------------------------------------------
+
+function Write-KitGuiMigrateLog {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [AllowEmptyString()] [string] $Text)
+    $log = $Ui.Controls.MigrateLog
+    $log.Text = if ($log.Text) { $log.Text + [Environment]::NewLine + '> ' + $Text } else { '> ' + $Text }
+    if ($Ui.Controls.ContainsKey('MigrateLogScroll')) { $Ui.Controls.MigrateLogScroll.ScrollToEnd() }
+}
+
+# Parameters every profile call gets on top of its own: $Ui.Values['ProfileRoots'] (tests: RetroBatRoot,
+# GunmoteDir, PupDatabasePath, ... of a test cabinet). Without it the engine finds the installed programs itself.
+function Get-KitGuiProfileParameter([psobject] $Ui, [hashtable] $Own) {
+    $p = @{} + $Own
+    if ($Ui.Values.ContainsKey('ProfileRoots')) { foreach ($k in $Ui.Values['ProfileRoots'].Keys) { $p[$k] = $Ui.Values['ProfileRoots'][$k] } }
+    $p
+}
+
+# One line per row of the engine (Name, Status, Detail), so the person sees what an import checked or changed.
+function Write-KitGuiProfileRows([psobject] $Ui, $Result) {
+    Write-KitGuiMigrateLog -Ui $Ui -Text $Result.Message
+    if (-not $Result.Data -or -not $Result.Data.PSObject.Properties['Result']) { return }
+    foreach ($row in @($Result.Data.Result)) {
+        if ($row -and $row.PSObject.Properties['Status'] -and $row.PSObject.Properties['Name']) {
+            $detail = if ($row.PSObject.Properties['Detail']) { $row.Detail } else { '' }
+            Write-KitGuiMigrateLog -Ui $Ui -Text ('  [{0}] {1}: {2}' -f $row.Status, $row.Name, $detail)
+        }
+    }
+}
+
+# Cabinet A: writes the profile of one suite into a folder the person chooses (choosing it is the decision, so
+# the export is applied; it only reads the cabinet and writes the zip).
+function Invoke-KitGuiExportProfile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [ValidateSet('Pinball', 'Lightgun')] [string] $Suite, [string] $Destination)
+    if (-not $Destination) {
+        Add-Type -AssemblyName System.Windows.Forms
+        $dialog = New-Object Windows.Forms.FolderBrowserDialog
+        try { if ($dialog.ShowDialog() -ne 'OK') { return }; $Destination = $dialog.SelectedPath } finally { $dialog.Dispose() }
+    }
+    $r = Invoke-KitOperation -Name 'profile.export' -Parameters (Get-KitGuiProfileParameter $Ui @{ Suite = $Suite; Destination = $Destination }) -Apply
+    Write-KitGuiProfileRows $Ui $r
+    if (-not $r.Success) { foreach ($e in @($r.Errors)) { Write-KitGuiMigrateLog -Ui $Ui -Text "  $e" } }
+    $r
+}
+
+# Cabinet B: remembers the profile zip to import (file dialog unless -Path).
+function Select-KitGuiProfile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [string] $Path)
+    if (-not $Path) {
+        Add-Type -AssemblyName System.Windows.Forms
+        $dialog = New-Object Windows.Forms.OpenFileDialog
+        $dialog.Filter = 'Cabinet profile (*.zip)|cabinet-profile-*.zip|*.zip|*.zip'
+        try { if ($dialog.ShowDialog() -ne 'OK') { return }; $Path = $dialog.FileName } finally { $dialog.Dispose() }
+    }
+    $Ui.Values['ProfilePath'] = $Path
+    $Ui.Controls.ProfilePathText.Text = $Path
+    $Path
+}
+
+# Cabinet B: imports the chosen profile through the API. Follows the dry-run box (the engine checks everything and
+# writes nothing); a real import asks first. Plans that need approval (installers with SHA-256 and signature) come
+# back in Approvals: they are shown to the person, and only after a yes the import runs again with -Approved (the
+# engine skips what is already in place). Then the system status is the verification.
+function Invoke-KitGuiImportProfile {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [psobject] $Ui,
+        [scriptblock] $Confirm = { param($text) Confirm-KitGuiAction -Text $text }
+    )
+    if (-not $Ui.Values.ContainsKey('ProfilePath') -or -not $Ui.Values['ProfilePath']) { Write-KitGuiMigrateLog -Ui $Ui -Text (Get-KitText 'Gui.Migrate.ChooseFirst'); return }
+    $path = [string]$Ui.Values['ProfilePath']
+    $dry = [bool]$Ui.Controls.MigrateDryRunBox.IsChecked
+    $own = @{ Path = $path }
+    if ($Ui.Controls.AutoInstallBox.IsChecked) { $own.AutoInstall = $true }
+    if (-not $dry -and -not (& $Confirm (Get-KitText 'Gui.Migrate.ConfirmImport' -f $path))) { return }
+    $p = Get-KitGuiProfileParameter $Ui $own
+    $r = Invoke-KitOperation -Name 'profile.import' -Parameters $p -Apply:(-not $dry)
+    if (-not $dry -and @($r.Approvals).Count) {
+        $text = (Get-KitText 'Gui.Migrate.Approve') + [Environment]::NewLine + [Environment]::NewLine + (@($r.Approvals) -join ([Environment]::NewLine + [Environment]::NewLine))
+        if (& $Confirm $text) { $r = Invoke-KitOperation -Name 'profile.import' -Parameters $p -Apply -Approved }
+    }
+    Write-KitGuiProfileRows $Ui $r
+    if ($r.Status -eq 'Failed') { foreach ($e in @($r.Errors)) { Write-KitGuiMigrateLog -Ui $Ui -Text "  $e" } }
+    if (-not $dry -and $r.Success) { Write-KitGuiMigrateLog -Ui $Ui -Text (Get-KitText 'Gui.Migrate.Verify') }
+    $r
+}
+
+# Switches between the dashboard, the migrate and the recover view.
 function Show-KitGuiView {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [ValidateSet('Dashboard', 'Recover')] [string] $Name)
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [ValidateSet('Dashboard', 'Migrate', 'Recover')] [string] $Name)
     $c = $Ui.Controls
     $c.DashboardView.Visibility = if ($Name -eq 'Dashboard') { 'Visible' } else { 'Collapsed' }
+    $c.MigrateView.Visibility = if ($Name -eq 'Migrate') { 'Visible' } else { 'Collapsed' }
     $c.RecoverView.Visibility = if ($Name -eq 'Recover') { 'Visible' } else { 'Collapsed' }
     $c.BackButton.Visibility = if ($Name -eq 'Dashboard') { 'Collapsed' } else { 'Visible' }
     $Ui.Values['View'] = $Name

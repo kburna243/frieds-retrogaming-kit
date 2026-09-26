@@ -46,7 +46,7 @@ Describe 'Dashboard (WPF, no window is shown)' {
             $ui.Controls.StatusSummary.Text | Should Match 'Everything healthy'
             $ui.Controls.StatusCrown.Visibility | Should Be 'Visible'
             $ui.Controls.FooterVersion.Text | Should Match ([regex]::Escape(([IO.File]::ReadAllText((Join-Path $kitRoot 'VERSION'))).Trim()))
-            $ui.Controls.MigrateButton.IsEnabled | Should Be $false # arrives with v0.3
+            $ui.Controls.MigrateButton.IsEnabled | Should Be $true
         } finally { $ui.Window.Close() }
     }
 
@@ -66,7 +66,7 @@ Describe 'Dashboard (WPF, no window is shown)' {
         try { $ui.Controls.StatusCrown.Visibility | Should Be 'Collapsed' } finally { $ui.Window.Close() }
     }
 
-    It 'the tiles start the wizards through the launcher and open the recover view' {
+    It 'the tiles start the wizards through the launcher and open the migrate and recover views' {
         $script:launched = @()
         $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult $healthy -Launcher { param($Suite) $script:launched += $Suite }
         try {
@@ -74,8 +74,13 @@ Describe 'Dashboard (WPF, no window is shown)' {
             $ui.Controls.NewPinballButton.RaiseEvent((New-Object Windows.RoutedEventArgs $click))
             $ui.Controls.NewLightgunButton.RaiseEvent((New-Object Windows.RoutedEventArgs $click))
             $script:launched -join ',' | Should BeExactly 'Pinball,Lightgun'
+            $ui.Controls.MigrateButton.RaiseEvent((New-Object Windows.RoutedEventArgs $click))
+            $ui.Controls.MigrateView.Visibility | Should Be 'Visible'
+            $ui.Controls.DashboardView.Visibility | Should Be 'Collapsed'
+            $ui.Controls.BackButton.RaiseEvent((New-Object Windows.RoutedEventArgs $click))
             $ui.Values['BackupRoots'] = @(Join-Path $TestDrive 'no-backups-here')
             $ui.Controls.RecoverButton.RaiseEvent((New-Object Windows.RoutedEventArgs $click))
+            $ui.Controls.MigrateView.Visibility | Should Be 'Collapsed'
             $ui.Controls.RecoverView.Visibility | Should Be 'Visible'
             $ui.Controls.DashboardView.Visibility | Should Be 'Collapsed'
             $ui.Controls.BackButton.RaiseEvent((New-Object Windows.RoutedEventArgs $click))
@@ -83,11 +88,13 @@ Describe 'Dashboard (WPF, no window is shown)' {
         } finally { $ui.Window.Close() }
     }
 
-    It 'renders a snapshot without showing a window (dashboard and recover view)' {
+    It 'renders a snapshot without showing a window (dashboard, migrate and recover view)' {
         $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult $healthy
         try {
             $png = Save-KitGuiSnapshot -Ui $ui -Path (Join-Path $TestDrive 'dashboard.png')
             $png.Length | Should BeGreaterThan 10000
+            Show-KitGuiView -Ui $ui -Name Migrate
+            (Save-KitGuiSnapshot -Ui $ui -Path (Join-Path $TestDrive 'migrate.png')).Length | Should BeGreaterThan 5000
             Show-KitGuiView -Ui $ui -Name Recover
             (Save-KitGuiSnapshot -Ui $ui -Path (Join-Path $TestDrive 'recover.png')).Length | Should BeGreaterThan 5000
             $ui.Window.Content | Should Not BeNullOrEmpty # the content is back in the window
@@ -187,6 +194,81 @@ Describe 'Recover view' {
             $r.Status | Should Be 'Done'
             Join-Path (Join-Path $TestDrive 'usb') 'SHA256SUMS.txt' | Should Exist
             $r.Data.Exported | Should Match '\.bak_'
+        } finally { $ui.Window.Close() }
+    }
+}
+
+Describe 'Migrate view' {
+    Set-KitCulture -Culture 'en-US'
+    $newRetroBat = Join-Path $kitRoot 'tests\lightgun\New-LightgunTestRetroBat.ps1'
+    $newGunmote = Join-Path $kitRoot 'tests\lightgun\New-LightgunTestGunmote.ps1'
+    $rbA = Join-Path "$TestDrive" 'A\RetroBat'; $gmA = Join-Path "$TestDrive" 'A\Gunmote'
+    $rbB = Join-Path "$TestDrive" 'B\RetroBat'; $gmB = Join-Path "$TestDrive" 'B\Gunmote'
+    & $newRetroBat -Root $rbA; & $newGunmote -Gunmote $gmA
+    & $newRetroBat -Root $rbB; & $newGunmote -Gunmote $gmB
+    # A layout only cabinet A has, so the import has something to bring over.
+    $kmJsonA = Join-Path $gmA 'Keymaps\Keymaps.json'
+    $kmA = Get-Content -LiteralPath $kmJsonA -Raw | ConvertFrom-Json
+    $kmA.LayoutChooser += @{ Title = 'RCK Pad 4:3'; Keymap = 'rck_pad43.json' }
+    [IO.File]::WriteAllText($kmJsonA, (ConvertTo-Json $kmA -Depth 5), [Text.Encoding]::UTF8)
+    [IO.File]::WriteAllText((Join-Path $gmA 'Keymaps\rck_pad43.json'), '{"pointer": "stick"}', [Text.Encoding]::UTF8)
+    $layoutB = Join-Path $gmB 'Keymaps\rck_pad43.json'
+
+    It 'exports on A, checks on B in the dry run without asking, imports only after a yes' {
+        # The runner has no ViGEmBus; the driver check is not what this test is about.
+        Mock -ModuleName 'RetroCabinetKit.Core' Get-LightgunViGEmState { [pscustomobject]@{ Installed = $true } }
+        $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult @() -View Migrate
+        try {
+            $ui.Controls.MigrateView.Visibility | Should Be 'Visible'
+            $ui.Controls.ProfilePathText.Text | Should Be (Get-KitText 'Gui.Migrate.NoProfile')
+
+            $ui.Values['ProfileRoots'] = @{ RetroBatRoot = $rbA; GunmoteDir = $gmA }
+            $e = Invoke-KitGuiExportProfile -Ui $ui -Suite Lightgun -Destination (Join-Path "$TestDrive" 'usb')
+            $e.Status | Should Be 'Done'
+            $zip = @($e.Data.Result)[0].Path
+            $zip | Should Exist
+            $ui.Controls.MigrateLog.Text | Should Match 'exported'
+
+            $ui.Values['ProfileRoots'] = @{ RetroBatRoot = $rbB; GunmoteDir = $gmB }
+            Invoke-KitGuiImportProfile -Ui $ui -Confirm { throw 'nothing chosen, nothing to ask' } | Should BeNullOrEmpty
+            $ui.Controls.MigrateLog.Text | Should Match 'Choose a profile first'
+            $null = Select-KitGuiProfile -Ui $ui -Path $zip
+            $ui.Controls.ProfilePathText.Text | Should BeExactly $zip
+
+            $ui.Controls.MigrateDryRunBox.IsChecked | Should Be $true
+            (Invoke-KitGuiImportProfile -Ui $ui -Confirm { throw 'a dry run must not ask' }).Status | Should Be 'WhatIf'
+            $layoutB | Should Not Exist
+
+            $ui.Controls.MigrateDryRunBox.IsChecked = $false
+            Invoke-KitGuiImportProfile -Ui $ui -Confirm { $false } | Should BeNullOrEmpty
+            $layoutB | Should Not Exist
+            $r = Invoke-KitGuiImportProfile -Ui $ui -Confirm { $true }
+            $r.Applied | Should Be $true
+            $layoutB | Should Exist
+            $ui.Controls.MigrateLog.Text | Should Match '\[Done\]'
+        } finally { $ui.Window.Close() }
+    }
+
+    It 'a plan that needs approval is shown to the person, and the import runs again only after a yes' {
+        Mock -ModuleName 'RetroCabinetKit.Core' Get-LightgunViGEmState { [pscustomobject]@{ Installed = $false } }
+        Mock -ModuleName 'RetroCabinetKit.Core' Test-KitAdmin { $true }
+        Mock -ModuleName 'RetroCabinetKit.Core' Install-LightgunViGEm { if ($Approve -and (& $Approve 'ViGEmBus 1.22 SHA-256 ...')) { 0 } else { throw 'declined' } }
+        $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult @() -View Migrate
+        try {
+            $ui.Values['ProfileRoots'] = @{ RetroBatRoot = $rbB; GunmoteDir = $gmB }
+            $null = Select-KitGuiProfile -Ui $ui -Path @(Get-ChildItem -LiteralPath (Join-Path "$TestDrive" 'usb') -Filter '*.zip')[0].FullName
+            $ui.Controls.MigrateDryRunBox.IsChecked = $false
+            $ui.Controls.AutoInstallBox.IsChecked = $true
+            $script:asked = @()
+            $r = Invoke-KitGuiImportProfile -Ui $ui -Confirm { param($t) $script:asked += $t; $script:asked.Count -eq 1 }
+            $script:asked.Count | Should Be 2
+            $script:asked[1] | Should Match 'ViGEmBus 1.22'
+            $r.Status | Should Be 'NeedsUser' # the person said no to the installer
+            $script:asked = @()
+            $r = Invoke-KitGuiImportProfile -Ui $ui -Confirm { param($t) $script:asked += $t; $true }
+            $script:asked.Count | Should Be 2
+            $r.Approvals.Count | Should Be 1
+            @($r.Data.Result | Where-Object { $_.Name -eq 'lightgun-vigem' })[0].Status | Should Be 'Done'
         } finally { $ui.Window.Close() }
     }
 }
