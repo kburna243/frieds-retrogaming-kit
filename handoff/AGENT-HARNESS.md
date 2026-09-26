@@ -71,9 +71,15 @@ relevant checks → propose one change operation → dry run → show plan and a
 
 ## 5. MCP
 
-The kit will ship an MCP server over stdio on top of the same API (roadmap, kit side). Until then the harness
-wraps `Invoke-KitApi.ps1` itself. Design the adapter so that swapping the transport (one-shot process ↔ MCP
-stdio) does not change the tool definitions.
+The kit ships an MCP server over stdio on top of the same API: `api\Start-KitMcpServer.ps1` (see `API.md`,
+"MCP server"). The harness can use it as a plain MCP client instead of wrapping `Invoke-KitApi.ps1`:
+
+- Start it as a child process with the full `powershell.exe` path; `-ReadOnly` for the read-only permission level.
+- Tools are the catalog operations (`.` → `_`); change tools carry `apply` / `approved`. The policy table above
+  still applies: the harness — not the model — decides when `apply` and `approved` may be set, so it must
+  intercept those two arguments and only pass them after the user's yes.
+- Results are anonymized by default; start with `-NoAnonymize` only when every model in the session is local.
+- Both transports return the same `OperationResult`; keep the adapter transport-agnostic.
 
 ## 6. Storage in the harness
 

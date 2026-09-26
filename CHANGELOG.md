@@ -18,6 +18,11 @@ that matches it.
   `Export-/Import-KitCabinetProfile` exist. Contract tests in `tests\api\`.
 - API operation `backup.remove` (dry run unless `-Apply`) and `Invoke-KitOperationIsolated`, which runs an
   operation hostless so no engine output reaches the caller's standard output.
+- **MCP server over stdio** (`api\Start-KitMcpServer.ps1`): the Kit API as MCP tools for the agent harness and
+  any other MCP client, without a network port (JSON-RPC 2.0, one message per line). Tools come from the API
+  catalog; change tools are dry runs unless `apply=true`, approvals need `approved=true`, interactive steps are
+  not offered. Results are anonymized unless `-NoAnonymize`; `-ReadOnly` offers only the read tools. Tests in
+  `tests\api\Mcp.Tests.ps1` drive the server as a child process.
 - `handoff/AGENT-HARNESS.md`: the boundary between the kit and a separate agent harness repository.
 - **Desktop dashboard** (`Start-Kit.cmd` without switches, `gui\`): a WPF app on Windows PowerShell 5.1 (nothing
   to install) in the brand design (Night / Cream, Pixel Green, Retro Red, Crown Gold, mascot). Three modes:

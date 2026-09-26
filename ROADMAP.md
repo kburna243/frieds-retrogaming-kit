@@ -28,7 +28,7 @@ when they ship.
 - [x] Kit API v1 (`API.md`): operation catalog, `OperationResult`, dry run by default, approvals, JSON over stdio
 - [x] Dashboard uses the API only
 - [ ] Operation history (append-only, read-only for clients)
-- [ ] MCP server over stdio on top of the API (for the separate agent harness and other agents)
+- [x] MCP server over stdio on top of the API (for the separate agent harness and other agents)
 - [ ] Migrate mode on top of the migration engine (export → analyse → compatibility → import → verify)
 - [ ] Setup mode: the wizard steps as WPF pages with step result cards, replacing the WinForms wizards page by page
 - [ ] Brand fonts (Playfair Display, Inter, OFL) shipped with the app instead of the Windows fallbacks
