@@ -59,21 +59,9 @@ function Write-Report([object[]] $Result) {
     }
 }
 
-# Folders that hold the kit's backups: the pinball backup folder and the roots the suites wrote into.
+# Folders that hold the kit's backups: each suite knows its own.
 function Get-BackupRoots {
-    $roots = New-Object Collections.Generic.List[string]
-    $roots.Add((Join-Path (Split-Path -Parent $pinballState) 'backups'))
-    if (Test-Path -LiteralPath $pinballState) {
-        foreach ($key in 'TargetRoot', 'SourceRoot') { $v = [string](Get-KitStateValue -Path $pinballState -Key $key); if ($v) { $roots.Add($v) } }
-    }
-    if (Test-Path -LiteralPath $lightgunState) {
-        $rb = [string](Get-KitStateValue -Path $lightgunState -Key 'RetroBatRoot'); if ($rb) { $roots.Add($rb) }
-    }
-    $g = Find-LightgunGunmote
-    if ($g) { $roots.Add($g.Dir) }
-    $steam = Get-LightgunSteamPath
-    if ($steam) { $roots.Add((Join-Path $steam 'config')) }
-    @($roots | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) } | Sort-Object -Unique)
+    @(@(Get-PinballBackupRoot -StatePath $pinballState) + @(Get-LightgunBackupRoot -StatePath $lightgunState) | Sort-Object -Unique)
 }
 
 switch ($PSCmdlet.ParameterSetName) {

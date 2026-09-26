@@ -22,7 +22,7 @@ jobs:
     name: Depersonalization scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Scan for personal or machine-specific data
         shell: pwsh
         run: ./tools/Test-Depersonalized.ps1
@@ -31,7 +31,7 @@ jobs:
     name: Static checks (PowerShell 5.1)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Parse, encoding and version checks
         shell: powershell
         run: |
@@ -44,7 +44,7 @@ jobs:
     needs: static
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Provide the synthetic test drives E and X
         shell: powershell
         run: |
@@ -62,13 +62,46 @@ jobs:
         run: |
           .\tests\Run-Tests.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Dashboard snapshots for review (sample status, nothing is read from the runner)
+        if: always()
+        shell: powershell
+        run: |
+          # The GUI module loads the core for itself; the rows below need the core in this session too.
+          Import-Module .\core\RetroCabinetKit.Core.psd1
+          Import-Module .\gui\RetroCabinetKit.Gui.psd1
+          $rows = @(
+            New-KitCheckResult -Area 'System' -Name 'Windows' -Level Ok -Detail 'Windows 11 (build 26100)'
+            New-KitCheckResult -Area 'Pinball' -Name 'Build' -Level Ok
+            New-KitCheckResult -Area 'Lightgun' -Name 'DolphinBar' -Level Warn -Detail 'Connected in Mode12: switch it to Mode 4 (step 2).'
+            New-KitCheckResult -Area 'Security' -Name 'Profile automation folder' -Level Ok
+          )
+          foreach ($culture in 'en-US', 'de-DE') {
+            .\gui\Start-KitGui.ps1 -Culture $culture -DoctorResult $rows -Screenshot "snapshots\dashboard-$culture.png"
+          }
+      - name: Print snapshots into the log (opt-in with [snapshot-log] in the commit message)
+        if: contains(github.event.head_commit.message, '[snapshot-log]')
+        shell: powershell
+        run: |
+          # For reviewers without access to artifact storage: base64 between markers, 4000 characters per line.
+          foreach ($f in Get-ChildItem snapshots\*.png) {
+            $b = [Convert]::ToBase64String([IO.File]::ReadAllBytes($f.FullName))
+            "SNAPSHOT-BEGIN $($f.Name)"
+            for ($i = 0; $i -lt $b.Length; $i += 4000) { $b.Substring($i, [Math]::Min(4000, $b.Length - $i)) }
+            "SNAPSHOT-END $($f.Name)"
+          }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dashboard-snapshots
+          path: snapshots/
+          retention-days: 14
 
   package:
     name: Package build and integrity
     needs: [depersonalization, tests]
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build release zip
         shell: powershell
         run: .\tools\New-ReleasePackage.ps1 -DestinationDir dist
@@ -78,7 +111,7 @@ jobs:
           $zip = Get-ChildItem dist\frieds-retrogaming-kit-v*.zip | Select-Object -First 1
           .\tools\Test-ReleasePackage.ps1 -ZipPath $zip.FullName
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frieds-retrogaming-kit-${{ github.sha }}
           path: dist/
@@ -91,8 +124,8 @@ jobs:
       run:
         working-directory: site
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm

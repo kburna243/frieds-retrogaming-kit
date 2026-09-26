@@ -94,6 +94,7 @@ function Write-EditedText($cmdlet, [string] $full, [byte[]] $bytes, $info, [Text
         $tmp = "$full.tmp"
         [IO.File]::WriteAllBytes($tmp, $newBytes)
         [IO.File]::Replace($tmp, $full, [NullString]::Value)
+        Add-KitStepChange -Kind File -Target $full -Detail "$count replacement(s)"
     }
     $count
 }

@@ -135,6 +135,7 @@ function New-KitBackup {
         if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
         throw
     }
+    Add-KitStepBackup -Path $zipPath
     Write-KitLog (Get-KitText 'Backup.Created' -f $zipPath, $manifest.Files.Count)
     [pscustomobject]@{ Path = $zipPath; Files = $manifest.Files.Count; Registry = $manifest.Registry.Count; Skipped = @($manifest.Skipped | ForEach-Object { $_.Path }) }
 }

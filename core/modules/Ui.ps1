@@ -571,6 +571,17 @@ function Set-KitWizardStatus {
     $Wizard.List.Invalidate()
 }
 
+# One summary line per step result (changes, backups, duration) plus the backup paths, from the structured result.
+function Write-KitWizardStepSummary {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Wizard, [AllowEmptyCollection()] [object[]] $Result = @())
+    foreach ($r in $Result) {
+        if (-not $r -or -not $r.PSObject.Properties['Duration']) { continue } # placeholder rows (an exception in the wizard)
+        Write-KitWizardLog -Wizard $Wizard -Text (Get-KitText 'Ui.StepSummary' -f $r.Name, @($r.Changes).Count, @($r.Backups).Count, $r.Duration.TotalSeconds)
+        foreach ($b in @($r.Backups)) { Write-KitWizardLog -Wizard $Wizard -Text (Get-KitText 'Ui.StepBackup' -f $b) }
+    }
+}
+
 function Write-KitWizardLog {
     [CmdletBinding()]
     param(

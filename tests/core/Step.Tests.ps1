@@ -80,3 +80,72 @@ Describe 'Step' {
         Get-KitStepStatus -Path $state -Name 'record' | Should Be 'Done'
     }
 }
+
+# Structured result: what a front end shows without parsing any output.
+Describe 'Step result details' {
+    Set-KitCulture -Culture 'en-US'
+
+    It 'collects changes, backups, warnings and errors reported while the step runs, plus the duration' {
+        $step = New-KitStep -Name 'detailed' -Invoke {
+            Add-KitStepChange -Kind File -Target 'a.ini' -Detail '2 replacement(s)'
+            Add-KitStepChange -Kind Registry -Target 'HKCU:\Software\x\y'
+            Add-KitStepBackup -Path 'a.ini.bak_test_20260101-000000'
+            Add-KitStepBackup -Path 'a.ini.bak_test_20260101-000000' # reported twice, listed once
+            Write-KitLog 'careful' -Level Warn
+        } -Verify { $script:detailedDone = -not $script:detailedDone; -not $script:detailedDone }
+        $script:detailedDone = $false
+        $r = Invoke-KitStep -Step $step
+        $r.Status | Should Be 'Done'
+        $r.Changed | Should Be $true
+        ($r.Changes | ForEach-Object { '{0}:{1}' -f $_.Kind, $_.Target }) -join ' ' | Should BeExactly 'File:a.ini Registry:HKCU:\Software\x\y'
+        @($r.Backups).Count | Should Be 1
+        ($r.Warnings -join '|') | Should BeExactly 'careful'
+        @($r.Errors).Count | Should Be 0
+        $r.Duration | Should BeOfType [TimeSpan]
+        @($r.Log | Where-Object { $_.Message -match 'done and verified' }).Count | Should Be 1
+    }
+
+    It 'a skipped, a blocked and a dry-run step change nothing and report nothing' {
+        foreach ($s in @(
+            (New-KitStep -Name 'skip' -Invoke { Add-KitStepChange -Kind File -Target 'x' } -Verify { $true })
+            (New-KitStep -Name 'block' -Test { $false } -Invoke { Add-KitStepChange -Kind File -Target 'x' } -Verify { $false })
+        )) {
+            $r = Invoke-KitStep -Step $s
+            $r.Changed | Should Be $false
+            @($r.Changes).Count | Should Be 0
+        }
+        $dry = New-KitStep -Name 'dry' -Invoke { Add-KitStepChange -Kind File -Target 'x' } -Verify { $false }
+        (Invoke-KitStep -Step $dry -WhatIf).Changed | Should Be $false
+    }
+
+    It 'a failing step lists the error; reporting outside a step does nothing' {
+        $r = Invoke-KitStep -Step (New-KitStep -Name 'boom' -Invoke { throw 'kaputt' } -Verify { $false })
+        $r.Status | Should Be 'Failed'
+        ($r.Errors -join ' ') | Should Match 'kaputt'
+        { Add-KitStepChange -Kind File -Target 'outside'; Add-KitStepBackup -Path 'outside' } | Should Not Throw
+    }
+
+    It 'the core writers report on their own (text rewrite)' {
+        $file = Join-Path $TestDrive 'self.ini'
+        [IO.File]::WriteAllText($file, 'path=OLD')
+        $step = New-KitStep -Name 'writers' -Invoke {
+            $null = Edit-KitTextFile -Path $file -Replace @{ 'OLD' = 'NEW' }
+        } -Verify { [IO.File]::ReadAllText($file) -eq 'path=NEW' }
+        $r = Invoke-KitStep -Step $step
+        $r.Status | Should Be 'Done'
+        $r.Changes[0].Kind | Should Be 'File'
+        $r.Changes[0].Target | Should BeExactly (Resolve-Path -LiteralPath $file).Path
+    }
+
+    It 'a step inside a step keeps its own details; the outer one continues afterwards' {
+        $inner = New-KitStep -Name 'inner' -Invoke { Add-KitStepChange -Kind Setting -Target 'inner' } -Verify { $script:innerDone = -not $script:innerDone; -not $script:innerDone }
+        $outer = New-KitStep -Name 'outer' -Invoke {
+            $script:innerResult = Invoke-KitStep -Step $inner
+            Add-KitStepChange -Kind Setting -Target 'outer'
+        } -Verify { $script:outerDone = -not $script:outerDone; -not $script:outerDone }
+        $script:innerDone = $false; $script:outerDone = $false
+        $r = Invoke-KitStep -Step $outer
+        ($script:innerResult.Changes | ForEach-Object { $_.Target }) -join ',' | Should BeExactly 'inner'
+        ($r.Changes | ForEach-Object { $_.Target }) -join ',' | Should BeExactly 'outer'
+    }
+}

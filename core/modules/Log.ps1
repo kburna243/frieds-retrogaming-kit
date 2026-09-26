@@ -82,6 +82,7 @@ function Write-KitLog {
         [Parameter(Mandatory, Position = 0)] [AllowEmptyString()] [string] $Message,
         [ValidateSet('Info', 'Warn', 'Error')] [string] $Level = 'Info'
     )
+    Add-StepLogLine $Level $Message
     $line  = '{0:yyyy-MM-dd HH:mm:ss} [{1}] {2}' -f (Get-Date), $Level.ToUpperInvariant(), $Message
     $color = @{ Info = 'Gray'; Warn = 'Yellow'; Error = 'Red' }[$Level]
     Write-Host $line -ForegroundColor $color
