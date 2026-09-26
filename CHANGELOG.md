@@ -7,6 +7,10 @@ that matches it.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-26
+
+For clients of the Kit API such as the agent harness: API 1.1 with the kit version in every result.
+
 ### Added
 - API: every result carries `KitVersion` (the kit's `VERSION`), so a client over JSON or MCP can name the kit it
   talks to (#22). `Get-KitVersion`; the MCP server reports the same value as `serverInfo.version`.
@@ -147,7 +151,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kburna243/frieds-retrogaming-kit/releases/tag/v0.1.0

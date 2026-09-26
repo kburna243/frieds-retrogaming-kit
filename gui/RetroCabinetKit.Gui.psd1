@@ -1,6 +1,6 @@
 ﻿@{
     RootModule        = 'RetroCabinetKit.Gui.psm1'
-    ModuleVersion     = '0.3.0'
+    ModuleVersion     = '0.3.1'
     GUID              = '5d0b8f3e-2c7a-4f61-9b1e-8a4c2e7d9f10'
     Author            = 'retro-cabinet-kit contributors'
     Description       = 'WPF front end of retro-cabinet-kit: dashboard (new, migrate, recover), system status from the doctor, backup recovery. A thin layer over the core, pinball and lightgun modules.'

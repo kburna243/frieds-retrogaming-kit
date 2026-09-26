@@ -25,7 +25,7 @@
 ---
 
 > [!NOTE]
-> **Status: v0.3.0** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. New in v0.3.0: the desktop dashboard, cabinet migration A → B and a local API for scripts and agents. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
+> **Status: v0.3.1** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. New in v0.3.0: the desktop dashboard, cabinet migration A → B and a local API for scripts and agents. v0.3.1 adds the kit version to every API result (API 1.1) for agents and scripts. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
 
 ---
 
