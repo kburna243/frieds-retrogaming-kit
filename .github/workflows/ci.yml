@@ -78,7 +78,7 @@ jobs:
           $zip = Get-ChildItem dist\frieds-retrogaming-kit-v*.zip | Select-Object -First 1
           .\tools\Test-ReleasePackage.ps1 -ZipPath $zip.FullName
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frieds-retrogaming-kit-${{ github.sha }}
           path: dist/
