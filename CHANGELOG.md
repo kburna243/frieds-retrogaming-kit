@@ -8,6 +8,19 @@ that matches it.
 ## [Unreleased]
 
 ### Added
+- Lightgun step 15 — **USB lightgun adapters** as a route beside the Wiimote/DolphinBar path.
+  `lightgun\adapters\` is a drop-in folder: every `<Name>.ps1` provides `Test-<Name>Hardware` (read-only,
+  standalone), `Get-<Name>AdapterInfo` (VID/PID signatures, ini values, official links) and
+  `Install-/Configure-/Set-<Name>InterferenceShield` functions. Shipped: **Gun4IR** (`VID_2341&PID_8036`,
+  bootloader `1B4F/9206`), **OpenFIRE** (`2E8A/000A`, `303A/1001`), **AimTrak** (`D209/1601–1608`) and
+  **Retro Shooter** (`16C0/05E1`, `16C0/187C`, `0079/187C` — deliberately never a bare `VID_0079`, that is
+  the DolphinBar's too). `lightgun\modules\Adapters.ps1` discovers the hardware from the PnP list, applies
+  `mame.ini` (its own space-separated writer with backup), `retrobat.ini [Guns]`, the detected gun into
+  `DemulShooter.ini [Player1] Device` and the gun VIDs into Steam's `controller_blacklist` — no process is
+  killed, nothing downloads from hosts outside the core allow-list; vendor tools arrive as a local ZIP
+  through `-PackagePath` with `-Approved`. `_Template.ps1` and `lightgun\adapters\README.md` document the
+  community contract. New wizard page 15; `Set-/Test-LightgunSteamBlacklist` gained optional
+  `-ExtraEntries` (defaults unchanged). Tests: `tests\lightgun\Adapters.Tests.ps1`.
 - Pinball: `pinball\modules\PinballY.ps1` describes a **PinballY** installation, the second front end for the same
   tables. Read only: version from `PinballY.exe`, every `SystemN.*` with its enabled state, the settings file as it
   is (UTF-8 with BOM, comment lines counted separately), the table databases with their game counts, other programs

@@ -141,6 +141,13 @@ Steps 10–13 only touch emulators you actually have; missing ones are reported,
 ### Step 14: DuckStation & PCSX2 (`14-DuckStationPcsx2.ps1`)
 - `lightgun-14-duckstation-pcsx2`: **Audits and reports, no automatic binding.** Reads `settings.ini`, `gamesettings\<SERIAL>.ini` and `PCSX2.ini`, explains the *Automatic Mapping* to `XInput-0` and flags Konami games that need the Justifier instead of the GunCon (e.g. Die Hard Trilogy, Crypt Killer). Flycast is not covered.
 
+### Step 15: USB lightgun adapters (`15-Adapter.ps1`)
+
+A second route beside the Wiimote: optical USB guns, recognised by their VID/PID signature.
+
+- `lightgun-15-adapter-detect`: **Read-only.** Scans `lightgun\adapters\` and matches every attached USB gun against the adapters' signatures (Gun4IR, OpenFIRE, AimTrak, Retro Shooter); the result is recorded as `LightgunAdapter` in `install-state.json`. The Wiimote route does not need this page.
+- `lightgun-15-adapter-configure`: Writes the detected adapter's values into `mame.ini` (`lightgun 1`, `lightgun_device rawinput`, `output windows` …), sets `retrobat.ini [Guns]`, records the gun in `DemulShooter.ini [Player1] Device` and extends Steam's controller blacklist with the gun VIDs. The kit never kills a process and never writes HKLM. With `-Install -PackagePath <ZIP> -Approved` the adapter places a brought-along portable package into `tools\<Name>`; without a package the step only names the official source. Contributing adapters: [`lightgun\adapters\README.md`](../lightgun/adapters/README.md).
+
 ---
 
 ## 🎮 Emulator Status
@@ -185,4 +192,7 @@ powershell -ExecutionPolicy Bypass -File lightgun\steps\13-Model2Supermodel.ps1
 
 # Console emulators (guided check)
 powershell -ExecutionPolicy Bypass -File lightgun\steps\14-DuckStationPcsx2.ps1
+
+# USB lightguns beside the Wiimote route (Gun4IR, OpenFIRE, AimTrak, Retro Shooter)
+powershell -ExecutionPolicy Bypass -File lightgun\steps\15-Adapter.ps1
 ```

@@ -50,7 +50,7 @@ Gunmote (`gunmotelabs`) is an actively developed, modern lightgun mapper that tr
 To provide an authentic cabinet experience, profile switching must happen automatically when you launch a game from RetroBat without showing interactive Windows UAC prompts. Because some target games or emulators run with elevated rights or capture exclusive fullscreen focus, the background profile switcher (`profile.ps1`) requires elevated privileges to manage virtual controller assignments. Full details and instructions to inspect or remove these tasks are documented in [SECURITY.md](../SECURITY.md).
 
 ### Can I use Sinden, AimTrak, or GUN4IR lightguns with this kit?
-The dedicated lightgun automation in this release is tailored specifically for **Wiimote + Mayflash DolphinBar** hardware. However, our sister community [Light Gun Lunatics](https://lightgun.retrolunatics.com/) maintains excellent guides for Sinden, AimTrak, and GUN4IR setups.
+The guided core automation (layouts, profile automation) stays tailored for **Wiimote + Mayflash DolphinBar**. Since step 15 the kit also detects **Gun4IR, OpenFIRE, AimTrak and Retro Shooter** by their USB signature and sets up `mame.ini`, `retrobat.ini [Guns]` and the Steam blacklist (see [`lightgun\adapters\`](../lightgun/adapters/README.md) – new systems can ship as community adapters). Sinden is not included yet. Comprehensive guides for all systems live in our sister community [Light Gun Lunatics](https://lightgun.retrolunatics.com/).
 
 ---
 

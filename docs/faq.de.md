@@ -50,7 +50,7 @@ Gunmote (`gunmotelabs`) ist ein moderner, aktiv gepflegter Lightgun-Mapper, der 
 Für ein authentisches Gehäuse-Erlebnis muss der Profilwechsel beim Spielstart aus RetroBat automatisch und ohne störende Windows-UAC-Abfragen ablaufen. Da manche Emulatoren exklusive Vollbildrechte beanspruchen, benötigt der Hintergrund-Dienst (`profile.ps1`) erhöhte Ausführungsrechte. Das genaue Sicherheitsmodell und die Deaktivierung sind in [SECURITY.md](../SECURITY.md) offengelegt.
 
 ### Werden Sinden, AimTrak oder GUN4IR unterstützt?
-Die automatisierte Lightgun-Konfiguration dieses Kits ist aktuell auf **Wiimote + Mayflash DolphinBar** spezialisiert. Ausführliche Anleitungen für Sinden, AimTrak und GUN4IR findest du in unserer Partner-Community [Light Gun Lunatics](https://lightgun.retrolunatics.com/).
+Die geführte Kern-Automatik (Layouts, Profil-Automation) bleibt auf **Wiimote + Mayflash DolphinBar** zugeschnitten. Seit Schritt 15 erkennt das Kit zusätzlich **Gun4IR, OpenFIRE, AimTrak und Retro Shooter** an ihrer USB-Signatur und richtet `mame.ini`, `retrobat.ini [Guns]` und die Steam-Blacklist ein (siehe [`lightgun\adapters\`](../lightgun/adapters/README.md) – eigene Systeme als Community-Adapter nachlegbar). Sinden ist noch nicht dabei. Ausführliche Anleitungen für alle Systeme findest du in unserer Partner-Community [Light Gun Lunatics](https://lightgun.retrolunatics.com/).
 
 ---
 
