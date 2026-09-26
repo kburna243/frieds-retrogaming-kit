@@ -8,6 +8,7 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
   [![Documentation](https://img.shields.io/badge/Docs-English%20%7C%20Deutsch-3DDC84?style=for-the-badge&logo=gitbook&logoColor=white)](docs/)
   [![Live Website](https://img.shields.io/badge/Website-kburna243.github.io%2Ffrieds--retrogaming--kit-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-kit/)
+  [![CI](https://img.shields.io/github/actions/workflow/status/kburna243/frieds-retrogaming-kit/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/kburna243/frieds-retrogaming-kit/actions/workflows/ci.yml)
   [![Depersonalization](https://img.shields.io/badge/Privacy-0%20Data%20Leaks-success?style=for-the-badge&logo=shield)](tools/Test-Depersonalized.ps1)
 
   <p>
@@ -23,7 +24,7 @@
 ---
 
 > [!NOTE]
-> **Status: Work in Progress.** Fried's Retrogaming Kit is under active development. The shared core (`core\`), virtual pinball relocation suite (`pinball\`), and Wiimote lightgun engine (`lightgun\`) are functional; additional emulator integrations (TeknoParrot, Demul + DemulShooter, rumble output) are being finalized.
+> **Status: v0.1.0 — early release.** The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
 
 ---
 
@@ -76,6 +77,26 @@ Created by **Fried ([@kburna243](https://github.com/kburna243))** — built by a
 
 ---
 
+## 🚦 Feature Status
+
+What "supported" means: **Automated** = the kit tests, changes and verifies it; **Guided check** = the kit audits and reports, you apply the change; **User-supplied** = you bring the (closed-source) program, the kit configures around it.
+
+| Area | Status | What the kit does |
+| :--- | :--- | :--- |
+| **Core** (backup, state, logging, downloads, i18n) | ✅ Stable | Shared engine for all steps |
+| **Pinball** relocation, COM registration, screens | ✅ Automated | Steps 1–9, wizard `Start-Pinball.cmd` |
+| **Lightgun base** (DolphinBar, ViGEmBus, Gunmote, RetroBat) | ✅ Automated | Steps 1–9, wizard `Start-Lightgun.cmd` |
+| **MAME** | ✅ Automated | RetroBat settings (`use_guns=0`, XInput pads), step 7 |
+| **TeknoParrot** | ✅ Automated | Profile paths, XInput gun bindings, game lists, steps 10–11 |
+| **Demul + DemulShooter** (Naomi, Atomiswave) | ⚠️ Automated · Demul user-supplied | Checks, DemulShooter config, RetroBat settings, step 12 |
+| **Model 2** | ⚠️ Automated · emulator user-supplied | Checks and RetroBat settings, step 13 |
+| **Supermodel** (Model 3) | ✅ Automated | Crosshairs, XInput gun bindings, step 13 |
+| **DuckStation / PCSX2** | 🔎 Guided check | Audits settings and explains the mapping, step 14 |
+| **Flycast** | ⛔ Not covered | — |
+| **Rumble / force feedback** | 🚧 Planned | See [ROADMAP](ROADMAP.md) |
+
+---
+
 ## 🎛️ Hardware & Requirements Matrix
 
 | Component | Minimum Requirement | Recommended Cabinet Spec |
@@ -118,17 +139,32 @@ powershell -ExecutionPolicy Bypass -File pinball\steps\09-Finish.ps1
 ```
 
 ### 3. Setting Up Wiimote Lightguns (Example)
+The wizard (`Start-Lightgun.cmd`) runs these steps in order. From the command line, every step also accepts `-WhatIf` for a dry run.
+
 ```powershell
-# Configure RetroBat for Wiimote Lightguns
+# PHASE 1 — base lightgun setup (RetroBat + Wiimote)
 powershell -ExecutionPolicy Bypass -File lightgun\steps\01-Detect.ps1 -RetroBatRoot "C:\RetroBat"
 powershell -ExecutionPolicy Bypass -File lightgun\steps\02-Hardware.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\03-ViGEmBus.ps1 -AllowInstall
+powershell -ExecutionPolicy Bypass -File lightgun\steps\04-Gunmote.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\05-Interference.ps1 -DisableVMultiGuard
 powershell -ExecutionPolicy Bypass -File lightgun\steps\06-GunmoteLayouts.ps1 -Mode Keep
 powershell -ExecutionPolicy Bypass -File lightgun\steps\07-RetroBatSettings.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\08-ProfileAutomation.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\09-Verify.ps1 -XInputTimeoutSeconds 15
+
+# PHASE 2 — arcade emulators (optional, only what you use)
+powershell -ExecutionPolicy Bypass -File lightgun\steps\10-TeknoParrot.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\11-GameLists.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\12-Demul.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\13-Model2Supermodel.ps1
+
+# PHASE 3 — console emulators (guided check)
+powershell -ExecutionPolicy Bypass -File lightgun\steps\14-DuckStationPcsx2.ps1
 ```
+
+> [!TIP]
+> Step 9 is the end of the **base** setup, not of the kit: steps 10–14 add the arcade and console emulators. Emulators you do not use are simply reported as missing.
 
 ---
 
@@ -139,7 +175,8 @@ We adhere to a non-negotiable software safety charter:
 2. **Official Verified Sources Only**: Drivers and tools are downloaded exclusively from official vendor endpoints (Microsoft, Nefarius). Every downloaded binary is verified against Authenticode certificates and SHA-256 hashes before execution.
 3. **Never Destructive**: The kit **never** deletes your tables, ROMs, or personal files. Backups are generated automatically before configuration changes.
 4. **Dry-Run by Default**: Review every file copy, registry entry, and screen coordinate modification using `-WhatIf` before committing changes.
-5. **Zero Data Leaking**: Strict CI scans (`tools\Test-Depersonalized.ps1`) guarantee no personal hostnames, private IP addresses, or system paths are committed to the repository.
+5. **Local Only**: No telemetry, no analytics, no accounts, no cloud, no tracking. The only network code is the verified download module (`core\modules\Download.ps1`); CI fails if network calls appear anywhere else.
+6. **Zero Data Leaking**: Strict CI scans (`tools\Test-Depersonalized.ps1`) guarantee no personal hostnames, private IP addresses, or system paths are committed to the repository.
 
 ---
 
@@ -153,6 +190,8 @@ We adhere to a non-negotiable software safety charter:
 | **Frequently Asked Questions** | Answers regarding architecture, hardware compatibility, and safety. | [English](docs/faq.md) • [Deutsch](docs/faq.de.md) |
 | **Security Policy** | Vulnerability reporting, task privilege model, and hardening disclosures. | [English](SECURITY.md) |
 | **Contribution Guidelines** | Coding standards, Pester tests, and PR submission rules. | [English](CONTRIBUTING.md) |
+| **Architecture** | Layers, the step contract, Definition of Done, quality gates. | [English](ARCHITECTURE.md) |
+| **Changelog & Roadmap** | What changed per version and what comes next. | [Changelog](CHANGELOG.md) • [Roadmap](ROADMAP.md) |
 
 ---
 

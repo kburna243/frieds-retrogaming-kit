@@ -8,6 +8,7 @@
   [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow?style=for-the-badge)](LICENSE)
   [![Dokumentation](https://img.shields.io/badge/Doku-Deutsch%20%7C%20English-3DDC84?style=for-the-badge&logo=gitbook&logoColor=white)](docs/)
   [![Webseite](https://img.shields.io/badge/Webseite-kburna243.github.io%2Ffrieds--retrogaming--kit-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-kit/)
+  [![CI](https://img.shields.io/github/actions/workflow/status/kburna243/frieds-retrogaming-kit/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/kburna243/frieds-retrogaming-kit/actions/workflows/ci.yml)
   [![Datenschutz](https://img.shields.io/badge/Datenschutz-0%20Datenlecks-success?style=for-the-badge&logo=shield)](tools/Test-Depersonalized.ps1)
 
   <p>
@@ -23,7 +24,7 @@
 ---
 
 > [!NOTE]
-> **Status: In Entwicklung (Work in Progress).** Fried's Retrogaming Kit befindet sich in aktiver Entwicklung. Der gemeinsame Kern (`core\`), die Virtual-Pinball-Relokationssuite (`pinball\`) und die Wiimote-Lightgun-Engine (`lightgun\`) sind einsatzbereit; zusätzliche Emulator-Anbindungen (TeknoParrot, Demul + DemulShooter, Force-Feedback/Rumble) werden aktuell fertiggestellt.
+> **Status: v0.1.0 — frühe Version.** Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–14 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel und geführter DuckStation-/PCSX2-Prüfung) sind einsatzbereit. Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
 
 ---
 
@@ -76,6 +77,26 @@ Entwickelt von **Fried ([@kburna243](https://github.com/kburna243))** — von Ar
 
 ---
 
+## 🚦 Funktionsstatus
+
+Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und verifiziert; **Geführte Prüfung** = das Kit prüft und berichtet, du setzt die Änderung selbst; **Selbst mitgebracht** = du bringst das (Closed-Source-)Programm mit, das Kit konfiguriert drumherum.
+
+| Bereich | Status | Was das Kit tut |
+| :--- | :--- | :--- |
+| **Kern** (Backup, Zustand, Log, Downloads, i18n) | ✅ Stabil | Gemeinsame Engine für alle Schritte |
+| **Pinball** Umzug, COM-Registrierung, Bildschirme | ✅ Automatisiert | Schritte 1–9, Assistent `Start-Pinball.cmd` |
+| **Lightgun-Basis** (DolphinBar, ViGEmBus, Gunmote, RetroBat) | ✅ Automatisiert | Schritte 1–9, Assistent `Start-Lightgun.cmd` |
+| **MAME** | ✅ Automatisiert | RetroBat-Einstellungen (`use_guns=0`, XInput-Pads), Schritt 7 |
+| **TeknoParrot** | ✅ Automatisiert | Profilpfade, XInput-Gun-Belegung, Spielelisten, Schritte 10–11 |
+| **Demul + DemulShooter** (Naomi, Atomiswave) | ⚠️ Automatisiert · Demul selbst mitgebracht | Prüfungen, DemulShooter-Konfiguration, RetroBat-Einstellungen, Schritt 12 |
+| **Model 2** | ⚠️ Automatisiert · Emulator selbst mitgebracht | Prüfungen und RetroBat-Einstellungen, Schritt 13 |
+| **Supermodel** (Model 3) | ✅ Automatisiert | Fadenkreuz, XInput-Gun-Belegung, Schritt 13 |
+| **DuckStation / PCSX2** | 🔎 Geführte Prüfung | Prüft Einstellungen und erklärt die Zuordnung, Schritt 14 |
+| **Flycast** | ⛔ Nicht abgedeckt | — |
+| **Rumble / Force-Feedback** | 🚧 Geplant | Siehe [ROADMAP](ROADMAP.md) |
+
+---
+
 ## 🎛️ Hardware- & Systemanforderungen
 
 | Komponente | Mindestanforderung | Empfohlene Cabinet-Ausstattung |
@@ -118,17 +139,32 @@ powershell -ExecutionPolicy Bypass -File pinball\steps\09-Finish.ps1
 ```
 
 ### 3. Wiimote Lightgun konfigurieren (Beispiel)
+Der Assistent (`Start-Lightgun.cmd`) führt diese Schritte der Reihe nach aus. Auf der Kommandozeile akzeptiert jeder Schritt zusätzlich `-WhatIf` für einen Trockenlauf.
+
 ```powershell
-# RetroBat für Wiimote-Lightguns vorbereiten
+# PHASE 1 — Lightgun-Basis (RetroBat + Wiimote)
 powershell -ExecutionPolicy Bypass -File lightgun\steps\01-Detect.ps1 -RetroBatRoot "C:\RetroBat"
 powershell -ExecutionPolicy Bypass -File lightgun\steps\02-Hardware.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\03-ViGEmBus.ps1 -AllowInstall
+powershell -ExecutionPolicy Bypass -File lightgun\steps\04-Gunmote.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\05-Interference.ps1 -DisableVMultiGuard
 powershell -ExecutionPolicy Bypass -File lightgun\steps\06-GunmoteLayouts.ps1 -Mode Keep
 powershell -ExecutionPolicy Bypass -File lightgun\steps\07-RetroBatSettings.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\08-ProfileAutomation.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\09-Verify.ps1 -XInputTimeoutSeconds 15
+
+# PHASE 2 — Arcade-Emulatoren (optional, nur was du nutzt)
+powershell -ExecutionPolicy Bypass -File lightgun\steps\10-TeknoParrot.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\11-GameLists.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\12-Demul.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\13-Model2Supermodel.ps1
+
+# PHASE 3 — Konsolen-Emulatoren (geführte Prüfung)
+powershell -ExecutionPolicy Bypass -File lightgun\steps\14-DuckStationPcsx2.ps1
 ```
+
+> [!TIP]
+> Schritt 9 ist das Ende der **Basis**-Einrichtung, nicht des Kits: Die Schritte 10–14 ergänzen die Arcade- und Konsolen-Emulatoren. Emulatoren, die du nicht nutzt, werden einfach als fehlend gemeldet.
 
 ---
 
@@ -139,7 +175,8 @@ Wir arbeiten nach strengen, unverhandelbaren Grundsätzen:
 2. **Nur offizielle, geprüfte Quellen**: Treiber und Hilfsmittel werden ausschließlich von offiziellen Herstellerseiten (Microsoft, Nefarius) bezogen. Jede Datei wird vor der Ausführung auf digitale Authenticode-Signaturen und SHA-256-Prüfsummen getestet.
 3. **Zerstörungsfrei**: Das Kit löscht **niemals** deine Tische, ROMs oder Spielstände. Vor Konfigurationsänderungen werden automatische Backups erstellt.
 4. **Standardmäßig Trockenlauf fähig**: Prüfe jeden Kopiervorgang, Registry-Eintrag und Monitor-Offset mit `-WhatIf`, bevor etwas geschrieben wird.
-5. **Kein Datenabfluss**: Automatisierte CI-Scans (`tools\Test-Depersonalized.ps1`) stellen sicher, dass niemals private Hostnamen, IP-Adressen oder persönliche Benutzerpfade ins Repository gelangen.
+5. **Nur lokal**: Keine Telemetrie, keine Analyse, kein Konto, keine Cloud, kein Tracking. Netzwerkzugriff gibt es nur im geprüften Download-Modul (`core\modules\Download.ps1`); die CI schlägt fehl, wenn anderswo Netzwerkaufrufe auftauchen.
+6. **Kein Datenabfluss**: Automatisierte CI-Scans (`tools\Test-Depersonalized.ps1`) stellen sicher, dass niemals private Hostnamen, IP-Adressen oder persönliche Benutzerpfade ins Repository gelangen.
 
 ---
 
@@ -153,6 +190,8 @@ Wir arbeiten nach strengen, unverhandelbaren Grundsätzen:
 | **Häufig gestellte Fragen (FAQ)** | Antworten zu Architektur, Hardware-Kompatibilität und Sicherheit. | [Deutsch](docs/faq.de.md) • [English](docs/faq.md) |
 | **Sicherheits-Richtlinie** | Sicherheitsmodell, Privilegien der Hintergrundaufgaben und Deaktivierung. | [English](SECURITY.md) |
 | **Richtlinien für Beiträge** | Codierungsstandards, Pester-Tests und Pull-Request-Ablauf. | [English](CONTRIBUTING.md) |
+| **Architektur** | Schichten, Schritt-Vertrag, Definition of Done, Qualitätsprüfungen. | [English](ARCHITECTURE.md) |
+| **Changelog & Roadmap** | Änderungen je Version und nächste Schritte. | [Changelog](CHANGELOG.md) • [Roadmap](ROADMAP.md) |
 
 ---
 
