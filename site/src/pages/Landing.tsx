@@ -1,9 +1,10 @@
-import { ArrowRight, BookOpen, CircleDot, Crosshair, Heart, ListChecks, Route as RouteIcon, ShieldCheck, Package } from "lucide-react";
+import { ArrowRight, BookOpen, Bot, CircleDot, Crosshair, Download, Heart, LayoutDashboard, ListChecks, Route as RouteIcon, ShieldCheck, Stethoscope, Truck, Package } from "lucide-react";
 import Hero from "../sections/Hero";
-import { SectionHeading } from "../components/ui";
+import { ChunkButton, SectionHeading } from "../components/ui";
 import { Reveal } from "../lib/retro";
 import { hrefOf, type Route } from "../lib/router";
 import { useI18n } from "../i18n";
+import { CHANGELOG_URL, KIT_VERSION, RELEASES_URL } from "../config";
 
 const CARDS: { id: "pinball" | "lightgun" | "skills"; icon: typeof CircleDot; accent: string }[] = [
   { id: "pinball", icon: CircleDot, accent: "border-gold text-gold" },
@@ -12,6 +13,8 @@ const CARDS: { id: "pinball" | "lightgun" | "skills"; icon: typeof CircleDot; ac
 ];
 
 const HOW_ICONS = [RouteIcon, ListChecks, Package, ShieldCheck];
+const RELEASE_ICONS = [LayoutDashboard, Truck, Stethoscope, Bot];
+const withVersion = (s: string) => s.split("{v}").join(KIT_VERSION);
 
 export default function Landing() {
   const { t } = useI18n();
@@ -41,7 +44,7 @@ export default function Landing() {
                     <h3 className="mt-5 font-display text-2xl font-black leading-tight">{card.title}</h3>
                     <p className="mt-3 flex-1 leading-relaxed text-night/80">{card.text}</p>
                     <span className="mt-6 flex items-center justify-between border-t-2 border-night/15 pt-4 font-pixel text-[9px]">
-                      <span className="text-retro">WIP</span>
+                      <span className="text-pixel">{t.cards.badge}</span>
                       <span className="flex items-center gap-2">
                         {t.cards.open} <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" aria-hidden="true" />
                       </span>
@@ -50,6 +53,39 @@ export default function Landing() {
                 </Reveal>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* what's new in this release */}
+      <section id="release" className="scroll-mt-28 border-y-4 border-night bg-night-2 py-20">
+        <div className="mx-auto max-w-7xl px-5">
+          <Reveal>
+            <SectionHeading kicker={withVersion(t.release.kicker)} title={t.release.title} intro={withVersion(t.release.intro)} />
+          </Reveal>
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {t.release.features.map((f, i) => {
+              const Icon = RELEASE_ICONS[i];
+              return (
+                <Reveal key={f.title} delay={i * 80}>
+                  <div className="h-full border-[3px] border-night-3 bg-night p-5">
+                    <span className="flex h-11 w-11 items-center justify-center border-[3px] border-gold bg-night-2 text-gold">
+                      <Icon size={20} aria-hidden="true" />
+                    </span>
+                    <h3 className="mt-4 font-pixel text-[11px] leading-relaxed text-cream">{f.title}</h3>
+                    <p className="mt-3 leading-relaxed text-cream/80">{f.text}</p>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
+          <div className="mt-10 flex flex-wrap items-center gap-5">
+            <ChunkButton href={RELEASES_URL} variant="gold">
+              <Download size={15} aria-hidden="true" /> {withVersion(t.release.download)}
+            </ChunkButton>
+            <ChunkButton href={CHANGELOG_URL} variant="ghost-light">
+              {t.release.changelog} <ArrowRight size={14} aria-hidden="true" />
+            </ChunkButton>
           </div>
         </div>
       </section>

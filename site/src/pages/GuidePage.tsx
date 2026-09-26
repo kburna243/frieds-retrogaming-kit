@@ -53,7 +53,7 @@ export function GuideShell({
             <div className="mt-6 inline-flex max-w-full items-start gap-3 border-[3px] border-retro bg-night-2 px-4 py-3">
               <Construction size={18} className="mt-0.5 shrink-0 text-retro" aria-hidden="true" />
               <div>
-                <div className="font-pixel text-[9px] leading-relaxed text-retro">{t.guide.wipBadge}</div>
+                <div className="font-pixel text-[9px] leading-relaxed text-pixel">{t.guide.wipBadge}</div>
                 <p className="mt-1 text-cream/85">{t.guide.wipNote}</p>
               </div>
             </div>

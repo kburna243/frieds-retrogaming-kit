@@ -8,6 +8,7 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
   [![Documentation](https://img.shields.io/badge/Docs-English%20%7C%20Deutsch-3DDC84?style=for-the-badge&logo=gitbook&logoColor=white)](docs/)
   [![Live Website](https://img.shields.io/badge/Website-kburna243.github.io%2Ffrieds--retrogaming--kit-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-kit/)
+  [![Release](https://img.shields.io/github/v/release/kburna243/frieds-retrogaming-kit?style=for-the-badge&label=Release&color=FFC857)](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)
   [![CI](https://img.shields.io/github/actions/workflow/status/kburna243/frieds-retrogaming-kit/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/kburna243/frieds-retrogaming-kit/actions/workflows/ci.yml)
   [![Depersonalization](https://img.shields.io/badge/Privacy-0%20Data%20Leaks-success?style=for-the-badge&logo=shield)](tools/Test-Depersonalized.ps1)
 
@@ -24,7 +25,19 @@
 ---
 
 > [!NOTE]
-> **Status: v0.2.0.** The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
+> **Status: v0.3.0** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. New in v0.3.0: the desktop dashboard, cabinet migration A → B and a local API for scripts and agents. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
+
+---
+
+## ✨ New in v0.3.0
+
+| | What you get |
+| :--- | :--- |
+| 🖥️ **Desktop dashboard** | `Start-Kit.cmd` opens one window with three modes — **new cabinet**, **migrate**, **recover** — and the live system status. Windows PowerShell 5.1 and WPF: nothing to install. English and German. |
+| 🚚 **Cabinet migration A → B** | Export the settings of your old cabinet into one zip per suite, check it on the new one with a dry run, then import — with a backup before every write. Paths travel as placeholders; ROMs, BIOS files and tables never go into the profile. |
+| 🩺 **Maintenance built in** | Health check, every backup in one list (check, preview, restore, export, delete) and an anonymized support bundle — in the dashboard, the wizards and on the command line. |
+| 🤖 **Local API & MCP server** | Every operation through one [Kit API](API.md) with dry run by default and approvals from a person; an MCP server over stdio lets a local or cloud agent diagnose your cabinet without a network port. Results are anonymized by default. |
+| 🎮 **Steam may stay open** | A running Steam client only blocks the steps that write Steam's own files. |
 
 ---
 
@@ -95,6 +108,8 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 | **Flycast** | ⛔ Not covered | — |
 | **Doctor, backups, support bundle** | ✅ Read-only / guarded | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
 | **Cabinet migration (A → B)** | ✅ Dry run first, backup before every write | Dashboard *migrate*, `Start-Kit.cmd -ExportProfile` / `-ImportProfile` |
+| **Desktop dashboard** (new cabinet, migrate, recover, status) | ✅ WPF, nothing to install | `Start-Kit.cmd` |
+| **Kit API & MCP server** (scripts, agents) | ✅ Dry run by default, approvals by a person | [`API.md`](API.md), `api\Start-KitMcpServer.ps1` |
 | **Rumble / force feedback** | 🚧 Planned | See [ROADMAP](ROADMAP.md) |
 
 ---
@@ -192,6 +207,16 @@ Start-Kit.cmd -ImportProfile <usb-stick>\cabinet-profile-lightgun_<date>.zip -Wh
 Start-Kit.cmd -ImportProfile <usb-stick>\cabinet-profile-lightgun_<date>.zip
 ```
 The dashboard's **migrate** mode does the same with buttons: export on A, choose the zip on B, dry run, import. A second import changes nothing. Missing drivers (ViGEmBus) are reported; with `-AutoInstall` (or the box in the dashboard) the kit installs them after showing the plan with SHA-256 and signature and asking you. Screen layouts are only suggested, never applied: the new cabinet's screens are measured in the wizard. The builds themselves (tables, ROMs, DOF, Pinscape) move with your own copy of the build folders, not with the profile.
+
+### 6. Scripts and Agents (Kit API, MCP)
+```cmd
+:: One operation as JSON (dry run unless -Apply; -Anonymize for anything sent to a cloud model)
+powershell -NoProfile -ExecutionPolicy Bypass -File api\Invoke-KitApi.ps1 -Operation status -Anonymize
+
+:: MCP server over stdio for an agent (no network port); -ReadOnly offers only the read tools
+powershell -NoProfile -ExecutionPolicy Bypass -File api\Start-KitMcpServer.ps1 -ReadOnly
+```
+Change operations are dry runs until the caller passes `-Apply` (MCP: `apply=true`); installers and scheduled tasks additionally need a person's approval (`-Approved`). Steps that need someone at the cabinet stay in the wizards. Details, the operation catalog and a client configuration: [API.md](API.md).
 
 ---
 

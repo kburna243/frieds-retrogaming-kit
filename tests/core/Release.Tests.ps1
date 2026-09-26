@@ -17,6 +17,11 @@ Describe 'Release package' {
         }
     }
 
+    It 'the website shows the same version (site\src\config.ts)' {
+        $config = [IO.File]::ReadAllText((Join-Path $kitRoot 'site\src\config.ts'))
+        $config | Should Match ('KIT_VERSION = "{0}"' -f [regex]::Escape($version))
+    }
+
     It 'builds the zip named after VERSION with a matching SHA256SUMS.txt' {
         $result = & (Join-Path $tools 'New-ReleasePackage.ps1') -DestinationDir $dist 6>$null
         $result.Name | Should BeExactly $zipName
