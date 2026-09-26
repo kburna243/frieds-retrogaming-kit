@@ -8,6 +8,14 @@ $newRetroBat = Join-Path $PSScriptRoot 'New-LightgunTestRetroBat.ps1'
 # (it would talk to a real Gunmote).
 $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 
+# A folder "a user created beforehand": owned by the current user. An elevated run (CI) would otherwise create it
+# owned by the Administrators group, which the kit rightly trusts. Only the owner section is written.
+function Set-TestOwner([string] $Path) {
+    $acl = New-Object Security.AccessControl.DirectorySecurity
+    $acl.SetOwner((New-Object Security.Principal.SecurityIdentifier $me))
+    [IO.Directory]::SetAccessControl($Path, $acl)
+}
+
 # Own TEMP test folder: give the rights back top-down (as owner) so it can be removed.
 function Reset-TestAcl([string] $Path) {
     $acl = New-Object Security.AccessControl.DirectorySecurity
@@ -113,6 +121,7 @@ Describe 'Admin-only automation folder (simulated in TEMP)' {
         $base = Join-Path $TestDrive 'Sim3'
         $elsewhere = Join-Path $TestDrive 'elsewhere'
         New-Item -ItemType Directory -Path $base, $elsewhere -Force | Out-Null
+        Set-TestOwner $base
         $null = cmd /c mklink /J "$base\lightgun" "$elsewhere"
         try { { Install-LightgunAutomationFile -AutomationDir "$base\lightgun" -TrustedOwner @($me) -Confirm:$false } | Should Throw 'link' }
         finally { cmd /c rmdir "$base\lightgun"; Reset-TestAcl $base }
@@ -122,6 +131,7 @@ Describe 'Admin-only automation folder (simulated in TEMP)' {
     It 'refuses a kit folder that a user created beforehand (owner is not Administrators or SYSTEM)' {
         $base = Join-Path $TestDrive 'Sim4'
         New-Item -ItemType Directory -Path $base -Force | Out-Null
+        Set-TestOwner $base
         { Install-LightgunAutomationFile -AutomationDir "$base\lightgun" -Confirm:$false } | Should Throw 'not owned by Administrators or SYSTEM'
         Join-Path $base 'lightgun' | Should Not Exist
         (Get-Acl -LiteralPath $base).AreAccessRulesProtected | Should Be $false

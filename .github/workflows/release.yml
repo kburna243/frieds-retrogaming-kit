@@ -40,6 +40,19 @@ jobs:
           .\tools\Test-KitSyntax.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Provide the synthetic test drives E and X
+        shell: powershell
+        run: |
+          # Test fixtures plan paths on the synthetic drives E and X (nothing is written there). PowerShell 5.1 resolves
+          # paths only on existing drives, so the letters must exist, as they do on a developer machine with more drives.
+          foreach ($letter in 'E', 'X') {
+            if (-not (Test-Path "${letter}:\")) {
+              $dir = Join-Path $env:RUNNER_TEMP "drive-$letter"
+              New-Item -ItemType Directory -Path $dir -Force | Out-Null
+              subst "${letter}:" $dir
+            }
+          }
+
       - name: Pester tests
         shell: powershell
         run: |

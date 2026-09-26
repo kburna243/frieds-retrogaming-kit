@@ -45,6 +45,18 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Provide the synthetic test drives E and X
+        shell: powershell
+        run: |
+          # Test fixtures plan paths on the synthetic drives E and X (nothing is written there). PowerShell 5.1 resolves
+          # paths only on existing drives, so the letters must exist, as they do on a developer machine with more drives.
+          foreach ($letter in 'E', 'X') {
+            if (-not (Test-Path "${letter}:\")) {
+              $dir = Join-Path $env:RUNNER_TEMP "drive-$letter"
+              New-Item -ItemType Directory -Path $dir -Force | Out-Null
+              subst "${letter}:" $dir
+            }
+          }
       - name: Run tests\Run-Tests.ps1
         shell: powershell
         run: |
