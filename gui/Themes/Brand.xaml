@@ -139,4 +139,16 @@
       </Setter.Value>
     </Setter>
   </Style>
+
+  <!-- language chips in the header: the active one is filled (Cream on Night), the other one an outline -->
+  <Style x:Key="ChipButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+    <Setter Property="Padding" Value="10,4"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Style.Triggers>
+      <Trigger Property="Tag" Value="active">
+        <Setter Property="Background" Value="{StaticResource CreamBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource NightBrush}"/>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
 </ResourceDictionary>

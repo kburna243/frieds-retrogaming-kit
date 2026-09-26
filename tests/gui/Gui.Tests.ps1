@@ -58,6 +58,8 @@ Describe 'Dashboard (WPF, no window is shown)' {
         ($s.Rows | ForEach-Object { '{0}={1}' -f $_.Area, $_.Level }) -join ' ' | Should BeExactly 'System=Ok Lightgun=Error'
         $s.Level | Should Be 'Error'
         ($s.Rows | Where-Object { $_.Area -eq 'Lightgun' }).Detail -join ' | ' | Should Match 'ViGEmBus: Not installed \| DolphinBar: Mode12'
+        ($s.Rows | Where-Object { $_.Area -eq 'Lightgun' }).DetailVisibility | Should Be 'Visible'
+        ($s.Rows | Where-Object { $_.Area -eq 'System' }).DetailVisibility | Should Be 'Collapsed'
         $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult $mixed
         try { $ui.Controls.StatusCrown.Visibility | Should Be 'Collapsed' } finally { $ui.Window.Close() }
     }
@@ -102,9 +104,13 @@ Describe 'Dashboard (WPF, no window is shown)' {
     It 'switching the language re-translates the window' {
         $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult $healthy
         try {
-            $ui.Controls.LanguageBox.SelectedItem = 'de-DE'
+            $click = [Windows.Controls.Primitives.ButtonBase]::ClickEvent
+            $ui.Controls.LangEnButton.Tag | Should Be 'active'
+            $ui.Controls.LangDeButton.RaiseEvent((New-Object Windows.RoutedEventArgs $click))
             $ui.Controls.NewPinballButton.Content | Should BeExactly 'Pinball einrichten'
             $ui.Controls.StatusSummary.Text | Should Match 'Alles gesund'
+            $ui.Controls.LangDeButton.Tag | Should Be 'active'
+            $ui.Controls.LangEnButton.Tag | Should BeNullOrEmpty
         } finally { $ui.Window.Close(); Set-KitCulture -Culture 'en-US' }
     }
 }

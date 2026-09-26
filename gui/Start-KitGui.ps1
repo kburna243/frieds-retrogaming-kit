@@ -37,8 +37,13 @@ if (-not $Launcher) { $Launcher = { param($Suite) Start-KitGuiWizard -Suite $Sui
 $ui = New-KitGuiWindow
 $c = $ui.Controls
 $ui.Values['Launcher'] = $Launcher
-foreach ($l in 'de-DE', 'en-US') { $null = $c.LanguageBox.Items.Add($l) }
-$c.LanguageBox.SelectedItem = if ((Get-KitCulture) -like 'de*') { 'de-DE' } else { 'en-US' }
+# Language chips: the button's Tag "active" fills it (ChipButton style); the culture itself is kept in the core.
+function Set-Language([string] $Culture) {
+    Set-KitCulture -Culture $Culture
+    $c.LangDeButton.Tag = if ($Culture -like 'de*') { 'active' } else { $null }
+    $c.LangEnButton.Tag = if ($Culture -like 'de*') { $null } else { 'active' }
+}
+Set-Language $(if ((Get-KitCulture) -like 'de*') { 'de-DE' } else { 'en-US' })
 $version = ([IO.File]::ReadAllText((Join-Path $kitRoot 'VERSION'))).Trim()
 
 function Update-Texts {
@@ -67,7 +72,8 @@ function Start-Doctor {
 }
 
 # --- events ---------------------------------------------------------------------------------------------------
-$c.LanguageBox.add_SelectionChanged({ Set-KitCulture -Culture ([string]$c.LanguageBox.SelectedItem); Update-Texts })
+$c.LangDeButton.add_Click({ Set-Language 'de-DE'; Update-Texts })
+$c.LangEnButton.add_Click({ Set-Language 'en-US'; Update-Texts })
 $c.NewPinballButton.add_Click({ & $ui.Values['Launcher'] 'Pinball' })
 $c.NewLightgunButton.add_Click({ & $ui.Values['Launcher'] 'Lightgun' })
 $c.RecoverButton.add_Click({ Show-KitGuiView -Ui $ui -Name Recover; $null = Update-KitGuiBackupList -Ui $ui })

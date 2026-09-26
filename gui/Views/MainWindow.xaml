@@ -27,7 +27,8 @@
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
         <Button x:Name="BackButton" Tag="i18n:Gui.Back" Style="{StaticResource SecondaryButton}" Margin="0,0,12,0" Visibility="Collapsed"/>
-        <ComboBox x:Name="LanguageBox" Width="86" VerticalAlignment="Center"/>
+        <Button x:Name="LangDeButton" Content="DE" Style="{StaticResource ChipButton}" Margin="0,0,4,0"/>
+        <Button x:Name="LangEnButton" Content="EN" Style="{StaticResource ChipButton}"/>
       </StackPanel>
     </DockPanel>
 
@@ -51,8 +52,8 @@
         <Border Style="{StaticResource Card}" Margin="8,0">
           <DockPanel>
             <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
-              <Button x:Name="NewPinballButton" Tag="i18n:Gui.New.Pinball" Style="{StaticResource PrimaryButton}" Margin="0,0,0,8"/>
-              <Button x:Name="NewLightgunButton" Tag="i18n:Gui.New.Lightgun" Style="{StaticResource PrimaryButton}"/>
+              <Button x:Name="NewPinballButton" Tag="i18n:Gui.New.Pinball" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8"/>
+              <Button x:Name="NewLightgunButton" Tag="i18n:Gui.New.Lightgun" Style="{StaticResource SecondaryButton}"/>
             </StackPanel>
             <StackPanel>
               <TextBlock Text="01" Style="{StaticResource Kicker}"/>
@@ -104,10 +105,13 @@
               <ItemsControl x:Name="StatusRows">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <StackPanel Orientation="Horizontal" Margin="0,2">
-                      <TextBlock Text="{Binding Symbol}" Foreground="{Binding Brush}" FontFamily="{StaticResource MonoFont}" FontSize="12" Width="22"/>
-                      <TextBlock Text="{Binding Area}" Foreground="{StaticResource CreamBrush}" FontFamily="{StaticResource MonoFont}" FontSize="12" Width="130"/>
-                      <TextBlock Text="{Binding Text}" Style="{StaticResource Terminal}"/>
+                    <StackPanel Margin="0,2">
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Symbol}" Foreground="{Binding Brush}" FontFamily="{StaticResource MonoFont}" FontSize="12" Width="22"/>
+                        <TextBlock Text="{Binding Area}" Foreground="{StaticResource CreamBrush}" FontFamily="{StaticResource MonoFont}" FontSize="12" Width="130"/>
+                        <TextBlock Text="{Binding Text}" Style="{StaticResource Terminal}"/>
+                      </StackPanel>
+                      <TextBlock Text="{Binding DetailText}" Visibility="{Binding DetailVisibility}" Foreground="{Binding Brush}" Style="{StaticResource Terminal}" Margin="152,0,0,2"/>
                     </StackPanel>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

@@ -94,6 +94,10 @@ function Get-KitGuiStatus {
             Brush  = $converter.ConvertFromString($look.Color)
             Text   = Get-KitText 'Gui.Status.Row' -f $n.Ok, $n.Warn, $n.Error
             Detail = @($items | Where-Object { $_.Level -in 'Warn', 'Error' } | ForEach-Object { '{0}: {1}' -f $_.Name, $_.Detail })
+        } | ForEach-Object {
+            # The reason of a warning or error is shown under its row, not only behind "Details".
+            $_ | Add-Member -NotePropertyName DetailText -NotePropertyValue ($_.Detail -join [Environment]::NewLine) -PassThru |
+                Add-Member -NotePropertyName DetailVisibility -NotePropertyValue $(if ($_.Detail.Count) { 'Visible' } else { 'Collapsed' }) -PassThru
         }
     }
     $s = Get-KitDoctorSummary -Result $Result
