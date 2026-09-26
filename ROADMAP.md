@@ -26,7 +26,7 @@ when they ship.
 - [x] Structured step results (`Duration`, `Changes`, `Backups`, `Warnings`, `Errors`) — no UI parses output
 - [x] Dashboard with three modes and the system status from the doctor; recover mode (backups)
 - [x] Kit API v1 (`API.md`): operation catalog, `OperationResult`, dry run by default, approvals, JSON over stdio
-- [ ] Dashboard uses the API only (today: partly the engine modules directly)
+- [x] Dashboard uses the API only
 - [ ] Operation history (append-only, read-only for clients)
 - [ ] MCP server over stdio on top of the API (for the separate agent harness and other agents)
 - [ ] Migrate mode on top of the migration engine (export → analyse → compatibility → import → verify)

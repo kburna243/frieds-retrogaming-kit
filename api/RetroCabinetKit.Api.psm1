@@ -116,6 +116,7 @@ function Get-KitOperation {
         @{ Name = 'backups.list'; Kind = 'Read'; Description = 'The kit''s backups, newest first.'; Parameters = @([pscustomobject]@{ Name = 'Root'; Type = 'String[]'; Mandatory = $false }) }
         @{ Name = 'backup.check'; Kind = 'Read'; Description = 'Checks a backup against its checksums (zip) or its original (file copy).'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'backup.restore'; Kind = 'Change'; Description = 'Restores a backup; the current file is saved first. Zip backups need AllowedRoot.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'AllowedRoot'; Type = 'String[]'; Mandatory = $false }) }
+        @{ Name = 'backup.remove'; Kind = 'Change'; Description = 'Deletes one backup of the kit (nothing else can be deleted).'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'backup.export'; Kind = 'Change'; Description = 'Copies a backup to a folder and records its SHA-256.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'support.bundle'; Kind = 'Change'; Description = 'Writes an anonymized support bundle (doctor, environment, step states, logs).'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $false }) }
     )
@@ -289,6 +290,17 @@ function Invoke-KitOperation {
                     -Message (Get-KitText 'Api.RestoredFiles' -f $rows.Count) -Changes $changes -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
                     -Data ([pscustomobject]@{ Files = @($rows | ForEach-Object { $_.Target }) })
             }
+            'backup.remove' {
+                # Same recognition as the delete itself (a kit zip with manifest or a <file>.bak_* copy), also in the dry run.
+                try { $null = Test-KitBackup -Path $p.Path } catch {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status Failed -Message $_.Exception.Message -Errors @($_.Exception.Message) -StartedAt $started
+                }
+                if (-not $apply) { return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf -Message (Get-KitText 'Api.RemovePlan' -f $p.Path) -StartedAt $started }
+                Remove-KitBackup -Path $p.Path -Confirm:$false
+                return New-KitOperationResult -Operation $Name -Kind Change -Status Done -Applied $true -Message (Get-KitText 'Recovery.Deleted' -f $p.Path) `
+                    -Changes @([pscustomobject]@{ Kind = 'File'; Target = $p.Path; Detail = 'backup deleted' }) -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                    -Data ([pscustomobject]@{ Removed = $p.Path })
+            }
             'backup.export' {
                 if (-not $apply) {
                     return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf -Message (Get-KitText 'Api.ExportPlan' -f $p.Path, $p.Destination) -StartedAt $started
@@ -325,6 +337,36 @@ function Invoke-KitOperation {
     }
 }
 
+# Runs one operation in its own PowerShell instance without a console host: "What if:" lines and host output of
+# the engine go nowhere, only the result object comes back (same process, live objects). For every client that
+# owns standard output (the JSON command, the MCP server).
+function Invoke-KitOperationIsolated {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Name,
+        [hashtable] $Parameters = @{},
+        [switch] $Apply,
+        [switch] $Approved,
+        [string] $Culture = (Get-KitCulture)
+    )
+    $ps = [PowerShell]::Create()
+    try {
+        $null = $ps.AddScript({
+            param($KitRoot, $Culture, $Name, $Parameters, $Apply, $Approved)
+            Import-Module (Join-Path $KitRoot 'core\RetroCabinetKit.Core.psd1')
+            Import-Module (Join-Path $KitRoot 'api\RetroCabinetKit.Api.psd1')
+            Set-KitCulture -Culture $Culture
+            Invoke-KitOperation -Name $Name -Parameters $Parameters -Apply:$Apply -Approved:$Approved
+        }).AddArgument($script:KitRoot).AddArgument($Culture).AddArgument($Name).AddArgument($Parameters).AddArgument([bool]$Apply).AddArgument([bool]$Approved)
+        $result = @($ps.Invoke() | Where-Object { $_ -and $_.PSObject.TypeNames -contains 'RetroCabinetKit.OperationResult' }) | Select-Object -Last 1
+        if (-not $result) {
+            $why = @($ps.Streams.Error | ForEach-Object { $_.Exception.Message }) -join ' '
+            $result = New-KitOperationResult -Operation $Name -Status Failed -Message "No result. $why" -Errors @($why)
+        }
+        $result
+    } finally { $ps.Dispose() }
+}
+
 # --- convenience wrappers (same result type) ------------------------------------------------------------------------
 
 function Get-KitCabinetStatus { [CmdletBinding()] param() Invoke-KitOperation -Name 'status' }
@@ -355,5 +397,5 @@ function ConvertTo-KitApiJson {
     }
 }
 
-Export-ModuleMember -Function 'Get-KitApiVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation',
+Export-ModuleMember -Function 'Get-KitApiVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation', 'Invoke-KitOperationIsolated',
     'Get-KitCabinetStatus', 'Get-KitCabinetComponent', 'Get-KitBackupList', 'ConvertTo-KitApiJson'

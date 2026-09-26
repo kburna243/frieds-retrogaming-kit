@@ -5,7 +5,7 @@
     Author            = 'retro-cabinet-kit contributors'
     Description       = 'Kit API v1 (API.md): one facade for GUI, CLI, tests and external clients. Operations return OperationResult; changes only with -Apply; approvals only with -Approved; plain parameters only.'
     PowerShellVersion = '5.1'
-    FunctionsToExport = @('Get-KitApiVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation',
+    FunctionsToExport = @('Get-KitApiVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation', 'Invoke-KitOperationIsolated',
                           'Get-KitCabinetStatus', 'Get-KitCabinetComponent', 'Get-KitBackupList', 'ConvertTo-KitApiJson')
     CmdletsToExport   = @()
     VariablesToExport = @()

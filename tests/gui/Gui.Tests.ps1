@@ -135,13 +135,13 @@ Describe 'Recover view' {
             $ui.Controls.BackupList.SelectedIndex = 0
 
             $ui.Controls.DryRunBox.IsChecked | Should Be $true
-            (Invoke-KitGuiRestoreBackup -Ui $ui -Guard {} -Confirm { throw 'a dry run must not ask' }).Action | Should Be 'WhatIf'
+            (Invoke-KitGuiRestoreBackup -Ui $ui -Confirm { throw 'a dry run must not ask' }).Status | Should Be 'WhatIf'
             [IO.File]::ReadAllText($cfg) | Should BeExactly 'current'
 
             $ui.Controls.DryRunBox.IsChecked = $false
-            $null = Invoke-KitGuiRestoreBackup -Ui $ui -Guard {} -Confirm { $false }
+            $null = Invoke-KitGuiRestoreBackup -Ui $ui -Confirm { $false }
             [IO.File]::ReadAllText($cfg) | Should BeExactly 'current' # declined
-            (Invoke-KitGuiRestoreBackup -Ui $ui -Guard {} -Confirm { $true }).Action | Should Be 'Restored'
+            (Invoke-KitGuiRestoreBackup -Ui $ui -Confirm { $true }).Status | Should Be 'Done'
             [IO.File]::ReadAllText($cfg) | Should BeExactly 'older'
             $ui.Controls.RecoverLog.Text | Should Match 'Restored'
         } finally { $ui.Window.Close() }
@@ -152,12 +152,27 @@ Describe 'Recover view' {
         try {
             $ui.Values['BackupRoots'] = @($root)
             $null = Update-KitGuiBackupList -Ui $ui
-            Invoke-KitGuiRestoreBackup -Ui $ui -Guard {} -Confirm { $true } | Should BeNullOrEmpty
+            Invoke-KitGuiRestoreBackup -Ui $ui -Confirm { $true } | Should BeNullOrEmpty
             $ui.Controls.RecoverLog.Text | Should Match 'Select a backup'
             $ui.Controls.BackupList.SelectedIndex = 0
             $ui.Controls.DryRunBox.IsChecked = $false
             $null = Invoke-KitGuiRestoreBackup -Ui $ui -Guard { throw 'Please close RetroBat first.' } -Confirm { $true }
             $ui.Controls.RecoverLog.Text | Should Match 'Please close RetroBat'
+        } finally { $ui.Window.Close() }
+    }
+
+    It 'deletes the selected backup only after a yes' {
+        $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult @()
+        try {
+            $victim = "$cfg.bak_lightgun_20260301-100000-000"
+            [IO.File]::WriteAllText($victim, 'to delete')
+            $ui.Values['BackupRoots'] = @($root)
+            $rows = @(Update-KitGuiBackupList -Ui $ui)
+            $ui.Controls.BackupList.SelectedIndex = [array]::IndexOf(@($rows | ForEach-Object { $_.Path }), $victim)
+            $null = Invoke-KitGuiRemoveBackup -Ui $ui -Confirm { $false }
+            $victim | Should Exist
+            (Invoke-KitGuiRemoveBackup -Ui $ui -Confirm { $true }).Status | Should Be 'Done'
+            $victim | Should Not Exist
         } finally { $ui.Window.Close() }
     }
 
@@ -167,10 +182,11 @@ Describe 'Recover view' {
             $ui.Values['BackupRoots'] = @($root)
             $null = Update-KitGuiBackupList -Ui $ui
             $ui.Controls.BackupList.SelectedIndex = 0
-            (Invoke-KitGuiCheckBackup -Ui $ui).Ok | Should Be $true
-            $item = Invoke-KitGuiExportBackup -Ui $ui -Destination (Join-Path $TestDrive 'usb')
+            (Invoke-KitGuiCheckBackup -Ui $ui).Data.Ok | Should Be $true
+            $r = Invoke-KitGuiExportBackup -Ui $ui -Destination (Join-Path $TestDrive 'usb')
+            $r.Status | Should Be 'Done'
             Join-Path (Join-Path $TestDrive 'usb') 'SHA256SUMS.txt' | Should Exist
-            $item.Name | Should Match '\.bak_'
+            $r.Data.Exported | Should Match '\.bak_'
         } finally { $ui.Window.Close() }
     }
 }

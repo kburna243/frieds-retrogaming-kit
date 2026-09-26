@@ -571,4 +571,5 @@
     'Api.RestoredFiles'             = '{0} file(s) in the plan.'
     'Api.ExportPlan'                = 'Dry run: {0} would be copied to {1}.'
     'Api.BundlePlan'                = 'Dry run: a support bundle would be written to {0}.'
+    'Api.RemovePlan'                = 'Dry run: the backup {0} would be deleted.'
 }

@@ -69,6 +69,7 @@ Change operations built from steps also carry `Data.Steps`: one entry per step r
 | `backup.check` | Read | `Path` | `Ok`, `Differs`, `Problems[]` |
 | `backup.restore` | Change | `Path`; `AllowedRoot` (string[]) for zip backups | `Target`, `SavedCurrent` |
 | `backup.export` | Change | `Path`, `Destination` | `Exported` |
+| `backup.remove` | Change | `Path` | `Removed` |
 | `support.bundle` | Change | `Destination` (optional) | `Path` |
 | `step.<suite>.<nn-name>` | Change | the step's plain parameters | `Steps[]` |
 | `profile.export`, `profile.import` | Change | the command's plain parameters | the command's result |

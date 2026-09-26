@@ -16,12 +16,16 @@ that matches it.
   scripts. `api\Invoke-KitApi.ps1` serves other processes with exactly one JSON document on standard output (no
   network port), `-Anonymize` for anything sent to a cloud model. Migration operations appear automatically once
   `Export-/Import-KitCabinetProfile` exist. Contract tests in `tests\api\`.
+- API operation `backup.remove` (dry run unless `-Apply`) and `Invoke-KitOperationIsolated`, which runs an
+  operation hostless so no engine output reaches the caller's standard output.
 - `handoff/AGENT-HARNESS.md`: the boundary between the kit and a separate agent harness repository.
 - **Desktop dashboard** (`Start-Kit.cmd` without switches, `gui\`): a WPF app on Windows PowerShell 5.1 (nothing
   to install) in the brand design (Night / Cream, Pixel Green, Retro Red, Crown Gold, mascot). Three modes:
   new cabinet (starts the pinball / lightgun wizards), migrate (placeholder until v0.3) and recover (backup
   list with check, dry-run restore, export, delete). The system status comes from the doctor, runs in the
-  background and shows one row per area. A thin layer: every action calls the engine modules.
+  background and shows one row per area. A thin layer: every action is a Kit API operation (`status`,
+  `backups.list`, `backup.check`, `backup.restore`, `backup.export`, `backup.remove`), so the dashboard and an
+  agent see and do exactly the same.
   `Start-Kit.cmd -Demo` still runs the core demo; `-Doctor`, `-Backups`, `-SupportBundle` stay command-line tools.
 - Each suite knows where its backups live (`Get-PinballBackupRoot`, `Get-LightgunBackupRoot`); the command
   line, the wizards' maintenance pages and the dashboard use them.

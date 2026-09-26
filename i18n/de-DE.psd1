@@ -571,4 +571,5 @@
     'Api.RestoredFiles'             = '{0} Datei(en) im Plan.'
     'Api.ExportPlan'                = 'Trockenlauf: {0} würde nach {1} kopiert.'
     'Api.BundlePlan'                = 'Trockenlauf: Ein Support-Paket würde nach {0} geschrieben.'
+    'Api.RemovePlan'                = 'Trockenlauf: Das Backup {0} würde gelöscht.'
 }
