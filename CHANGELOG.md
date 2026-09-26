@@ -17,6 +17,9 @@ that matches it.
 - API: `Apply` and `Approved` (any spelling) are refused as parameter names and never offered in the catalog, so a
   step parameter cannot be mistaken for the API switches or the MCP flags `apply` / `approved` (#23).
 - `handoff/PROJECT-HANDOFF-v0.3.0.md`: handoff of the whole development up to v0.3.0.
+- Website: TypeScript 7.0.2 (replaces Dependabot #16, whose build failed): `tsconfig.json` without `baseUrl`
+  (removed in TypeScript 7, `paths` now relative) and `src/vite-env.d.ts` with the Vite client types, which
+  TypeScript 7 needs for the CSS side-effect imports. Also type-checks with TypeScript 5.9.
 
 ## [0.3.0] - 2026-09-26
 
