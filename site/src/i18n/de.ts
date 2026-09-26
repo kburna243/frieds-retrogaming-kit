@@ -2,7 +2,7 @@ const de = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups plus Retro-Skills für Coding-Agenten. Open Source, in Entwicklung.",
+      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v0.3.0.",
   },
   nav: {
     home: "Start",
@@ -14,7 +14,7 @@ const de = {
     menu: "Menü",
     skip: "Zum Inhalt springen",
     language: "Sprache",
-    wip: "WORK IN PROGRESS",
+    wip: "RELEASE",
   },
   boot: {
     lines: [
@@ -22,8 +22,9 @@ const de = {
       "",
       "CPU   Z80A @ 3.58 MHz ............... OK",
       "RAM   64K SYSTEM CHECK .............. OK",
-      "KIT   PINBALL INSTALLER ............. WIP",
-      "KIT   LIGHTGUN INSTALLER ............ WIP",
+      "KIT   PINBALL INSTALLER ............. OK",
+      "KIT   LIGHTGUN INSTALLER ............ OK",
+      "KIT   KABINETT-UMZUG A>B ............ OK",
       "SKILL SKILL.MD LOADED ............... OK",
       "RULE  JEDER SCHRITT WIRD GEPRÜFT .... OK",
       "",
@@ -49,8 +50,9 @@ const de = {
     sub: "Zwei Installer mit gemeinsamem Kern und Retro-Skills für deinen Coding-Agenten.",
     ctaGuides: "ZU DEN ANLEITUNGEN",
     ctaRepo: "REPO ANSEHEN",
-    wip: "IN ENTWICKLUNG",
-    wipSub: "UND SO GEKENNZEICHNET",
+    ctaDownload: "DOWNLOAD",
+    wip: "VERÖFFENTLICHT",
+    wipSub: "UND WÄCHST WEITER",
     bubbles: [
       "Jeder Schritt wird geprüft.",
       "Du bringst die Builds mit.",
@@ -64,6 +66,7 @@ const de = {
     kicker: "DREI BAUSTEINE",
     title: "Was im Kit steckt",
     open: "ANLEITUNG",
+    badge: "STABIL",
     pinball: {
       title: "Pinball Installer",
       text: "Mitgebrachten PinUP-Popper-Build umziehen oder auf frischem Windows neu aufbauen: Pfade umschreiben, registrieren, Bildschirme einmessen, sichern.",
@@ -87,6 +90,19 @@ const de = {
       { title: "Nur offizielle Quellen", text: "Freie Tools und Treiber lädt das Kit ausschließlich von den offiziellen Seiten — mit Signaturprüfung, wo vorhanden." },
     ],
   },
+  release: {
+    kicker: "NEU IN v{v}",
+    title: "Ein Fenster für alles — und ein Umzug ohne Kopfschmerzen",
+    intro: "Mit v{v} kommt das Kit als Desktop-App: einrichten, umziehen, retten. Alles bleibt lokal auf deinem PC.",
+    download: "DOWNLOAD v{v}",
+    changelog: "WAS IST NEU",
+    features: [
+      { title: "Desktop-Dashboard", text: "Start-Kit.cmd öffnet ein Fenster mit drei Modi — Neues Kabinett, Umziehen, Retten — und dem aktuellen Systemstatus. Nichts zu installieren." },
+      { title: "Kabinett-Umzug A > B", text: "Einstellungen des alten Kabinetts als Zip exportieren, auf dem neuen im Probelauf prüfen, dann importieren — mit Backup vor jedem Schreiben. Nie ROMs, BIOS oder Tische." },
+      { title: "Wartung eingebaut", text: "Gesundheitscheck, alle Backups in einer Liste zum Prüfen und Zurückspielen und ein anonymisiertes Support-Paket für Fehlermeldungen." },
+      { title: "Lokale API & MCP", text: "Skripte und KI-Agenten nutzen dieselben Operationen: standardmäßig Probelauf, Installer nur nach Freigabe durch dich, Ergebnisse anonymisiert, kein Netzwerkport." },
+    ],
+  },
   creditsTeaser: {
     kicker: "DANKSAGUNG",
     title: "Dieses Kit verbindet nur die Arbeit vieler Menschen.",
@@ -102,11 +118,11 @@ const de = {
     repo: "Repository",
     credits: "Danksagung",
     tagline: "RETRO CABINET + GEPRÜFTE SCHRITTE = KEINE KOPFSCHMERZEN",
-    status: "Work in Progress — Installer noch nicht fertig",
+    status: "nur lokal · keine Telemetrie · jeder Schritt geprüft",
   },
   guide: {
-    wipBadge: "IN ENTWICKLUNG / WORK IN PROGRESS",
-    wipNote: "Diese Anleitung beschreibt den geplanten Ablauf. Der Installer ist noch nicht fertig und noch nicht veröffentlicht.",
+    wipBadge: "VERÖFFENTLICHT",
+    wipNote: "Diese Anleitung beschreibt den Ablauf des Installers. Probiere jeden Schritt zuerst im Probelauf aus; das Kit sichert vor jeder Änderung.",
     bring: "Das bringst du mit",
     loads: "Das lädt das Kit (nur offiziell)",
     steps: "Ablauf — jeder Schritt: prüfen · ausführen · nachprüfen",
@@ -169,7 +185,7 @@ const de = {
       { title: "RetroBat erkennen", text: "Quelle und Ziel wählen; der Build wird an EmulationStation und dessen Einstellungen erkannt." },
       { title: "Hardware", text: "DolphinBar im Mode 4 prüfen, Bluetooth-Hinweis, Bildwiederholrate 60 Hz." },
       { title: "Treiber", text: "ViGEmBus installieren oder prüfen; Gunmote geführt bereitstellen und als geplante Aufgabe einrichten." },
-      { title: "Störquellen", text: "Steam-Controller-Sperrliste und Steam Input nur bei beendetem Steam anpassen; störende Aufgaben nach Rückfrage deaktivieren (umkehrbar)." },
+      { title: "Störquellen", text: "Steam-Controller-Sperrliste und Steam Input nur bei beendetem Steam anpassen (nur dieser Schritt braucht ein geschlossenes Steam); störende Aufgaben nach Rückfrage deaktivieren (umkehrbar)." },
       { title: "Gunmote-Layouts", text: "Layouts aus Kit-Vorlagen: Menü-Pad ohne Zeiger als Standard, Pad 4:3, TeknoParrot über den rechten Stick, Maus nur für RetroArch/PCSX2." },
       { title: "RetroBat-Einstellungen", text: "Je System Lightgun-Optionen und Emulatorwahl setzen; Abzug = Auswählen im Menü." },
       { title: "Emulatoren", text: "MAME-Profil, TeknoParrot-Profile (Pfade reparieren, auf XInput binden), Demul + DemulShooter, Model 2/Supermodel. DuckStation und PCSX2 vorerst nur geführt, ohne automatische Belegung." },
@@ -180,7 +196,7 @@ const de = {
     ],
     notes: [
       "Skripte, die mit Adminrechten laufen, liegen in einem Ordner, den nur Administratoren beschreiben dürfen; RetroBat startet sie nur als geplante Aufgabe.",
-      "Vor jedem Schreiben von RetroBat-, Gunmote- oder Steam-Dateien wird geprüft, dass diese Programme beendet sind.",
+      "Vor jedem Schreiben von RetroBat- oder Gunmote-Dateien wird geprüft, dass diese Programme beendet sind; Steam muss nur geschlossen sein, wenn das Kit Steams eigene Dateien schreibt.",
       "Rumble ist ein optionaler, späterer Schritt.",
     ],
   },

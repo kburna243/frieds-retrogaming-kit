@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, BookOpen } from "lucide-react";
+import { ChevronDown, BookOpen, Download } from "lucide-react";
 import { FriedCharacter, type FriedExpression, type FriedPose } from "../components/FriedCharacter";
 import { ChunkButton, GithubButton } from "../components/ui";
 import { useRetro } from "../lib/retro";
 import { useI18n } from "../i18n";
+import { KIT_VERSION, RELEASES_URL } from "../config";
 
 // one mood + pose per speech bubble (same order as t.hero.bubbles)
 const MOODS: { exp: FriedExpression; pose: FriedPose }[] = [
@@ -58,10 +59,16 @@ export default function Hero() {
       />
 
       <div className="absolute right-4 top-6 z-10 hidden sm:right-10 sm:block">
-        <div className="stamp border-[3px] border-retro px-3 py-2 font-pixel text-[9px] text-retro" style={{ transform: "rotate(6deg)" }}>
-          {t.hero.wip}
-          <span className="mt-1 block text-[7px] text-retro/80">{t.hero.wipSub}</span>
-        </div>
+        <a
+          href={RELEASES_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="stamp block border-[3px] border-gold px-3 py-2 font-pixel text-[9px] text-gold transition hover:bg-gold hover:text-night"
+          style={{ transform: "rotate(6deg)" }}
+        >
+          v{KIT_VERSION} {t.hero.wip}
+          <span className="mt-1 block text-[7px] opacity-80">{t.hero.wipSub}</span>
+        </a>
       </div>
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8">
@@ -69,7 +76,7 @@ export default function Hero() {
           <div className="mb-6 flex flex-wrap items-center gap-3 font-pixel text-[10px] text-pixel">
             <span className="h-2.5 w-2.5 rounded-full bg-pixel" style={{ animation: "pulse-dot 1.6s infinite" }} />
             {t.hero.kicker}
-            <span className="border-2 border-retro px-1.5 py-0.5 text-retro sm:hidden">{t.hero.wip}</span>
+            <span className="border-2 border-gold px-1.5 py-0.5 text-gold sm:hidden">v{KIT_VERSION}</span>
           </div>
 
           <h1 className="font-display text-cream">
@@ -92,6 +99,9 @@ export default function Hero() {
               }}
             >
               <BookOpen size={15} aria-hidden="true" /> {t.hero.ctaGuides}
+            </ChunkButton>
+            <ChunkButton href={RELEASES_URL} variant="ghost-light">
+              <Download size={15} aria-hidden="true" /> {t.hero.ctaDownload} v{KIT_VERSION}
             </ChunkButton>
             <GithubButton />
           </div>

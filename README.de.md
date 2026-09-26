@@ -8,6 +8,7 @@
   [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow?style=for-the-badge)](LICENSE)
   [![Dokumentation](https://img.shields.io/badge/Doku-Deutsch%20%7C%20English-3DDC84?style=for-the-badge&logo=gitbook&logoColor=white)](docs/)
   [![Webseite](https://img.shields.io/badge/Webseite-kburna243.github.io%2Ffrieds--retrogaming--kit-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-kit/)
+  [![Release](https://img.shields.io/github/v/release/kburna243/frieds-retrogaming-kit?style=for-the-badge&label=Release&color=FFC857)](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)
   [![CI](https://img.shields.io/github/actions/workflow/status/kburna243/frieds-retrogaming-kit/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/kburna243/frieds-retrogaming-kit/actions/workflows/ci.yml)
   [![Datenschutz](https://img.shields.io/badge/Datenschutz-0%20Datenlecks-success?style=for-the-badge&logo=shield)](tools/Test-Depersonalized.ps1)
 
@@ -24,7 +25,19 @@
 ---
 
 > [!NOTE]
-> **Status: v0.2.0.** Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–14 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel und geführter DuckStation-/PCSX2-Prüfung) sind einsatzbereit. Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
+> **Status: v0.3.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–14 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel und geführter DuckStation-/PCSX2-Prüfung) sind einsatzbereit. Neu in v0.3.0: das Desktop-Dashboard, der Kabinett-Umzug A → B und eine lokale API für Skripte und Agenten. Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
+
+---
+
+## ✨ Neu in v0.3.0
+
+| | Was du bekommst |
+| :--- | :--- |
+| 🖥️ **Desktop-Dashboard** | `Start-Kit.cmd` öffnet ein Fenster mit drei Modi — **Neues Kabinett**, **Umziehen**, **Retten** — und dem aktuellen Systemstatus. Windows PowerShell 5.1 und WPF: nichts zu installieren. Deutsch und Englisch. |
+| 🚚 **Kabinett-Umzug A → B** | Die Einstellungen des alten Kabinetts als eine Zip pro Suite exportieren, auf dem neuen im Probelauf prüfen, dann importieren — mit Backup vor jedem Schreiben. Pfade reisen als Platzhalter; ROMs, BIOS-Dateien und Tische kommen nie ins Profil. |
+| 🩺 **Wartung eingebaut** | Gesundheitscheck, alle Backups in einer Liste (prüfen, Vorschau, zurückspielen, exportieren, löschen) und ein anonymisiertes Support-Paket — im Dashboard, in den Assistenten und auf der Kommandozeile. |
+| 🤖 **Lokale API & MCP-Server** | Jede Operation über eine [Kit-API](API.md), standardmäßig als Probelauf und mit Freigaben durch einen Menschen; ein MCP-Server über stdio lässt einen lokalen oder Cloud-Agenten dein Kabinett untersuchen, ohne Netzwerkport. Ergebnisse sind standardmäßig anonymisiert. |
+| 🎮 **Steam darf offen bleiben** | Ein laufendes Steam blockiert nur noch die Schritte, die Steams eigene Dateien schreiben. |
 
 ---
 
@@ -95,6 +108,8 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 | **Flycast** | ⛔ Nicht abgedeckt | — |
 | **Doctor, Backups, Support-Paket** | ✅ Nur lesend / abgesichert | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
 | **Kabinett-Umzug (A → B)** | ✅ Erst Probelauf, Backup vor jedem Schreiben | Dashboard *Umziehen*, `Start-Kit.cmd -ExportProfile` / `-ImportProfile` |
+| **Desktop-Dashboard** (Neues Kabinett, Umziehen, Retten, Status) | ✅ WPF, nichts zu installieren | `Start-Kit.cmd` |
+| **Kit-API & MCP-Server** (Skripte, Agenten) | ✅ Standardmäßig Probelauf, Freigaben durch einen Menschen | [`API.md`](API.md), `api\Start-KitMcpServer.ps1` |
 | **Rumble / Force-Feedback** | 🚧 Geplant | Siehe [ROADMAP](ROADMAP.md) |
 
 ---
@@ -192,6 +207,16 @@ Start-Kit.cmd -ImportProfile <USB-Stick>\cabinet-profile-lightgun_<Datum>.zip -W
 Start-Kit.cmd -ImportProfile <USB-Stick>\cabinet-profile-lightgun_<Datum>.zip
 ```
 Der Modus **Umziehen** im Dashboard macht dasselbe per Knopfdruck: auf A exportieren, auf B die Zip wählen, Probelauf, importieren. Ein zweiter Import ändert nichts mehr. Fehlende Treiber (ViGEmBus) werden gemeldet; mit `-AutoInstall` (oder dem Haken im Dashboard) installiert das Kit sie, nachdem es den Plan mit SHA-256 und Signatur gezeigt und dich gefragt hat. Bildschirm-Layouts werden nur vorgeschlagen, nie übernommen: Die Bildschirme des neuen Kabinetts werden im Assistenten vermessen. Die Builds selbst (Tische, ROMs, DOF, Pinscape) ziehen mit deiner eigenen Kopie der Build-Ordner um, nicht mit dem Profil.
+
+### 6. Skripte und Agenten (Kit-API, MCP)
+```cmd
+:: Eine Operation als JSON (Probelauf, solange -Apply fehlt; -Anonymize für alles, was an ein Cloud-Modell geht)
+powershell -NoProfile -ExecutionPolicy Bypass -File api\Invoke-KitApi.ps1 -Operation status -Anonymize
+
+:: MCP-Server über stdio für einen Agenten (kein Netzwerkport); -ReadOnly bietet nur die lesenden Werkzeuge an
+powershell -NoProfile -ExecutionPolicy Bypass -File api\Start-KitMcpServer.ps1 -ReadOnly
+```
+Ändernde Operationen sind Probeläufe, bis der Aufrufer `-Apply` übergibt (MCP: `apply=true`); Installer und geplante Aufgaben brauchen zusätzlich die Freigabe eines Menschen (`-Approved`). Schritte, bei denen jemand am Kabinett stehen muss, bleiben in den Assistenten. Details, Operationskatalog und eine Client-Konfiguration: [API.md](API.md).
 
 ---
 

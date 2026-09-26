@@ -4,7 +4,7 @@ const en: Dict = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Guided installers for virtual pinball and lightgun setups, plus retro skills for coding agents. Open source, work in progress.",
+      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v0.3.0.",
   },
   nav: {
     home: "Home",
@@ -16,7 +16,7 @@ const en: Dict = {
     menu: "Menu",
     skip: "Skip to content",
     language: "Language",
-    wip: "WORK IN PROGRESS",
+    wip: "RELEASE",
   },
   boot: {
     lines: [
@@ -24,8 +24,9 @@ const en: Dict = {
       "",
       "CPU   Z80A @ 3.58 MHz ............... OK",
       "RAM   64K SYSTEM CHECK .............. OK",
-      "KIT   PINBALL INSTALLER ............. WIP",
-      "KIT   LIGHTGUN INSTALLER ............ WIP",
+      "KIT   PINBALL INSTALLER ............. OK",
+      "KIT   LIGHTGUN INSTALLER ............ OK",
+      "KIT   CABINET MIGRATION A>B ......... OK",
       "SKILL SKILL.MD LOADED ............... OK",
       "RULE  EVERY STEP IS VERIFIED ........ OK",
       "",
@@ -51,8 +52,9 @@ const en: Dict = {
     sub: "Two installers on a shared core, plus retro skills for your coding agent.",
     ctaGuides: "SEE THE GUIDES",
     ctaRepo: "VIEW REPO",
-    wip: "WORK IN PROGRESS",
-    wipSub: "AND LABELED AS SUCH",
+    ctaDownload: "DOWNLOAD",
+    wip: "RELEASED",
+    wipSub: "AND STILL GROWING",
     bubbles: [
       "Every step gets verified.",
       "You bring the builds.",
@@ -66,6 +68,7 @@ const en: Dict = {
     kicker: "THREE BUILDING BLOCKS",
     title: "What's in the kit",
     open: "GUIDE",
+    badge: "STABLE",
     pinball: {
       title: "Pinball Installer",
       text: "Move the PinUP Popper build you bring, or rebuild it on a fresh Windows: rewrite paths, register components, calibrate screens, back up.",
@@ -89,6 +92,19 @@ const en: Dict = {
       { title: "Official sources only", text: "Free tools and drivers are downloaded only from their official sites — with signature checks where available." },
     ],
   },
+  release: {
+    kicker: "NEW IN v{v}",
+    title: "One window for everything — and a move without headaches",
+    intro: "With v{v} the kit becomes a desktop app: set up, migrate, recover. Everything stays local on your PC.",
+    download: "DOWNLOAD v{v}",
+    changelog: "WHAT'S NEW",
+    features: [
+      { title: "Desktop dashboard", text: "Start-Kit.cmd opens one window with three modes — new cabinet, migrate, recover — and the live system status. Nothing to install." },
+      { title: "Cabinet migration A > B", text: "Export the old cabinet's settings as a zip, check it on the new one with a dry run, then import — with a backup before every write. Never ROMs, BIOS or tables." },
+      { title: "Maintenance built in", text: "Health check, every backup in one list to check and restore, and an anonymized support bundle for bug reports." },
+      { title: "Local API & MCP", text: "Scripts and AI agents use the same operations: dry run by default, installers only after your approval, results anonymized, no network port." },
+    ],
+  },
   creditsTeaser: {
     kicker: "CREDITS",
     title: "This kit only glues together the work of many people.",
@@ -104,11 +120,11 @@ const en: Dict = {
     repo: "Repository",
     credits: "Credits",
     tagline: "RETRO CABINET + VERIFIED STEPS = NO HEADACHES",
-    status: "Work in progress — installers not finished yet",
+    status: "local only · no telemetry · every step verified",
   },
   guide: {
-    wipBadge: "WORK IN PROGRESS / IN ENTWICKLUNG",
-    wipNote: "This guide describes the planned flow. The installer is not finished and not released yet.",
+    wipBadge: "RELEASED",
+    wipNote: "This guide describes the installer's flow. Try every step with the dry run first; the kit backs up before every change.",
     bring: "What you bring",
     loads: "What the kit downloads (official only)",
     steps: "Flow — every step: check · run · verify",
@@ -171,7 +187,7 @@ const en: Dict = {
       { title: "Detect RetroBat", text: "Pick source and target; the build is detected by EmulationStation and its settings." },
       { title: "Hardware", text: "Check DolphinBar in Mode 4, Bluetooth hint, 60 Hz refresh rate." },
       { title: "Drivers", text: "Install or check ViGEmBus; provide Gunmote (guided) and set it up as a scheduled task." },
-      { title: "Interference", text: "Adjust the Steam controller blacklist and Steam Input only while Steam is closed; disable interfering tasks after asking (reversible)." },
+      { title: "Interference", text: "Adjust the Steam controller blacklist and Steam Input only while Steam is closed (the only step that needs Steam closed); disable interfering tasks after asking (reversible)." },
       { title: "Gunmote layouts", text: "Layouts from kit templates: menu pad without pointer as default, pad 4:3, TeknoParrot via right stick, mouse only for RetroArch/PCSX2." },
       { title: "RetroBat settings", text: "Set lightgun options and emulator choice per system; trigger = select in the menu." },
       { title: "Emulators", text: "MAME profile, TeknoParrot profiles (repair paths, bind to XInput), Demul + DemulShooter, Model 2/Supermodel. DuckStation and PCSX2 guided only for now, no automatic mapping." },
@@ -182,7 +198,7 @@ const en: Dict = {
     ],
     notes: [
       "Scripts that run with admin rights live in a folder only administrators can write to; RetroBat only starts them as a scheduled task.",
-      "Before writing RetroBat, Gunmote or Steam files, the kit checks that those programs are closed.",
+      "Before writing RetroBat or Gunmote files, the kit checks that those programs are closed; Steam only has to be closed when the kit writes Steam's own files.",
       "Rumble is an optional, later step.",
     ],
   },
