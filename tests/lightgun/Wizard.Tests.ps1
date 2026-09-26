@@ -7,17 +7,17 @@ $wizardScript = Join-Path $kitRoot 'lightgun\ui\Wizard.ps1'
 Describe 'Lightgun wizard (smoke test, no window is shown)' {
     $state = Join-Path $TestDrive 'install-state.json'
 
-    It 'lists start, steps 1-14, calibration, verify, credits and maintenance and builds every page without errors (de and en)' {
+    It 'lists start, steps 1-15, calibration, verify, credits and maintenance and builds every page without errors (de and en)' {
         foreach ($culture in 'de-DE', 'en-US') {
             $w = . $wizardScript -NoShow -Culture $culture -StatePath $state
             try {
-                $w.Pages.Count | Should Be 18
-                $w.List.Items.Count | Should Be 18
+                $w.Pages.Count | Should Be 19
+                $w.List.Items.Count | Should Be 19
                 $w.DryRunBox.Checked | Should Be $true # first run
                 for ($i = 0; $i -lt $w.Pages.Count; $i++) { Show-KitWizardPage -Wizard $w -Index $i }
                 $w.Log.Text | Should Not Match '\[X\]'
-                $w.List.Items[16] | Should Be (Get-KitText 'Lightgun.Ui.Page.Credits')
-                $w.List.Items[17] | Should Be (Get-KitText 'Ui.Care.Page')
+                $w.List.Items[17] | Should Be (Get-KitText 'Lightgun.Ui.Page.Credits')
+                $w.List.Items[18] | Should Be (Get-KitText 'Ui.Care.Page')
                 @($w.List.Items | Where-Object { $_ -match '^\[\[' }).Count | Should Be 0
             } finally { $w.Form.Dispose() }
         }
@@ -44,10 +44,10 @@ Describe 'Lightgun wizard (smoke test, no window is shown)' {
     }
 
     It 'shows the calibration guide and the credits' {
-        $w = . $wizardScript -NoShow -Culture 'en-US' -StatePath $state -Page 14
+        $w = . $wizardScript -NoShow -Culture 'en-US' -StatePath $state -Page 15
         try {
             (@($w.Content.Controls[0].Controls | ForEach-Object { $_.Text }) -join ' ') | Should Match 'only ONE Wiimote'
-            Show-KitWizardPage -Wizard $w -Index 16
+            Show-KitWizardPage -Wizard $w -Index 17
             $box = @($w.Content.Controls[0].Controls | Where-Object { $_ -is [Windows.Forms.RichTextBox] })[0]
             $box.Text | Should Match 'https://github.com/gunmotelabs/Gunmote'
         } finally { $w.Form.Dispose() }
@@ -61,10 +61,10 @@ Describe 'Lightgun wizard (smoke test, no window is shown)' {
         $cfg = (Get-LightgunRetroBatPath -Root $rb).EsSettings
         $current = [IO.File]::ReadAllText($cfg)
         [IO.File]::WriteAllText("$cfg.bak_lightgun_20260101-100000-000", 'older settings')
-        $w = . $wizardScript -NoShow -Culture 'en-US' -StatePath $careState -Page 17
+        $w = . $wizardScript -NoShow -Culture 'en-US' -StatePath $careState -Page 18
         try {
-            $w.Pages[17].Care.LogDir = Join-Path $TestDrive 'care-logs' # never the kit's own logs folder
-            $w.Pages[17].Care.Guard = {}                                 # no guarded program check on a test machine
+            $w.Pages[18].Care.LogDir = Join-Path $TestDrive 'care-logs' # never the kit's own logs folder
+            $w.Pages[18].Care.Guard = {}                                 # no guarded program check on a test machine
             @(Invoke-KitCareDoctor -Wizard $w).Count | Should BeGreaterThan 5
             $w.Log.Text | Should Match 'Result: \d+ error'
 
