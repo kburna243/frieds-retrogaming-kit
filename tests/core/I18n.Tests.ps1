@@ -32,8 +32,9 @@ Describe 'I18n with the real text files' {
     }
 
     It 'has the same keys in de-DE and en-US' {
-        $de = Import-PowerShellDataFile (Join-Path $kitRoot 'i18n\de-DE.psd1')
-        $en = Import-PowerShellDataFile (Join-Path $kitRoot 'i18n\en-US.psd1')
+        # Loaded like the kit does (Import-LocalizedData): Import-PowerShellDataFile stops at large files.
+        Import-LocalizedData -BindingVariable de -BaseDirectory (Join-Path $kitRoot 'i18n') -FileName 'de-DE.psd1' -UICulture 'de-DE'
+        Import-LocalizedData -BindingVariable en -BaseDirectory (Join-Path $kitRoot 'i18n') -FileName 'en-US.psd1' -UICulture 'en-US'
         (@($de.Keys | Sort-Object) -join ',') | Should Be (@($en.Keys | Sort-Object) -join ',')
     }
 

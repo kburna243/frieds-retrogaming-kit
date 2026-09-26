@@ -15,7 +15,7 @@ function Resolve-FullPath([string] $Path) {
 }
 
 foreach ($name in 'Log', 'State', 'I18n', 'Step', 'Elevation', 'Sqlite', 'Text', 'Registry',
-                  'Processes', 'Backup', 'Links', 'Download', 'Ui', 'Doctor', 'Recovery', 'SupportBundle') {
+                  'Processes', 'Backup', 'Links', 'Download', 'Ui', 'Doctor', 'Recovery', 'SupportBundle', 'CarePage') {
     . (Join-Path $PSScriptRoot "modules\$name.ps1")
 }
 

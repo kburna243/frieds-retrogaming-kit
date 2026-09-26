@@ -1,7 +1,7 @@
 ﻿<#
 .SYNOPSIS
-    Lightgun wizard (Windows Forms): the lightgun steps 1-9 as pages, then calibration (guided, last) and the
-    thanks page. Status list on the left (green only after the step's Verify), log below, language de/en,
+    Lightgun wizard (Windows Forms): the lightgun steps 1-14 as pages, then calibration (guided, last), the
+    thanks page and the maintenance page (doctor, backups, support bundle). Status list on the left (green only after the step's Verify), log below, language de/en,
     dry-run switch (on for the first run), a confirmation before every writing action.
     Opens without administrator rights; the start page can restart it elevated.
 .PARAMETER NoShow
@@ -9,7 +9,7 @@
 .PARAMETER Screenshot
     Show the window, save it as PNG to this path and close (for reviews).
 .PARAMETER Page
-    Index of the start page (0 = start, 9 = verify, 11 = thanks).
+    Index of the start page (0 = start, 15 = verify, 16 = thanks, 17 = maintenance).
 .PARAMETER KitUserSid
     Passed by the elevation; the tasks of steps 4 and 8 run for this user.
 #>
@@ -248,6 +248,14 @@ $pages = @(
         $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.Credits.Desc')
         $null = Add-KitCreditsView -Panel $p -Path (Join-Path $script:KitRootDir 'CREDITS.md')
     } }
+    (New-KitCarePage -StatePath $StatePath -LogDir (Join-Path $kitRoot 'logs') -Guard { Assert-LightgunProcessesClosed } -Checks {
+        Get-KitSystemCheck
+        Get-LightgunDoctorCheck -StatePath $script:StateFile
+    } -BackupRoots {
+        [string](Get-KitStateValue -Path $script:StateFile -Key 'RetroBatRoot')
+        $g = Find-LightgunGunmote; if ($g) { $g.Dir }
+        $steam = Get-LightgunSteamPath; if ($steam) { Join-Path $steam 'config' }
+    })
 )
 
 # --- start --------------------------------------------------------------------------------------------------

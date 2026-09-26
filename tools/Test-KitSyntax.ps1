@@ -5,7 +5,8 @@
     - every *.ps1, *.psm1 and *.psd1 parses without errors
     - every file with non-ASCII characters starts with a UTF-8 BOM (Windows PowerShell 5.1 reads files
       without BOM as ANSI, so umlauts, dashes and emoji would be garbled or break string parsing)
-    - every *.psd1 loads as data (Import-PowerShellDataFile)
+    - every *.psd1 loads as data (Import-LocalizedData, like the kit loads its texts; Import-PowerShellDataFile
+      refuses large files such as the i18n tables)
     - network APIs appear only in core/modules/Download.ps1 (no telemetry, no hidden downloads)
     - the module manifests (core, pinball, lightgun) carry the version from the VERSION file
     Runs on Windows PowerShell 5.1 and on PowerShell 7.
@@ -54,7 +55,10 @@ foreach ($rel in $files | Sort-Object -Unique) {
     }
 
     if ($rel -like '*.psd1' -and -not $errors) {
-        try { [void](Import-PowerShellDataFile -LiteralPath $full) }
+        try {
+            $data = $null
+            Import-LocalizedData -BindingVariable data -BaseDirectory (Split-Path -Parent $full) -FileName (Split-Path -Leaf $full) -UICulture 'en-US' -ErrorAction Stop
+        }
         catch { $problems.Add("${rel}: not a valid data file: $($_.Exception.Message)") }
     }
 }

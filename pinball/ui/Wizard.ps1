@@ -2,14 +2,15 @@
 .SYNOPSIS
     Pinball wizard (Windows Forms): the pinball steps 1-9 as pages, status list on the left (green only after
     the step's Verify), log below, language de/en, mode Move/Rebuild, dry-run switch (on for the first run),
-    a confirmation before every writing action, and the credits page (read from CREDITS.md at runtime).
+    a confirmation before every writing action, the credits page (read from CREDITS.md at runtime) and the
+    maintenance page (doctor, backups, support bundle).
     Opens without administrator rights; the start page can restart it elevated.
 .PARAMETER NoShow
     Build the wizard and return it without showing a window (tests). The caller disposes $wizard.Form.
 .PARAMETER Screenshot
     Show the window, save it as PNG to this path and close (for reviews).
 .PARAMETER Page
-    Index of the start page (0 = start, 8 = screens, 10 = thanks).
+    Index of the start page (0 = start, 8 = screens, 10 = thanks, 11 = maintenance).
 .PARAMETER Monitors
     Injected monitors instead of the real ones (tests, screenshots).
 .PARAMETER KitUserSid
@@ -407,6 +408,13 @@ $pages = @(
         $null = Add-KitUiText $p (Get-KitText 'Pinball.Ui.Credits.Desc')
         $null = Add-KitCreditsView -Panel $p -Path (Join-Path $script:KitRootDir 'CREDITS.md')
     } }
+    (New-KitCarePage -StatePath $StatePath -LogDir (Join-Path $kitRoot 'logs') -Guard { Assert-PinballProcessesClosed } -Checks {
+        Get-KitSystemCheck
+        Get-PinballDoctorCheck -StatePath $script:StateFile
+    } -BackupRoots {
+        Join-Path (Split-Path -Parent $script:StateFile) 'backups'
+        foreach ($key in 'TargetRoot', 'SourceRoot') { [string](Get-KitStateValue -Path $script:StateFile -Key $key) }
+    })
 )
 
 # --- start --------------------------------------------------------------------------------------------------
