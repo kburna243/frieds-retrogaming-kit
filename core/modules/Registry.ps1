@@ -53,6 +53,7 @@ function Set-KitRegistryValue {
     if (-not $PSCmdlet.ShouldProcess("$Path\$Name", 'Set registry value')) { return }
     if (-not (Test-Path -LiteralPath $Path)) { New-Item -Path $Path -Force | Out-Null }
     New-ItemProperty -LiteralPath $Path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
+    Add-KitStepChange -Kind Registry -Target "$Path\$Name" -Detail $Type
 }
 
 function Export-KitRegistryKey {
@@ -160,6 +161,7 @@ function Import-KitRegistryFile {
         $handle = Open-CheckedRegFile $tmp $checked
         $output = & reg.exe import $tmp 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) { throw "reg.exe import '$file' failed ($LASTEXITCODE): $($output.Trim())" }
+        Add-KitStepChange -Kind Registry -Target $file -Detail 'reg.exe import (merge)'
     } finally {
         if ($handle) { $handle.Dispose() }
         Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue

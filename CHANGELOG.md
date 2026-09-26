@@ -7,6 +7,12 @@ that matches it.
 
 ## [Unreleased]
 
+### Added
+- Structured step results: `Invoke-KitStep` returns `Duration`, `Changed`, `Changes`, `Backups`, `Warnings`,
+  `Errors` and `Log` next to the status. Text rewrites, registry writes and imports, database updates, zip
+  backups and the lightgun / screen file backups report themselves (`Add-KitStepChange`, `Add-KitStepBackup`).
+  Both wizards log one summary line per step (changes, backups, duration) plus the backup paths.
+
 ### Changed
 - GitHub Actions: checkout 7, setup-node 7, upload-artifact 7, attest-build-provenance 4, configure-pages 6,
   deploy-pages 5, upload-pages-artifact 5 (all on Node 24; the inputs the workflows use are unchanged).

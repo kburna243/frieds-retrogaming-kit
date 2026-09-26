@@ -87,6 +87,7 @@ function Invoke-WizardStep([int] $Index, [string] $Script, [hashtable] $Params =
         Write-KitWizardLog -Wizard $w -Text (Get-KitText 'Lightgun.Ui.StepError' -f $title, $_.Exception.Message) -Level Error
         $null = $results.Add([pscustomobject]@{ Status = 'Failed'; WhatIf = $false })
     } finally { $w.Form.Cursor = 'Default' }
+    Write-KitWizardStepSummary -Wizard $w -Result @($results)
     if (-not $Preview) { Set-KitWizardStatus -Wizard $w -Index $Index -Status (Get-StepPageStatus @($results)) }
 }
 

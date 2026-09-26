@@ -526,4 +526,6 @@
     'Ui.Care.SupportHead'           = 'Support bundle'
     'Ui.Care.SupportDesc'           = 'One anonymized zip for an issue report: health check, environment, step states and the newest logs. No ROMs, tables or configuration files.'
     'Ui.Care.CreateBundle'          = 'Create support bundle'
+    'Ui.StepSummary'                = '{0}: {1} change(s), {2} backup(s), {3:N1} s'
+    'Ui.StepBackup'                 = '  backup: {0}'
 }

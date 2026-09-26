@@ -93,6 +93,8 @@ function Backup-LightgunFile {
     param([Parameter(Mandatory)] [string] $Path)
     $backup = '{0}.bak_lightgun_{1:yyyyMMdd-HHmmss-fff}' -f $Path, (Get-Date)
     Copy-Item -LiteralPath $Path -Destination $backup
+    Add-KitStepBackup -Path $backup
+    Add-KitStepChange -Kind File -Target $Path -Detail 'backed up, then changed'
     Write-KitLog (Get-KitText 'Lightgun.Backup' -f $backup)
     $backup
 }

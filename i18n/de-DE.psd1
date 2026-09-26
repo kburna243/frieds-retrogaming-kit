@@ -526,4 +526,6 @@
     'Ui.Care.SupportHead'           = 'Support-Paket'
     'Ui.Care.SupportDesc'           = 'Ein anonymisiertes ZIP für eine Fehlermeldung: Gesundheitscheck, Umgebung, Schrittstatus und die neuesten Logs. Keine ROMs, Tische oder Konfigurationsdateien.'
     'Ui.Care.CreateBundle'          = 'Support-Paket erstellen'
+    'Ui.StepSummary'                = '{0}: {1} Änderung(en), {2} Backup(s), {3:N1} s'
+    'Ui.StepBackup'                 = '  Backup: {0}'
 }

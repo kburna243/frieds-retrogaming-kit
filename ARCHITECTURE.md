@@ -77,6 +77,19 @@ New-KitStep -Name 'lightgun-10-tp-bind' `
 
 A step never reports success from assumptions.
 
+The result (`RetroCabinetKit.StepResult`) is structured, so a front end never parses output:
+
+| Field | Content |
+| :--- | :--- |
+| `Name`, `Status`, `WhatIf`, `Message`, `Error` | outcome as above |
+| `Duration` | run time (`TimeSpan`) |
+| `Changed`, `Changes` | what was written: `Kind` (File, Registry, Database, Task, Setting), `Target`, `Detail` |
+| `Backups` | backups made during the step (kit zips and `<file>.bak_*` copies) |
+| `Warnings`, `Errors`, `Log` | the step's own log lines |
+
+Writers report themselves while a step runs (`Add-KitStepChange`, `Add-KitStepBackup`); the core already does
+for text rewrites, registry values and imports, database updates and backups. Outside a step the calls do nothing.
+
 ### Definition of Done for a step
 
 | | Requirement |
