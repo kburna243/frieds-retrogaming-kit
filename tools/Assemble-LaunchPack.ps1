@@ -1,6 +1,9 @@
-# tools/Assemble-LaunchPack.ps1
+﻿# tools/Assemble-LaunchPack.ps1
+# Collects social posts, graphics, manuals and the release zip into one launch folder.
+# The version comes from the VERSION file (same source as tools/New-ReleasePackage.ps1).
 param(
-    [string]$PackDir = ""
+    [string]$PackDir = "",
+    [string]$Version = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,6 +14,10 @@ if (-not $PackDir) {
 }
 
 $repoRoot = (Get-Item $PSScriptRoot).Parent.FullName
+if (-not $Version) {
+    $Version = ([IO.File]::ReadAllText((Join-Path $repoRoot "VERSION"))).Trim()
+}
+$zipName = "frieds-retrogaming-kit-v$Version.zip"
 
 Write-Host "Creating launch pack at $PackDir..." -ForegroundColor Cyan
 
@@ -71,16 +78,23 @@ foreach ($doc in $manuals) {
 }
 
 # 4. Release package
-$zipSrc = Join-Path $downloadsDir "frieds-retrogaming-kit-v0.1.zip"
+$zipSrc = Join-Path $downloadsDir $zipName
 if (Test-Path $zipSrc) {
-    Copy-Item -Path $zipSrc -Destination (Join-Path $sub04 "frieds-retrogaming-kit-v0.1.zip") -Force
+    Copy-Item -Path $zipSrc -Destination (Join-Path $sub04 $zipName) -Force
+} else {
+    Write-Warning "Release zip not found: $zipSrc (run tools\New-ReleasePackage.ps1 first)"
+}
+$sumsSrc = Join-Path $downloadsDir "SHA256SUMS.txt"
+if (Test-Path $sumsSrc) {
+    Copy-Item -Path $sumsSrc -Destination (Join-Path $sub04 "SHA256SUMS.txt") -Force
 }
 
 # 5. Summary Readme
-$readmeContent = @"
-# Fried's Retrogaming Kit — Launch Pack v0.1
+# Literal here-string: backticks are markdown code spans here, not PowerShell escapes.
+$readmeContent = @'
+# Fried's Retrogaming Kit — Launch Pack v{{VERSION}}
 
-This folder contains all essential marketing, social, visual, and documentation assets for the v0.1 launch.
+This folder contains all essential marketing, social, visual, and documentation assets for the v{{VERSION}} launch.
 
 ## 📂 Folder Overview
 
@@ -101,13 +115,15 @@ This folder contains all essential marketing, social, visual, and documentation 
   - `03_Core_Platform_und_Tools.md`: Core system, backup/rollback, and wizard guide.
 
 - **04_Release_Package/**
-  - `frieds-retrogaming-kit-v0.1.zip`: Standalone release build v0.1.0 ready for distribution.
+  - `{{ZIP}}`: Standalone release build v{{VERSION}} ready for distribution.
+  - `SHA256SUMS.txt`: SHA-256 checksum of the zip (verify with `Get-FileHash` or `sha256sum -c`).
 
 ## 🔗 Important Links
 - **GitHub Repository**: https://github.com/kburna243/frieds-retrogaming-kit
-- **GitHub Release v0.1.0**: https://github.com/kburna243/frieds-retrogaming-kit/releases/tag/v0.1.0
+- **GitHub Release v{{VERSION}}**: https://github.com/kburna243/frieds-retrogaming-kit/releases/tag/v{{VERSION}}
 - **Live Documentation & Website**: https://kburna243.github.io/frieds-retrogaming-kit/
-"@
+'@
+$readmeContent = $readmeContent.Replace('{{VERSION}}', $Version).Replace('{{ZIP}}', $zipName)
 
 Set-Content -Path (Join-Path $PackDir "README_LAUNCH_PACK.md") -Value $readmeContent -Encoding UTF8
 
