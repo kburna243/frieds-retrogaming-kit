@@ -21,10 +21,21 @@ that matches it.
 - Tests: `tests\pinball\New-PinballYTestInstall.ps1` builds a synthetic installation the way PinballY writes one
   (including the path examples inside the comments and one database it cannot parse), 29 engine tests and 9 API
   tests, among them that a read writes nothing and answers twice with the same words.
-
-### Known gap
-- Nothing in PinballY is changed yet. Retargeting the few absolute paths of a copied installation (with dry run,
-  backup, process guard and a second run that finds nothing left to do) is the next operation, not this one.
+- Pinball: `pinball\modules\PinballYRetarget.ps1` gives a copied installation the paths of this machine. It takes
+  pairs `Old=New` (a whole drive `C:=D:` included), plans them line by line over `Settings.txt` and the INI files
+  inside the install, and writes only what (a) does not resolve here, (b) is a path and not a comment, a token or a
+  relative value, and (c) has a target that exists on this machine. The byte order mark, the CRLF endings and the
+  padding around `=` survive untouched; `DefaultSettings.txt`, the rolling `Settings backup <date>.txt` copies and
+  the HyperList databases are never candidates. A line whose content moved since the plan refuses the file instead
+  of writing a line nobody approved, and the write is backed up with `New-KitBackup` beforehand.
+- API 1.3: operation `pinbally.retarget` (Change, `Path` + `Map`, optional `BackupDir`). Dry run without `-Apply`,
+  `NeedsUser` with `-Apply` alone, one approval text per file, the write only with `-Apply -Approved`; the second
+  run answers `Skipped`. Refused means refused: no backup and no state entry. While PinballY or its overlay is
+  running the write is refused, because the program rewrites its own settings when it closes.
+- Tests: 29 engine tests and 10 API tests for the retarget, among them that a dry run changes neither a single byte
+  of the installation nor the state file, that exactly the planned lines and no other line differ afterwards, that
+  the same value on two lines of one INI is written on both, that two runs in the same second get two backups
+  instead of overwriting one, and that `Restore-KitBackup` is the way back.
 
 ## [0.3.1] - 2026-09-26
 

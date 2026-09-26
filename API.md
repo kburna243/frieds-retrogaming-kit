@@ -1,4 +1,4 @@
-# Kit API (v1.2)
+# Kit API (v1.3)
 
 One stable entry point for every client of the kit — the WPF dashboard, the command line, scripts, tests and
 external tools such as an agent harness. The API is a thin, versioned facade over the engine modules; it adds no
@@ -40,7 +40,7 @@ another process (stdin/stdout, no network port).
 
 | Field | Type | Meaning |
 | :--- | :--- | :--- |
-| `ApiVersion` | string | `1.2`; a new major version is a breaking change |
+| `ApiVersion` | string | `1.3`; a new major version is a breaking change |
 | `KitVersion` | string | the kit's version (`VERSION` file), e.g. `0.3.0`; empty if the file is missing |
 | `Operation` | string | the operation name as called |
 | `Kind` | string | `Read` or `Change` |
@@ -69,6 +69,7 @@ Change operations built from steps also carry `Data.Steps`: one entry per step r
 | `status` | Read | — | `Summary` (`Ok`, `Info`, `Warn`, `Error`, `Level`), `Checks[]` (`Area`, `Name`, `Level`, `Detail`) |
 | `components` | Read | — | `Components[]` (`Name`, `Present`, `Version`, `Path`, `Detail`) |
 | `pinbally.detect` | Read | `Path` | `Root`, `Version`, `Encoding`, `SettingsLine`, `Setting`, `System[]`, `SystemEnabled`, `Reference[]` (`Line`, `Key`, `Value`, `Kind`, `Status`, `TokenName`, `Anchor`, `Resolved`), `ReferenceAbsolute`, `ReferenceToken`, `ReferenceMissing[]`, `ReferenceForeign[]`, `Database[]`, `Game`, `Companion[]`, `Running[]`, `WriteSafe` |
+| `pinbally.retarget` | Change | `Path`; `Map` (string[], pairs `Old=New`); `BackupDir` (optional) | `Root`, `Pair[]`, `Plan[]` (`File`, `FileKind`, `Line`, `Key`, `Old`, `New`, `Pair`, `Target`, `Status`, `Reason`), `Ready[]`, `Pending[]`, `Written[]`, `Backup` |
 | `backups.list` | Read | `Root` (string[], optional) | `Backups[]` (`Kind`, `Path`, `Created`, `Purpose`, `Original`, `Files`, `Registry`, `SizeBytes`) |
 | `backup.check` | Read | `Path` | `Ok`, `Differs`, `Problems[]` |
 | `backup.restore` | Change | `Path`; `AllowedRoot` (string[]) for zip backups | `Target`, `SavedCurrent` |
@@ -91,6 +92,26 @@ does not resolve on this machine comes back in `Warnings` — a value that only 
 came from is reported as `ReferenceForeign`, not as a broken setting. The folder is a parameter because PinballY
 is not part of a build: it sits wherever its owner put it, and the kit does not search drives for it.
 `components` shows it as soon as the pinball state holds `PinballYRoot`.
+
+`pinbally.retarget` is the write that belongs to that read: a folder copied from another machine holds paths that
+resolve there and not here. It takes pairs written as `Old=New` (both absolute, e.g. `C:\Games\Pinball=D:\Games\Pinball`,
+a whole drive `C:=D:` is allowed) and rewrites the value of a **line** in `Settings.txt` and in the INI files it knows,
+so long as the new path exists on this machine. What it never touches: comments (they hold path examples, not
+settings), values with a token like `[STEAM]`, relative paths, values that already resolve, `DefaultSettings.txt`,
+the rolling `Settings backup <date>.txt` copies and the HyperList databases. The longest matching prefix wins, and
+only at a path boundary: a pair that covers `…\Scripts` never rewrites `…\ScriptsOld\tool.exe`, because that is
+other content whose name merely starts with the same letters. Line endings, the
+UTF-8 byte order mark and the padding around `=` stay byte for byte as the program wrote them.
+
+The gate is rule 2 in full: without `-Apply` the answer is the plan (`WhatIf`, nothing written, not even the state
+file); `-Apply` alone answers `NeedsUser` with one approval text per file; only `-Apply -Approved` writes, and it
+writes to files that were put in a `New-KitBackup` ZIP beforehand (that refusal leaves no backup behind, because
+nothing was touched). While PinballY or its overlay is running the write is refused — the program rewrites
+`Settings.txt` when it closes. A row whose line no longer holds exactly the planned key and value when the write
+arrives refuses the whole file rather than writing a line nobody approved: PinballY may have rewritten the file
+between the shown plan and the yes. Values the map does not cover, or that lead to a folder that does not exist
+here, stay in `Pending` and are reported as `Warnings` — never silently changed and never silently dropped. The
+second run answers `Skipped`: the paths resolve now, so there is nothing left to plan.
 
 ## In-process (PowerShell)
 
@@ -151,3 +172,4 @@ operation changes meaning or disappears. The contract tests in `tests\api\` pin 
 | `1.0` | 0.2.0 | first version |
 | `1.1` | 0.3.x | operation `backup.remove`, field `KitVersion`; `Apply` / `Approved` refused as parameter names |
 | `1.2` | unreleased | operation `pinbally.detect` and the `PinballY` component row: the second front end can be described (reads only, never writes) |
+| `1.3` | unreleased | operation `pinbally.retarget`: the paths of a copied PinballY installation get their targets on this machine, gated by rule 2 like every other change |
