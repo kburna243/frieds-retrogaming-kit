@@ -26,15 +26,16 @@ Describe 'CabinetProfile: path tokenization' {
     }
 
     It 'resolves token back to target root' {
+        # Literal expected paths: Join-Path would validate drive existence (CI runners lack X:/Y:).
         $targetRoots = @{
             '{PinballRoot}'  = 'X:\NewCabinet\VPin'
             '{RetroBatRoot}' = 'Y:\RetroBat'
         }
         $r1 = ConvertFrom-KitProfilePath -Path '{PinballRoot}/PinUPSystem/POPMedia' -Roots $targetRoots
-        $r1 | Should BeExactly (Join-Path 'X:\NewCabinet\VPin' 'PinUPSystem\POPMedia')
+        $r1 | Should BeExactly 'X:\NewCabinet\VPin\PinUPSystem\POPMedia'
 
         $r2 = ConvertFrom-KitProfilePath -Path '{RetroBatRoot}/roms/mame' -Roots $targetRoots
-        $r2 | Should BeExactly (Join-Path 'Y:\RetroBat' 'roms\mame')
+        $r2 | Should BeExactly 'Y:\RetroBat\roms\mame'
     }
 
     It 'leaves foreign paths untouched' {
@@ -72,8 +73,8 @@ Describe 'CabinetProfile: path safety & manifest validation' {
 
 Describe 'CabinetProfile: Pinball export on A and import on B' {
     Set-KitCulture -Culture 'en-US'
-    $cabA = Join-Path $TestDrive 'cabA'
-    $cabB = Join-Path $TestDrive 'cabB'
+    $cabA = Join-Path "$TestDrive" 'cabA'
+    $cabB = Join-Path "$TestDrive" 'cabB'
     $pinballA = Join-Path $cabA 'Pinball'
     $pinballB = Join-Path $cabB 'Pinball'
 
@@ -99,7 +100,7 @@ Describe 'CabinetProfile: Pinball export on A and import on B' {
     Set-KitRegistryValue -Path $regTestA -Name 'VPinballPath' -Value "$pinballA\vPinball\VisualPinball"
     Set-KitRegistryValue -Path $regTestA -Name 'PlayerMode' -Value 1 -Type 'DWord'
 
-    $zipDest = Join-Path $TestDrive 'profiles'
+    $zipDest = Join-Path "$TestDrive" 'profiles'
 
     AfterAll {
         if (Test-Path -LiteralPath 'HKCU:\Software\retro-cabinet-kit-test-profile-a') {
@@ -206,8 +207,8 @@ Describe 'CabinetProfile: Pinball export on A and import on B' {
 
 Describe 'CabinetProfile: Lightgun export on A and import on B' {
     Set-KitCulture -Culture 'en-US'
-    $cabA = Join-Path $TestDrive 'lgCabA'
-    $cabB = Join-Path $TestDrive 'lgCabB'
+    $cabA = Join-Path "$TestDrive" 'lgCabA'
+    $cabB = Join-Path "$TestDrive" 'lgCabB'
 
     $rbA = Join-Path $cabA 'RetroBat'
     $gmA = Join-Path $cabA 'Gunmote'
@@ -231,7 +232,7 @@ Describe 'CabinetProfile: Lightgun export on A and import on B' {
     [IO.File]::WriteAllText($kmJsonA, (ConvertTo-Json $kmA -Depth 5), [Text.Encoding]::UTF8)
     [IO.File]::WriteAllText((Join-Path $gmA 'Keymaps\rck_pad43.json'), '{"pointer": "stick"}', [Text.Encoding]::UTF8)
 
-    $zipDest = Join-Path $TestDrive 'lgProfiles'
+    $zipDest = Join-Path "$TestDrive" 'lgProfiles'
 
     It 'exports Lightgun profile from A' {
         $export = Export-KitCabinetProfile -Suite 'Lightgun' -Destination $zipDest `

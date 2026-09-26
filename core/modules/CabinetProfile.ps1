@@ -46,7 +46,9 @@ function ConvertFrom-KitProfilePath {
         $cleanRoot = $rootVal.TrimEnd('\', '/')
         if ($res.StartsWith($token, [StringComparison]::OrdinalIgnoreCase)) {
             $sub = $res.Substring($token.Length).TrimStart('/', '\')
-            $res = if ($sub) { Join-Path $cleanRoot ($sub -replace '/', '\') } else { $cleanRoot }
+            # Plain concatenation, not Join-Path: Join-Path throws DriveNotFoundException when the root's
+            # drive does not exist on this machine - a profile made for another cabinet may name any letter.
+            $res = if ($sub) { $cleanRoot + '\' + ($sub -replace '/', '\') } else { $cleanRoot }
             break
         }
     }
@@ -505,19 +507,37 @@ function Export-KitCabinetProfile {
 
         $zip = [IO.Compression.ZipFile]::Open($targetZip, [IO.Compression.ZipArchiveMode]::Create)
         try {
-            foreach ($f in Get-ChildItem -LiteralPath $stageDir -Recurse -File) {
-                $rel = $f.FullName.Substring($stageDir.Length).TrimStart('\', '/') -replace '\\', '/'
-                $entry = $zip.CreateEntry($rel, [IO.Compression.CompressionLevel]::Optimal)
-                $stream = $entry.Open()
-                $bytes = [IO.File]::ReadAllBytes($f.FullName)
-                try {
-                    $stream.Write($bytes, 0, $bytes.Length)
-                } finally {
-                    $stream.Dispose()
+            # Entry names via the provider (Resolve-Path -Relative): a substring on FullName would break
+            # when the staging path and the file objects differ in form (8.3 short names, drive casing).
+            Push-Location -LiteralPath $stageDir
+            try {
+                foreach ($f in Get-ChildItem -LiteralPath . -Recurse -File) {
+                    $rel = (Resolve-Path -LiteralPath $f.FullName -Relative) -replace '^(\.\\)+', '' -replace '\\', '/'
+                    $entry = $zip.CreateEntry($rel, [IO.Compression.CompressionLevel]::Optimal)
+                    $stream = $entry.Open()
+                    $bytes = [IO.File]::ReadAllBytes($f.FullName)
+                    try {
+                        $stream.Write($bytes, 0, $bytes.Length)
+                    } finally {
+                        $stream.Dispose()
+                    }
                 }
+            } finally {
+                Pop-Location
             }
         } finally {
             $zip.Dispose()
+        }
+
+        # Verify the archive carries its manifest; report the real entry names when it does not.
+        $verifyZip = [IO.Compression.ZipFile]::OpenRead($targetZip)
+        try {
+            if (-not $verifyZip.GetEntry('profile.json')) {
+                $names = @($verifyZip.Entries | ForEach-Object { $_.FullName }) -join ', '
+                throw "Profile archive verification failed: no 'profile.json' entry. Entries: $names"
+            }
+        } finally {
+            $verifyZip.Dispose()
         }
 
         $zipItem = Get-Item -LiteralPath $targetZip
