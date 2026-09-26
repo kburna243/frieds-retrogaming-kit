@@ -87,6 +87,20 @@ function Resolve-LightgunRetroBat {
     [pscustomobject]@{ Root = $Root; Problem = $problem }
 }
 
+# Folders that hold the lightgun backups (<file>.bak_lightgun_* copies): RetroBat, Gunmote and Steam's config
+# folder. Only existing folders.
+function Get-LightgunBackupRoot {
+    [CmdletBinding()]
+    param([string] $StatePath = (Get-LightgunDefaultStatePath))
+    $roots = @()
+    if (Test-Path -LiteralPath $StatePath -PathType Leaf) { $roots += [string](Get-KitStateValue -Path $StatePath -Key 'RetroBatRoot') }
+    $g = Find-LightgunGunmote
+    if ($g) { $roots += $g.Dir }
+    $steam = Get-LightgunSteamPath
+    if ($steam) { $roots += Join-Path $steam 'config' }
+    @($roots | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) } | Sort-Object -Unique)
+}
+
 # Copy next to the file (<file>.bak_lightgun_<time>) before it is changed; returns the backup path.
 function Backup-LightgunFile {
     [CmdletBinding()]

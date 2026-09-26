@@ -8,7 +8,8 @@
     - every *.psd1 loads as data (Import-LocalizedData, like the kit loads its texts; Import-PowerShellDataFile
       refuses large files such as the i18n tables)
     - network APIs appear only in core/modules/Download.ps1 (no telemetry, no hidden downloads)
-    - the module manifests (core, pinball, lightgun) carry the version from the VERSION file
+    - every *.xaml (gui views and themes) is well-formed XML
+    - the module manifests (core, pinball, lightgun, gui) carry the version from the VERSION file
     Runs on Windows PowerShell 5.1 and on PowerShell 7.
 .PARAMETER Root
     Repository root. Default: the parent folder of this script's folder.
@@ -69,7 +70,7 @@ foreach ($rel in $files | Sort-Object -Unique) {
 $networkApi = '\b(Invoke-WebRequest|Invoke-RestMethod|Start-BitsTransfer|Send-MailMessage|Net\.WebClient|Net\.WebRequest|Net\.HttpWebRequest|Net\.Http\.HttpClient|Net\.Sockets\.|Net\.Mail\.|iwr|irm|wget|curl)\b'
 $networkAllowed = @('core/modules/Download.ps1')
 foreach ($rel in $files | Sort-Object -Unique) {
-    if ($rel -notmatch '^(core|pinball|lightgun)/.+\.ps(m?)1$' -or $networkAllowed -contains $rel) { continue }
+    if ($rel -notmatch '^(core|pinball|lightgun|gui)/.+\.ps(m?)1$' -or $networkAllowed -contains $rel) { continue }
     $full = Join-Path $Root $rel
     if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { continue }
     $tokens = $null; $errors = $null
@@ -83,6 +84,19 @@ foreach ($rel in $files | Sort-Object -Unique) {
     }
 }
 
+# --- XAML: every view and theme is well-formed XML ------------------------------------------------------------
+$xamlFiles = $null
+if ((Get-Command git -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath (Join-Path $Root '.git'))) {
+    $xamlFiles = @(& git -C $Root ls-files --cached --others --exclude-standard -- '*.xaml')
+}
+if ($null -eq $xamlFiles) { $xamlFiles = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter '*.xaml' | ForEach-Object { $_.FullName.Substring($Root.Length).TrimStart('\', '/') -replace '\\', '/' }) }
+foreach ($rel in $xamlFiles | Where-Object { $_ -notmatch '(^|/)node_modules/' }) {
+    $full = Join-Path $Root $rel
+    if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { continue }
+    try { $doc = New-Object Xml.XmlDocument; $doc.Load($full) }
+    catch { $problems.Add("${rel}: not well-formed XML: $($_.Exception.Message)") }
+}
+
 # --- version consistency --------------------------------------------------------------------------------------
 $versionFile = Join-Path $Root 'VERSION'
 if (Test-Path -LiteralPath $versionFile) {
@@ -91,7 +105,7 @@ if (Test-Path -LiteralPath $versionFile) {
         $problems.Add("VERSION: invalid version '$version'")
     } else {
         $moduleVersion = $Matches[1]
-        foreach ($m in 'core/RetroCabinetKit.Core.psd1', 'pinball/RetroCabinetKit.Pinball.psd1', 'lightgun/RetroCabinetKit.Lightgun.psd1') {
+        foreach ($m in 'core/RetroCabinetKit.Core.psd1', 'pinball/RetroCabinetKit.Pinball.psd1', 'lightgun/RetroCabinetKit.Lightgun.psd1', 'gui/RetroCabinetKit.Gui.psd1') {
             $data = Import-PowerShellDataFile -LiteralPath (Join-Path $Root $m)
             if ($data.ModuleVersion -ne $moduleVersion) { $problems.Add("${m}: ModuleVersion $($data.ModuleVersion) differs from VERSION $moduleVersion") }
         }

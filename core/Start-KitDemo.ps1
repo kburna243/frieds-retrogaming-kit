@@ -1,7 +1,8 @@
 ﻿<#
 .SYNOPSIS
-    Core demo: unblock kit files, start the log, show the language, run one example step with -WhatIf.
-    With -Doctor, -Backups or -SupportBundle it runs that tool instead (core\Start-KitTools.ps1).
+    Entry of Start-Kit.cmd. Without switches it opens the dashboard (gui\Start-KitGui.ps1, WPF).
+    -Doctor, -Backups or -SupportBundle run that tool on the command line (core\Start-KitTools.ps1);
+    -Demo runs the core demo (unblock kit files, start the log, one example step with -WhatIf).
 .PARAMETER Culture
     Override the UI language (e.g. de-DE, en-US). Default: the Windows display language.
 .PARAMETER Doctor
@@ -10,19 +11,28 @@
     Lists the kit's backups.
 .PARAMETER SupportBundle
     Creates an anonymized support bundle in the logs folder.
+.PARAMETER Demo
+    Runs the core demo instead of opening the dashboard.
 #>
 [CmdletBinding()]
 param(
     [string] $Culture,
     [switch] $Doctor,
     [switch] $Backups,
-    [switch] $SupportBundle
+    [switch] $SupportBundle,
+    [switch] $Demo
 )
 
 $ErrorActionPreference = 'Stop'
 if ($Doctor -or $Backups -or $SupportBundle) {
     & (Join-Path $PSScriptRoot 'Start-KitTools.ps1') @PSBoundParameters
     exit $LASTEXITCODE
+}
+if (-not $Demo) {
+    $gui = @{}
+    if ($Culture) { $gui.Culture = $Culture }
+    & (Join-Path (Split-Path -Parent $PSScriptRoot) 'gui\Start-KitGui.ps1') @gui
+    exit 0
 }
 $kitRoot = Split-Path -Parent $PSScriptRoot
 

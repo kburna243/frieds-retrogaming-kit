@@ -32,7 +32,7 @@ if (-not $Version) {
 }
 if ($Version -notmatch '^(\d+\.\d+\.\d+)(-[0-9A-Za-z.-]+)?$') { throw "Invalid version '$Version' (expected e.g. 0.2.0 or 0.2.0-rc.1)." }
 $moduleVersion = $Matches[1]
-foreach ($manifest in 'core\RetroCabinetKit.Core.psd1', 'pinball\RetroCabinetKit.Pinball.psd1', 'lightgun\RetroCabinetKit.Lightgun.psd1') {
+foreach ($manifest in 'core\RetroCabinetKit.Core.psd1', 'pinball\RetroCabinetKit.Pinball.psd1', 'lightgun\RetroCabinetKit.Lightgun.psd1', 'gui\RetroCabinetKit.Gui.psd1') {
     $path = Join-Path $repoRoot $manifest
     $data = Import-PowerShellDataFile -LiteralPath $path
     if ($data.ModuleVersion -ne $moduleVersion) {
@@ -55,7 +55,7 @@ $rootFiles = @(
     'README.md', 'README.de.md', 'LICENSE', 'SECURITY.md', 'CREDITS.md', 'CONTRIBUTING.md',
     'CHANGELOG.md', 'ARCHITECTURE.md', 'VERSION'
 )
-$subDirs = @('core', 'pinball', 'lightgun', 'i18n', 'docs', 'tools')
+$subDirs = @('core', 'pinball', 'lightgun', 'gui', 'i18n', 'docs', 'tools')
 # Never shipped, even if tracked by mistake or copied without git.
 $excluded = '(^|/)(\.git[^/]*|logs|backups|fixtures-local|node_modules|desktop\.ini)(/|$)|\.(log|tmp|partial)$|\.bak_|(^|/)install-state\.json$'
 

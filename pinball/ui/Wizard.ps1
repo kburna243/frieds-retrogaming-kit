@@ -412,10 +412,7 @@ $pages = @(
     (New-KitCarePage -StatePath $StatePath -LogDir (Join-Path $kitRoot 'logs') -Guard { Assert-PinballProcessesClosed } -Checks {
         Get-KitSystemCheck
         Get-PinballDoctorCheck -StatePath $script:StateFile
-    } -BackupRoots {
-        Join-Path (Split-Path -Parent $script:StateFile) 'backups'
-        foreach ($key in 'TargetRoot', 'SourceRoot') { [string](Get-KitStateValue -Path $script:StateFile -Key $key) }
-    })
+    } -BackupRoots { Get-PinballBackupRoot -StatePath $script:StateFile })
 )
 
 # --- start --------------------------------------------------------------------------------------------------

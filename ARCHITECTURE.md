@@ -12,6 +12,10 @@ step follows. User documentation lives in [`docs/`](docs/); the security model i
                  └──────────────────────┬───────────────────────┘
                                         │
                  ┌──────────────────────▼───────────────────────┐
+                 │ Dashboard: gui\Start-KitGui.ps1 (WPF)        │   new · migrate · recover, system status
+                 └──────────────────────┬───────────────────────┘
+                                        │
+                 ┌──────────────────────▼───────────────────────┐
                  │ Wizards: pinball\ui\Wizard.ps1,              │   WinForms UI, no logic of its own:
                  │          lightgun\ui\Wizard.ps1              │   runs the step scripts in order
                  └──────────────────────┬───────────────────────┘
@@ -52,6 +56,7 @@ step follows. User documentation lives in [`docs/`](docs/); the security model i
 | `pinball\`, `lightgun\` | One module per suite (`RetroCabinetKit.Pinball`, `RetroCabinetKit.Lightgun`) with `modules\`, numbered `steps\` and a `ui\Wizard.ps1`. Suites depend on the core, never on each other. |
 | `i18n\` | `en-US.psd1` (fallback) and `de-DE.psd1`, same keys (checked by `tests\core\I18n.Tests.ps1`). |
 | `tests\` | Pester 3.4 tests per suite with synthetic fixtures; `tests\local\` runs against real files that only exist on a developer machine (`tests\fixtures-local\`, git-ignored). |
+| `gui\` | `RetroCabinetKit.Gui` module and `Start-KitGui.ps1`: the WPF dashboard (views in `Views\*.xaml`, brand theme in `Themes\Brand.xaml`, mascot in `Assets\`). It only maps engine results to the view and calls the engine; texts come from `i18n\` via `Tag="i18n:<key>"`. |
 | `core\Start-KitTools.ps1` | Doctor (`Invoke-KitDoctor` over `Get-KitSystemCheck`, `Get-PinballDoctorCheck`, `Get-LightgunDoctorCheck`), recovery (`Get-KitBackup`, `Test-KitBackup`, `Restore-KitFileBackup`, `Export-KitBackup`) and support bundle (`Export-KitSupportBundle`). `Start-Kit.cmd -Doctor / -Backups / -SupportBundle` forwards here. Doctor checks only read. |
 | `tools\` | Repository tooling: depersonalization scan, static checks, release package build and check, launch pack. |
 | `site\` | Website (Vite/React, GitHub Pages). Not part of the release zip. |

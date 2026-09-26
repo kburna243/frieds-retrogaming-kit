@@ -252,11 +252,7 @@ $pages = @(
     (New-KitCarePage -StatePath $StatePath -LogDir (Join-Path $kitRoot 'logs') -Guard { Assert-LightgunProcessesClosed } -Checks {
         Get-KitSystemCheck
         Get-LightgunDoctorCheck -StatePath $script:StateFile
-    } -BackupRoots {
-        [string](Get-KitStateValue -Path $script:StateFile -Key 'RetroBatRoot')
-        $g = Find-LightgunGunmote; if ($g) { $g.Dir }
-        $steam = Get-LightgunSteamPath; if ($steam) { Join-Path $steam 'config' }
-    })
+    } -BackupRoots { Get-LightgunBackupRoot -StatePath $script:StateFile })
 )
 
 # --- start --------------------------------------------------------------------------------------------------

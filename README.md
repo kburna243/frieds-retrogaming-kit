@@ -115,11 +115,12 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 ## ⚡ Quickstart Guide
 
 ### 1. Launching the Kit
-Clone or download the repository to your gaming PC and open the interactive menu:
+Clone or download the repository to your gaming PC and open the dashboard:
 ```cmd
 :: Double-click or run from Command Prompt / PowerShell:
 Start-Kit.cmd
 ```
+The dashboard offers three modes: **new cabinet** (pinball or lightgun setup), **migrate** (arrives with v0.3) and **recover** (the kit's backups), plus the system status from the health check. Everything also works from the command line.
 *Or launch specialized wizards directly:*
 - **Virtual Pinball Setup**: `Start-Pinball.cmd`
 - **Wiimote Lightgun Setup**: `Start-Lightgun.cmd`

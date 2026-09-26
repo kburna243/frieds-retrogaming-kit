@@ -8,6 +8,15 @@ that matches it.
 ## [Unreleased]
 
 ### Added
+- **Desktop dashboard** (`Start-Kit.cmd` without switches, `gui\`): a WPF app on Windows PowerShell 5.1 (nothing
+  to install) in the brand design (Night / Cream, Pixel Green, Retro Red, Crown Gold, mascot). Three modes:
+  new cabinet (starts the pinball / lightgun wizards), migrate (placeholder until v0.3) and recover (backup
+  list with check, dry-run restore, export, delete). The system status comes from the doctor, runs in the
+  background and shows one row per area. A thin layer: every action calls the engine modules.
+  `Start-Kit.cmd -Demo` still runs the core demo; `-Doctor`, `-Backups`, `-SupportBundle` stay command-line tools.
+- Each suite knows where its backups live (`Get-PinballBackupRoot`, `Get-LightgunBackupRoot`); the command
+  line, the wizards' maintenance pages and the dashboard use them.
+- `tools\Test-KitSyntax.ps1` checks every `*.xaml` for well-formed XML.
 - Structured step results: `Invoke-KitStep` returns `Duration`, `Changed`, `Changes`, `Backups`, `Warnings`,
   `Errors` and `Log` next to the status. Text rewrites, registry writes and imports, database updates, zip
   backups and the lightgun / screen file backups report themselves (`Add-KitStepChange`, `Add-KitStepBackup`).

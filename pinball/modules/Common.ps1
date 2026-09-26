@@ -37,6 +37,18 @@ function Get-PinballDefaultStatePath {
     Join-Path $script:PinballDir 'install-state.json'
 }
 
+# Folders that hold the pinball backups: the backup folder next to the state (step 9) and the build roots
+# (database and screen backups next to their files). Only existing folders.
+function Get-PinballBackupRoot {
+    [CmdletBinding()]
+    param([string] $StatePath = (Get-PinballDefaultStatePath))
+    $roots = @(Join-Path (Split-Path -Parent $StatePath) 'backups')
+    if (Test-Path -LiteralPath $StatePath -PathType Leaf) {
+        foreach ($key in 'TargetRoot', 'SourceRoot') { $roots += [string](Get-KitStateValue -Path $StatePath -Key $key) }
+    }
+    @($roots | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) } | Sort-Object -Unique)
+}
+
 # Build root without trailing separator: 'D:\Games', 'C:' (build directly on a drive), '\\nas\share'.
 function ConvertTo-PinballRoot {
     [CmdletBinding()]
