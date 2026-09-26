@@ -93,6 +93,7 @@ function Invoke-WizardStep([int] $Index, [string] $Script, [hashtable] $Params =
         Write-KitWizardLog -Wizard $w -Text (Get-KitText 'Pinball.Ui.StepError' -f $title, $_.Exception.Message) -Level Error
         $null = $results.Add([pscustomobject]@{ Status = 'Failed'; WhatIf = $false })
     } finally { $w.Form.Cursor = 'Default' }
+    Write-KitWizardStepSummary -Wizard $w -Result @($results)
     Set-KitWizardStatus -Wizard $w -Index $Index -Status (Get-StepPageStatus @($results))
 }
 
@@ -411,10 +412,7 @@ $pages = @(
     (New-KitCarePage -StatePath $StatePath -LogDir (Join-Path $kitRoot 'logs') -Guard { Assert-PinballProcessesClosed } -Checks {
         Get-KitSystemCheck
         Get-PinballDoctorCheck -StatePath $script:StateFile
-    } -BackupRoots {
-        Join-Path (Split-Path -Parent $script:StateFile) 'backups'
-        foreach ($key in 'TargetRoot', 'SourceRoot') { [string](Get-KitStateValue -Path $script:StateFile -Key $key) }
-    })
+    } -BackupRoots { Get-PinballBackupRoot -StatePath $script:StateFile })
 )
 
 # --- start --------------------------------------------------------------------------------------------------

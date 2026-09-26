@@ -1,8 +1,8 @@
 ﻿<#
 .SYNOPSIS
     Lightgun step 11 [W8]: game lists.
-    - lightgun-11-tp-duplicates: folders in roms\teknoparrot that double an active game (same name key, e.g.
-                                 .parrot vs .teknoparrot, or the same files) are MOVED to
+    - lightgun-11-tp-duplicates: folders in roms\teknoparrot that double an active game (same name key,
+                                 e.g. .parrot vs .teknoparrot, or the same files) are MOVED to
                                  <RetroBat>\_duplicates\teknoparrot\ after the plan was confirmed. Nothing is deleted.
     - lightgun-11-tp-gamelist:   roms\teknoparrot\gamelist.xml: an entry for every registered game (name from
                                  TeknoParrot's metadata), unregistered folders hidden (<hidden>true</hidden>) until

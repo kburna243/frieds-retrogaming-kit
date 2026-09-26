@@ -373,6 +373,8 @@ function Update-KitDatabaseSafely {
             throw (Get-KitText 'Db.ChangedMeanwhile' -f $full)
         }
         [IO.File]::Replace($work, $full, $backup)
+        Add-KitStepBackup -Path $backup
+        Add-KitStepChange -Kind Database -Target $full -Detail $Purpose
         Write-KitLog (Get-KitText 'Db.Updated' -f $full, $backup)
         [pscustomobject]@{ Path = $full; Backup = $backup; WhatIf = $false; Result = $result }
     } catch {

@@ -7,6 +7,42 @@ that matches it.
 
 ## [Unreleased]
 
+### Added
+- **Kit API v1** (`API.md`, `api\`): one facade for GUI, CLI, tests and external clients such as an agent
+  harness. `Invoke-KitOperation` returns an `OperationResult` (status, changes, backups, warnings, errors,
+  approvals, duration, data); change operations are dry runs unless `-Apply`; plans that need a person's approval
+  are declined and returned unless `-Approved`; only plain parameters are accepted (no script blocks, no security
+  or test bindings); interactive steps stay in the wizards. The catalog (`Get-KitOperation`) is built from the step
+  scripts. `api\Invoke-KitApi.ps1` serves other processes with exactly one JSON document on standard output (no
+  network port), `-Anonymize` for anything sent to a cloud model. Migration operations appear automatically once
+  `Export-/Import-KitCabinetProfile` exist. Contract tests in `tests\api\`.
+- `handoff/AGENT-HARNESS.md`: the boundary between the kit and a separate agent harness repository.
+- **Desktop dashboard** (`Start-Kit.cmd` without switches, `gui\`): a WPF app on Windows PowerShell 5.1 (nothing
+  to install) in the brand design (Night / Cream, Pixel Green, Retro Red, Crown Gold, mascot). Three modes:
+  new cabinet (starts the pinball / lightgun wizards), migrate (placeholder until v0.3) and recover (backup
+  list with check, dry-run restore, export, delete). The system status comes from the doctor, runs in the
+  background and shows one row per area. A thin layer: every action calls the engine modules.
+  `Start-Kit.cmd -Demo` still runs the core demo; `-Doctor`, `-Backups`, `-SupportBundle` stay command-line tools.
+- Each suite knows where its backups live (`Get-PinballBackupRoot`, `Get-LightgunBackupRoot`); the command
+  line, the wizards' maintenance pages and the dashboard use them.
+- `tools\Test-KitSyntax.ps1` checks every `*.xaml` for well-formed XML.
+- Structured step results: `Invoke-KitStep` returns `Duration`, `Changed`, `Changes`, `Backups`, `Warnings`,
+  `Errors` and `Log` next to the status. Text rewrites, registry writes and imports, database updates, zip
+  backups and the lightgun / screen file backups report themselves (`Add-KitStepChange`, `Add-KitStepBackup`).
+  Both wizards log one summary line per step (changes, backups, duration) plus the backup paths.
+
+### Changed
+- Lightgun step 11: its help block was ignored by PowerShell (a line started with `.parrot`); `Get-Help` and the
+  API catalog show its description again.
+- GitHub Actions: checkout 7, setup-node 7, upload-artifact 7, attest-build-provenance 4, configure-pages 6,
+  deploy-pages 5, upload-pages-artifact 5 (all on Node 24; the inputs the workflows use are unchanged).
+  Pages builds on Node 22 like CI.
+- Website: react / react-dom 19.3.0, vite 8.3.0 with @vitejs/plugin-react 6.1.1, tailwindcss and
+  @tailwindcss/vite 4.3.3, @types/node 22.20.4. Replaces Dependabot PRs #4-#13, which updated pairs one side at
+  a time (react without react-dom, @tailwindcss/vite without tailwindcss) or could not build alone (vite 8 and
+  plugin-react 6 need each other).
+- Dependabot groups packages that must move together and skips @types/node majors beyond the Node runtime.
+
 ## [0.2.0] - 2026-09-26
 
 ### Added

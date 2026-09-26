@@ -115,11 +115,12 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 ## ⚡ Schnellstart-Anleitung
 
 ### 1. Starten des Kits
-Lade das Repository auf deinen Gaming-PC herunter und starte das Hauptmenü:
+Lade das Repository auf deinen Gaming-PC herunter und öffne das Dashboard:
 ```cmd
 :: Doppelklick im Explorer oder Aufruf in Eingabeaufforderung / PowerShell:
 Start-Kit.cmd
 ```
+Das Dashboard bietet drei Modi: **Neues Kabinett** (Pinball oder Lightgun einrichten), **Umziehen** (kommt mit v0.3) und **Retten** (die Backups des Kits), dazu den Systemstatus aus dem Gesundheitscheck. Alles funktioniert weiterhin auch über die Kommandozeile.
 *Oder starte die spezialisierten Assistenten direkt:*
 - **Virtual Pinball Setup**: `Start-Pinball.cmd`
 - **Wiimote Lightgun Setup**: `Start-Lightgun.cmd`
@@ -205,6 +206,7 @@ Wir arbeiten nach strengen, unverhandelbaren Grundsätzen:
 | **Sicherheits-Richtlinie** | Sicherheitsmodell, Privilegien der Hintergrundaufgaben und Deaktivierung. | [English](SECURITY.md) |
 | **Richtlinien für Beiträge** | Codierungsstandards, Pester-Tests und Pull-Request-Ablauf. | [English](CONTRIBUTING.md) |
 | **Architektur** | Schichten, Schritt-Vertrag, Definition of Done, Qualitätsprüfungen. | [English](ARCHITECTURE.md) |
+| **Kit-API** | Ein Einstieg für Skripte und externe Werkzeuge: Operationen, Ergebnisse, Trockenlauf, Freigaben, JSON. | [English](API.md) |
 | **Changelog & Roadmap** | Änderungen je Version und nächste Schritte. | [Changelog](CHANGELOG.md) • [Roadmap](ROADMAP.md) |
 
 ---

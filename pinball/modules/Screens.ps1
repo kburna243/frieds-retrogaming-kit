@@ -552,6 +552,8 @@ function Write-PinballScreenTarget {
     }
     $backup = '{0}.bak_screens_{1}' -f $t.Path, $Stamp
     Copy-Item -LiteralPath $t.Path -Destination $backup -Force
+    Add-KitStepBackup -Path $backup
+    Add-KitStepChange -Kind File -Target $t.Path -Detail 'screen layout'
     switch ($t.Kind) {
         'Ini'       { $null = Write-IniTarget $t $final $changes }
         'ScreenRes' { $null = Write-ScreenResTarget $t $final $Layout.Monitors }
