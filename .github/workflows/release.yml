@@ -1,0 +1,98 @@
+# Publishes a release when a tag "vX.Y.Z" is pushed. The tag must match the VERSION file.
+#   git tag v0.2.0 && git push origin v0.2.0
+# Steps: version check -> depersonalization -> static checks -> tests -> build -> integrity check
+#        -> build provenance attestation -> GitHub release with the zip and SHA256SUMS.txt
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write      # create the release
+  id-token: write      # sign the provenance attestation
+  attestations: write  # store the provenance attestation
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches VERSION
+        shell: powershell
+        run: |
+          $version = (Get-Content VERSION -Raw).Trim()
+          if ("v$version" -ne $env:GITHUB_REF_NAME) {
+            Write-Error "Tag $env:GITHUB_REF_NAME does not match VERSION $version"
+            exit 1
+          }
+
+      - name: Depersonalization scan
+        shell: powershell
+        run: |
+          .\tools\Test-Depersonalized.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Static checks
+        shell: powershell
+        run: |
+          .\tools\Test-KitSyntax.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Provide the synthetic test drives E and X
+        shell: powershell
+        run: |
+          # Test fixtures plan paths on the synthetic drives E and X (nothing is written there). PowerShell 5.1 resolves
+          # paths only on existing drives, so the letters must exist, as they do on a developer machine with more drives.
+          foreach ($letter in 'E', 'X') {
+            if (-not (Test-Path "${letter}:\")) {
+              $dir = Join-Path $env:RUNNER_TEMP "drive-$letter"
+              New-Item -ItemType Directory -Path $dir -Force | Out-Null
+              subst "${letter}:" $dir
+            }
+          }
+
+      - name: Pester tests
+        shell: powershell
+        run: |
+          .\tests\Run-Tests.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build release zip
+        shell: powershell
+        run: .\tools\New-ReleasePackage.ps1 -DestinationDir dist
+
+      - name: Verify release zip
+        shell: powershell
+        run: |
+          $zip = Get-ChildItem dist\frieds-retrogaming-kit-v*.zip | Select-Object -First 1
+          .\tools\Test-ReleasePackage.ps1 -ZipPath $zip.FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build provenance attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/frieds-retrogaming-kit-v*.zip
+
+      - name: Release notes from CHANGELOG.md
+        shell: powershell
+        run: |
+          $version = (Get-Content VERSION -Raw).Trim()
+          $text = Get-Content CHANGELOG.md -Raw -Encoding UTF8
+          $m = [regex]::Match($text, "(?ms)^## \[$([regex]::Escape($version))\][^\n]*\n(.*?)(?=^## \[|\z)")
+          $notes = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "Release v$version" }
+          $notes += "`n`n---`nVerify the download: compare ``Get-FileHash -Algorithm SHA256`` with ``SHA256SUMS.txt``, or run ``gh attestation verify <zip> --repo $env:GITHUB_REPOSITORY``."
+          [IO.File]::WriteAllText("$PWD\dist\RELEASE_NOTES.md", $notes, (New-Object Text.UTF8Encoding $false))
+
+      - name: Publish GitHub release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = Get-ChildItem dist\frieds-retrogaming-kit-v*.zip | Select-Object -First 1
+          $ghArgs = @('release', 'create', $env:GITHUB_REF_NAME, $zip.FullName, 'dist\SHA256SUMS.txt',
+            '--title', "Fried's Retrogaming Kit $env:GITHUB_REF_NAME", '--notes-file', 'dist\RELEASE_NOTES.md', '--verify-tag')
+          if ($env:GITHUB_REF_NAME -match '-') { $ghArgs += '--prerelease' }
+          gh @ghArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

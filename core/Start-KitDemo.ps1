@@ -1,13 +1,29 @@
 ﻿<#
 .SYNOPSIS
     Core demo: unblock kit files, start the log, show the language, run one example step with -WhatIf.
+    With -Doctor, -Backups or -SupportBundle it runs that tool instead (core\Start-KitTools.ps1).
 .PARAMETER Culture
     Override the UI language (e.g. de-DE, en-US). Default: the Windows display language.
+.PARAMETER Doctor
+    Read-only health check of system, pinball and lightgun.
+.PARAMETER Backups
+    Lists the kit's backups.
+.PARAMETER SupportBundle
+    Creates an anonymized support bundle in the logs folder.
 #>
 [CmdletBinding()]
-param([string] $Culture)
+param(
+    [string] $Culture,
+    [switch] $Doctor,
+    [switch] $Backups,
+    [switch] $SupportBundle
+)
 
 $ErrorActionPreference = 'Stop'
+if ($Doctor -or $Backups -or $SupportBundle) {
+    & (Join-Path $PSScriptRoot 'Start-KitTools.ps1') @PSBoundParameters
+    exit $LASTEXITCODE
+}
 $kitRoot = Split-Path -Parent $PSScriptRoot
 
 # Files downloaded as ZIP carry a Zone.Identifier; remove it from the kit's own files only.

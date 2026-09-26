@@ -127,6 +127,11 @@ Describe 'Download folder (simulated in TEMP, never ProgramData)' {
     It 'refuses an existing folder that is not owned by Administrators or SYSTEM (a user created it beforehand)' {
         $base = Join-Path $TestDrive 'precreated'
         New-Item -ItemType Directory -Path $base | Out-Null
+        # Owned by the current user, like a folder a user created beforehand (an elevated run would create it
+        # owned by the Administrators group). Only the owner section is written.
+        $owner = New-Object Security.AccessControl.DirectorySecurity
+        $owner.SetOwner([Security.Principal.WindowsIdentity]::GetCurrent().User)
+        [IO.Directory]::SetAccessControl($base, $owner)
         { Initialize-KitDownloadDir -Base $base } | Should Throw 'not owned by Administrators or SYSTEM'
         (Get-Acl -LiteralPath $base).AreAccessRulesProtected | Should Be $false # refused before any ACL change
         Join-Path $base 'downloads' | Should Not Exist

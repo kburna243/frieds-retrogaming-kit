@@ -35,6 +35,27 @@ Fried's Retrogaming Kit is designed as an open, inspectable automation toolkit f
 
 ---
 
+## Verifying a Release Download
+
+Every release on GitHub is built by the release workflow (`.github/workflows/release.yml`) from the tagged commit,
+after the depersonalization scan, the static checks and the full test suite passed. Each release carries:
+
+- `frieds-retrogaming-kit-vX.Y.Z.zip` — the kit
+- `SHA256SUMS.txt` — its SHA-256 checksum
+- a **build provenance attestation** that ties the zip to the workflow run and commit that produced it
+
+Check the download before you run anything from it:
+
+```powershell
+# compare with the value in SHA256SUMS.txt
+Get-FileHash .\frieds-retrogaming-kit-vX.Y.Z.zip -Algorithm SHA256
+
+# optional, with the GitHub CLI: prove the zip was built by this repository's release workflow
+gh attestation verify .\frieds-retrogaming-kit-vX.Y.Z.zip --repo kburna243/frieds-retrogaming-kit
+```
+
+---
+
 ## Scheduled Tasks & Privilege Model (Lightgun Profile Automation)
 
 We believe in complete transparency regarding system privileges.

@@ -110,21 +110,53 @@ Alle Schritte folgen dem Schema **Test → Invoke → Verify**. Jeder Schritt un
   2. `lightgun-9-profile`: Prüft anhand von `logs\profile.log`, ob die Profil-Automation beim Spielstart angesprochen wurde.
   3. `lightgun-9-launcher`: Liest `emulatorLauncher.log` aus, um sicherzustellen, dass `use_guns=0` gegriffen hat und keine fremden Gun-Treiber gestartet wurden.
 
+
+### Phase 2 — Arcade-Emulatoren (optional)
+
+Die Schritte 10–13 fassen nur Emulatoren an, die du wirklich hast; fehlende werden gemeldet, nicht installiert. Jeder Schritt zeigt zuerst seinen Plan und schreibt nur, solange RetroBat und der betroffene Emulator geschlossen sind — mit Backup vor jeder Änderung.
+
+### Schritt 10: TeknoParrot-Profile (`10-TeknoParrot.ps1`)
+- `lightgun-10-tp-paths`: `GamePath`-Einträge in `UserProfiles\*.xml`, die noch in eine fremde Installation zeigen (ein gekaufter Build behält die Ordner seines Erstellers), werden auf dieselbe Datei unterhalb dieses RetroBat umgestellt — nur wenn sie hier existiert; fehlende Spiele werden gemeldet.
+- `lightgun-10-tp-bind`: Gun-Spiele werden auf XInput gelegt (Wiimote 1/2 = XInput-Index 0/1, B = Schuss, A = Nachladen, rechter Stick zielt). Touchscreen-Spiele und per `-Exclude` übergebene Spiele bleiben unverändert.
+- `lightgun-10-tp-settings`: `es_settings.cfg`: `teknoparrot.use_guns=0`, `disableautocontrollers=1` je belegtem Spiel, Reste des Build-Erstellers entfernt.
+
+### Schritt 11: Spielelisten (`11-GameLists.ps1`)
+- `lightgun-11-tp-duplicates`: Ordner in `roms\teknoparrot`, die ein aktives Spiel doppeln, werden nach deiner Bestätigung des Plans nach `<RetroBat>\_duplicates\teknoparrot\` **verschoben**. Es wird nichts gelöscht.
+- `lightgun-11-tp-gamelist`: `gamelist.xml` erhält einen Eintrag für jedes registrierte Spiel; Ordner ohne Profil werden ausgeblendet, bis sie eines haben.
+- Nur gemeldet: fehlende Medien, Einträge ohne Ordner und fest verdrahtete `<emulator>`/`<core>`-Einträge.
+
+### Schritt 12: Demul & DemulShooter (`12-Demul.ps1`)
+- `lightgun-12-demul`: Prüft dein **selbst mitgebrachtes** Demul 0.7a (`demul.exe`, `nvram`, BIOS `naomi.zip` / `awbios.zip`). Closed Source — das Kit bietet keinen Download an.
+- `lightgun-12-demulshooter`: Prüft DemulShooter und richtet dessen Raw-Input für die Gunmote-Xbox-Pads ein. Geführter Download von den offiziellen Releases (argonlefou/DemulShooter); `-DemulShooterPath` für einen eigenen Ort.
+- `lightgun-12-demul-settings`: `naomi.emulator=demul`, `atomiswave.emulator=demul`, `use_guns=0`, `disableautocontrollers=1`.
+- `lightgun-12-demul-gamelist`: Meldet fest verdrahtete Flycast-/libretro-Emulatoren bei Gun-Spielen in den Naomi-/Atomiswave-Spielelisten; `-RemoveHardwired` entfernt sie.
+
+### Schritt 13: Model 2 & Supermodel (`13-Model2Supermodel.ps1`)
+- `lightgun-13-model2`: Prüft deinen **selbst mitgebrachten** Model-2-Emulator (`EMULATOR.EXE`, `emulator_multicpu.exe`, `Emulator.ini`). Closed Source — kein Download. DemulShooter hängt sich über `-target=model2m` ein.
+- `lightgun-13-supermodel`: Prüft und konfiguriert Supermodel (Model 3): Fadenkreuz an, XInput-Gun-Belegung. Offizielle Releases von trzy/Supermodel.
+- `lightgun-13-model-settings`: `model2.use_guns=0`, `model3.use_guns=0`, `disableautocontrollers=1` für beide.
+
+### Phase 3 — Konsolen-Emulatoren (geführte Prüfung)
+
+### Schritt 14: DuckStation & PCSX2 (`14-DuckStationPcsx2.ps1`)
+- `lightgun-14-duckstation-pcsx2`: **Prüft und berichtet, keine automatische Belegung.** Liest `settings.ini`, `gamesettings\<SERIAL>.ini` und `PCSX2.ini`, erklärt das *Automatic Mapping* auf `XInput-0` und markiert Konami-Spiele, die den Justifier statt der GunCon brauchen (z. B. Die Hard Trilogy, Crypt Killer). Flycast ist nicht abgedeckt.
+
 ---
 
 ## 🎮 Emulator-Integrationsstatus
 
-Die Lightgun-Basisinfrastruktur (DolphinBar Modus 4, ViGEmBus, Gunmote und RetroBat-Anbindung) ist vollständig einsatzbereit. Dedizierte Emulator-Einrichtungsmodule befinden sich in aktiver Entwicklung:
+Die Lightgun-Basisinfrastruktur (DolphinBar Modus 4, ViGEmBus, Gunmote und RetroBat-Anbindung) ist vollständig einsatzbereit. Die Emulator-Schritte 10–14 bauen darauf auf:
 
-| Emulator / Plattform | Status | Eingabe-Pipeline |
-| :--- | :--- | :--- |
-| **MAME (Arcade Classics)** | :white_check_mark: Bereit | MAME64 + XInput Virtual Pad (`use_guns=0`) |
-| **DuckStation (PSX)** | :white_check_mark: Bereit | GunCon-Emulation via Virtuellem Controller / Maus |
-| **TeknoParrot (Moderne Arcade)** | :construction: In Entwicklung | Right-Stick-Profil + TeknoParrotUI |
-| **Demul & DemulShooter** | :construction: In Entwicklung | DemulShooter Hook + Naomi-Profil |
-| **Sega Model 2 & Model 3** | :construction: In Entwicklung | Pad 4:3-Profil + Supermodel / M2Emulator |
-| **PCSX2 (PS2)** | :construction: In Entwicklung | GunCon 2 Maus-Injektion |
-| **Rumble & Force-Feedback** | :construction: In Entwicklung | OutputHooker / MAMEHooker Anbindung |
+| Emulator / Plattform | Status | Schritt | Eingabe-Pipeline |
+| :--- | :--- | :--- | :--- |
+| **MAME (Arcade Classics)** | :white_check_mark: Automatisiert | 7 | MAME64 + virtuelles XInput-Pad (`use_guns=0`) |
+| **TeknoParrot (Moderne Arcade)** | :white_check_mark: Automatisiert | 10–11 | XInput-Gun-Belegung, rechter Stick zielt, Spielelisten |
+| **Demul & DemulShooter** | :warning: Automatisiert, Demul selbst mitgebracht | 12 | DemulShooter-Raw-Input auf den Gunmote-Xbox-Pads |
+| **Sega Model 2** | :warning: Automatisiert, Emulator selbst mitgebracht | 13 | DemulShooter (`-target=model2m`) |
+| **Supermodel (Model 3)** | :white_check_mark: Automatisiert | 13 | XInput-Gun-Belegung, Fadenkreuz |
+| **DuckStation (PS1) / PCSX2 (PS2)** | :mag: Geführte Prüfung | 14 | Automatic Mapping auf `XInput-0`, GunCon-/Justifier-Hinweise |
+| **Flycast** | :no_entry: Nicht abgedeckt | — | — |
+| **Rumble & Force-Feedback** | :construction: Geplant | — | OutputHooker / MAMEHooker, siehe [ROADMAP](../ROADMAP.md) |
 
 ---
 
@@ -144,4 +176,13 @@ powershell -ExecutionPolicy Bypass -File lightgun\steps\06-GunmoteLayouts.ps1 -M
 powershell -ExecutionPolicy Bypass -File lightgun\steps\07-RetroBatSettings.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\08-ProfileAutomation.ps1
 powershell -ExecutionPolicy Bypass -File lightgun\steps\09-Verify.ps1 -XInputTimeoutSeconds 15
+
+# Arcade-Emulatoren (optional)
+powershell -ExecutionPolicy Bypass -File lightgun\steps\10-TeknoParrot.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\11-GameLists.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\12-Demul.ps1
+powershell -ExecutionPolicy Bypass -File lightgun\steps\13-Model2Supermodel.ps1
+
+# Konsolen-Emulatoren (geführte Prüfung)
+powershell -ExecutionPolicy Bypass -File lightgun\steps\14-DuckStationPcsx2.ps1
 ```

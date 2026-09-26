@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/kburna243/frieds-retrogaming-kit/security/advisories/new
+    about: Please report security problems privately, never as a public issue.
+  - name: Troubleshooting guide
+    url: https://github.com/kburna243/frieds-retrogaming-kit/blob/main/docs/troubleshooting.md
+    about: Solutions for COM errors, monitor offsets, Steam capture and IR drift.
