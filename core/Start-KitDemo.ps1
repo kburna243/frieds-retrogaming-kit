@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Core demo: unblock kit files, start the log, show the language, run one example step with -WhatIf.
     With -Doctor, -Backups or -SupportBundle it runs that tool instead (core\Start-KitTools.ps1).

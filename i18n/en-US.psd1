@@ -1,4 +1,4 @@
-# English texts (fallback for every culture). Placeholders {0}, {1} ... are filled via -f.
+﻿# English texts (fallback for every culture). Placeholders {0}, {1} ... are filled via -f.
 @{
     'Kit.Title'               = 'Retro Cabinet Kit'
     'Log.Started'             = 'Log started: {0}'

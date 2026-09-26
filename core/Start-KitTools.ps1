@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Kit tools: doctor (health check), backups (recovery) and support bundle.
 .DESCRIPTION

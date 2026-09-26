@@ -1,4 +1,4 @@
-$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+﻿$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1') -Force
 Import-Module (Join-Path $kitRoot 'pinball\RetroCabinetKit.Pinball.psd1') -Force
 Import-Module (Join-Path $kitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1') -Force
@@ -39,7 +39,7 @@ Describe 'CabinetProfile: path tokenization' {
 
     It 'leaves foreign paths untouched' {
         $foreign = 'C:\Program Files (x86)\Steam\steam.exe'
-        (ConvertTo-KitProfilePath -Path $foreign -Roots $roots) | Should BeExactly ($foreign -replace '\\', '/')
+        (ConvertTo-KitProfilePath -Path $foreign -Roots $roots) | Should BeExactly $foreign
     }
 }
 
@@ -52,7 +52,7 @@ Describe 'CabinetProfile: path safety & manifest validation' {
     It 'refuses absolute paths' {
         { Assert-KitProfilePathSafe -Path 'C:\Windows\System32' } | Should Throw 'Absolute path refused'
         { Assert-KitProfilePathSafe -Path '/etc/passwd' } | Should Throw 'Absolute path refused'
-        { Assert-KitProfilePathSafe -Path '\\server\share\file' } | Should Throw 'Absolute path refused'
+        { Assert-KitProfilePathSafe -Path '\\nas\share\file' } | Should Throw 'Absolute path refused'
     }
 
     It 'refuses invalid manifest' {
@@ -62,7 +62,7 @@ Describe 'CabinetProfile: path safety & manifest validation' {
     }
 
     It 'refuses manifests containing absolute Windows paths or SIDs' {
-        $bad1 = @{ Format = 1; Suite = 'Pinball'; Roots = @{ '{PinballRoot}' = 'present' }; BadPath = 'C:\Users\Secret' }
+        $bad1 = @{ Format = 1; Suite = 'Pinball'; Roots = @{ '{PinballRoot}' = 'present' }; BadPath = 'D:\SecretFolder' }
         { Assert-KitProfileManifest -Manifest $bad1 } | Should Throw 'contains absolute paths'
 
         $bad2 = @{ Format = 1; Suite = 'Pinball'; Roots = @{ '{PinballRoot}' = 'present' }; Sid = 'S-1-5-21-123456789-123456789-123456789-1001' }
@@ -80,6 +80,18 @@ Describe 'CabinetProfile: Pinball export on A and import on B' {
     # Build synthetic pinball setup on A
     & $newPinballBuild -Root $pinballA -OldRoot 'D:\OldBuild'
 
+    # Simulate a relocated cabinet A (kit steps 4+5 already ran there): the database points at A's own root,
+    # which is what a real profile export meets on a working cabinet.
+    $dbA = Join-Path $pinballA 'vPinball\PinUPSystem\PUPDatabase.db'
+    $connA = Open-KitSqlite -Path $dbA
+    try {
+        foreach ($col in @('DirGames', 'DirMedia', 'DirRoms', 'LaunchScript')) {
+            $null = Invoke-KitSqlNonQuery -Connection $connA -Sql "UPDATE Emulators SET [$col] = REPLACE([$col], @old, @new)" -Parameters @{ old = 'D:\OldBuild'; new = $pinballA }
+        }
+    } finally {
+        Close-KitSqlite $connA
+    }
+
     # Registry test keys
     $regTestA = 'HKCU:\Software\retro-cabinet-kit-test-profile-a'
     $regTestB = 'HKCU:\Software\retro-cabinet-kit-test-profile-b'
@@ -90,8 +102,12 @@ Describe 'CabinetProfile: Pinball export on A and import on B' {
     $zipDest = Join-Path $TestDrive 'profiles'
 
     AfterAll {
-        Remove-Item -LiteralPath $regTestA -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $regTestB -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath 'HKCU:\Software\retro-cabinet-kit-test-profile-a') {
+            Remove-Item -LiteralPath 'HKCU:\Software\retro-cabinet-kit-test-profile-a' -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath 'HKCU:\Software\retro-cabinet-kit-test-profile-b') {
+            Remove-Item -LiteralPath 'HKCU:\Software\retro-cabinet-kit-test-profile-b' -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 
     It 'exports Pinball profile from A cleanly (read-only, depersonalized)' {
@@ -167,7 +183,7 @@ Describe 'CabinetProfile: Pinball export on A and import on B' {
         $conn = Open-KitSqlite -Path $dbB -ReadOnly
         try {
             $emu1 = @(Invoke-KitSqlQuery -Connection $conn -Sql "SELECT DirGames FROM Emulators WHERE EmuName = 'Visual Pinball X'")[0]
-            $emu1.DirGames | Should Match [regex]::Escape($pinballB)
+            $emu1.DirGames | Should Match ([regex]::Escape($pinballB))
         } finally {
             Close-KitSqlite $conn
         }
@@ -175,6 +191,16 @@ Describe 'CabinetProfile: Pinball export on A and import on B' {
         # Verify backup exists
         $backups = @(Get-ChildItem -LiteralPath (Join-Path $pinballB 'vPinball\PinUPSystem') -Filter '*.zip')
         $backups.Count | Should BeGreaterThan 0
+    }
+
+    It 'second pinball import is idempotent' {
+        $profileZip = @(Get-ChildItem -LiteralPath $zipDest -Filter 'cabinet-profile-pinball_*.zip')[0].FullName
+
+        $results = Import-KitCabinetProfile -Path $profileZip -RootMap @{ '{PinballRoot}' = $pinballB } `
+            -RegistryRoots @($regTestB)
+
+        ($results | Where-Object { $_.Status -eq 'Done' }).Count | Should Be 0
+        ($results | Where-Object { $_.Status -eq 'Skipped' }).Count | Should BeGreaterThan 0
     }
 }
 

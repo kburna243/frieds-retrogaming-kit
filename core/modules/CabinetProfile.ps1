@@ -1,4 +1,4 @@
-# CabinetProfile: export configuration from cabinet A and import onto cabinet B.
+﻿# CabinetProfile: export configuration from cabinet A and import onto cabinet B.
 #
 # Rules:
 # - Strictly separated profiles: -Suite Pinball or -Suite Lightgun.
@@ -26,11 +26,11 @@ function ConvertTo-KitProfilePath {
         $cleanRoot = $rootVal.TrimEnd('\', '/')
         if ($res.StartsWith($cleanRoot, [StringComparison]::OrdinalIgnoreCase)) {
             $sub = $res.Substring($cleanRoot.Length).TrimStart('\', '/')
-            $res = if ($sub) { "$token/$sub" -replace '\\', '/' } else { $token }
-            break
+            if ($sub) { return "$token/$sub" -replace '\\', '/' }
+            return $token
         }
     }
-    $res -replace '\\', '/'
+    $res
 }
 
 function ConvertFrom-KitProfilePath {
@@ -49,6 +49,45 @@ function ConvertFrom-KitProfilePath {
             $res = if ($sub) { Join-Path $cleanRoot ($sub -replace '/', '\') } else { $cleanRoot }
             break
         }
+    }
+    $res
+}
+
+function ConvertTo-KitProfileText {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [AllowEmptyString()] [string] $Text,
+        [Parameter(Mandatory)] [hashtable] $Roots
+    )
+    $res = $Text
+    foreach ($token in $Roots.Keys | Sort-Object { $Roots[$_].Length } -Descending) {
+        $rootVal = $Roots[$token]
+        if (-not $rootVal) { continue }
+        $cleanRoot = $rootVal.TrimEnd('\', '/')
+        $rootDbl = $cleanRoot.Replace('\', '\\')   # .reg files double every backslash
+        $rootFwd = $cleanRoot.Replace('\', '/')
+        $res = [regex]::Replace($res, [regex]::Escape($rootDbl), $token, 'IgnoreCase')
+        $res = [regex]::Replace($res, [regex]::Escape($cleanRoot), $token, 'IgnoreCase')
+        $res = [regex]::Replace($res, [regex]::Escape($rootFwd), $token, 'IgnoreCase')
+    }
+    $res
+}
+
+function ConvertFrom-KitProfileText {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [AllowEmptyString()] [string] $Text,
+        [Parameter(Mandatory)] [hashtable] $Roots,
+        [switch] $DoubleBackslash
+    )
+    $res = $Text
+    foreach ($token in $Roots.Keys | Sort-Object { $_.Length } -Descending) {
+        $rootVal = $Roots[$token]
+        if (-not $rootVal) { continue }
+        $cleanRoot = $rootVal.TrimEnd('\', '/')
+        if ($DoubleBackslash) { $cleanRoot = $cleanRoot.Replace('\', '\\') }
+        $repl = $cleanRoot.Replace('$', '$$')      # keep '$' literal in the replacement
+        $res = [regex]::Replace($res, [regex]::Escape($token), $repl, 'IgnoreCase')
     }
     $res
 }
@@ -105,7 +144,7 @@ function Assert-KitProfileManifest {
 
     # Verify no machine paths or private data in profile.json
     $jsonText = ConvertTo-Json $Manifest -Depth 10
-    if ($jsonText -match '[A-Za-z]:\\' -or $jsonText -match '\\\\[A-Za-z0-9_]+\\') {
+    if ($jsonText -match '(?<![A-Za-z0-9_])[A-Za-z]:\\\\' -or $jsonText -match '\\\\\\\\[A-Za-z0-9_]+') {
         throw "Profile manifest contains absolute paths. Only tokenized paths are allowed."
     }
     if ($jsonText -match 'S-1-5-21-\d+-\d+-\d+-\d+') {
@@ -211,6 +250,13 @@ function Export-KitCabinetProfile {
                     try {
                         $null = Export-KitRegistryKey -Path $rk -Destination $regFile
                         if (Test-Path -LiteralPath $regFile) {
+                            # Tokenize in place: a .reg carries its paths with doubled backslashes
+                            # (REG_SZ escaping), so no absolute machine path may survive into the zip.
+                            if ($roots.Count -gt 0) {
+                                $regRaw = [IO.File]::ReadAllText($regFile) # detects the UTF-16LE BOM of reg export
+                                $regTok = ConvertTo-KitProfileText -Text $regRaw -Roots $roots
+                                [IO.File]::WriteAllText($regFile, $regTok, [Text.Encoding]::Unicode)
+                            }
                             $bytes = [IO.File]::ReadAllBytes($regFile)
                             $items.Add([pscustomobject]@{
                                 Suite = 'Pinball'; Kind = 'Registry'; Path = "registry/{0:D3}.reg" -f $regIndex
@@ -231,11 +277,11 @@ function Export-KitCabinetProfile {
             if ($pbRoot -and (Test-Path -LiteralPath $pbRoot)) {
                 $screenResPath = Join-Path $pbRoot 'vPinball\Tables\ScreenRes.txt'
                 if (Test-Path -LiteralPath $screenResPath) {
-                    $screenItems['ScreenRes'] = (Get-Content -LiteralPath $screenResPath -Raw)
+                    $screenItems['ScreenRes'] = ConvertTo-KitProfileText -Text (Get-Content -LiteralPath $screenResPath -Raw) -Roots $roots
                 }
                 $vpxIni = Join-Path $pbRoot 'vPinball\VisualPinball\VPinballX.ini'
                 if (Test-Path -LiteralPath $vpxIni) {
-                    $screenItems['VPinballX'] = (Get-Content -LiteralPath $vpxIni -Raw)
+                    $screenItems['VPinballX'] = ConvertTo-KitProfileText -Text (Get-Content -LiteralPath $vpxIni -Raw) -Roots $roots
                 }
             }
             if ($screenItems.Count -gt 0) {
@@ -266,7 +312,8 @@ function Export-KitCabinetProfile {
                             foreach ($prop in $emu.psobject.Properties) {
                                 $val = $prop.Value
                                 if ($val -is [string] -and $roots.Count -gt 0) {
-                                    $val = ConvertTo-KitProfilePath -Path $val -Roots $roots
+                                    # Text form: embedded paths inside LaunchScript get tokenized too
+                                    $val = ConvertTo-KitProfileText -Text $val -Roots $roots
                                 }
                                 $eObj[$prop.Name] = $val
                             }
@@ -281,7 +328,8 @@ function Export-KitCabinetProfile {
                             foreach ($prop in $pl.psobject.Properties) {
                                 $val = $prop.Value
                                 if ($val -is [string] -and $roots.Count -gt 0) {
-                                    $val = ConvertTo-KitProfilePath -Path $val -Roots $roots
+                                    # Text form: embedded paths inside LaunchScript get tokenized too
+                                    $val = ConvertTo-KitProfileText -Text $val -Roots $roots
                                 }
                                 $pObj[$prop.Name] = $val
                             }
@@ -346,7 +394,7 @@ function Export-KitCabinetProfile {
                             if ($isGun -and $isGun.InnerText.Trim() -eq 'true') {
                                 # Save profile, tokenizing paths
                                 $rawXml = Get-Content -LiteralPath $xmlFile.FullName -Raw
-                                $tokenXml = ConvertTo-KitProfilePath -Path $rawXml -Roots $roots
+                                $tokenXml = ConvertTo-KitProfileText -Text $rawXml -Roots $roots
                                 $destXml = Join-Path $tpDir $xmlFile.Name
                                 [IO.File]::WriteAllText($destXml, $tokenXml, [Text.Encoding]::UTF8)
                                 $relPath = "files/lightgun/teknoparrot/$($xmlFile.Name)"
@@ -355,7 +403,7 @@ function Export-KitCabinetProfile {
                                     TargetToken = "{RetroBatRoot}/emulators/teknoparrot/UserProfiles/$($xmlFile.Name)"
                                     Sha256 = (Get-FileHash -LiteralPath $destXml -Algorithm SHA256).Hash
                                     Size = (Get-Item $destXml).Length
-                                })
+                                 })
                             }
                         } catch {
                             Write-KitLog "Skipping invalid TeknoParrot XML: $($xmlFile.Name)"
@@ -379,7 +427,7 @@ function Export-KitCabinetProfile {
                                 $layoutFile = Join-Path $gm "Keymaps\$($entry.Keymap)"
                                 if (Test-Path -LiteralPath $layoutFile) {
                                     $content = Get-Content -LiteralPath $layoutFile -Raw
-                                    $tokenContent = ConvertTo-KitProfilePath -Path $content -Roots $roots
+                                    $tokenContent = ConvertTo-KitProfileText -Text $content -Roots $roots
                                     $destLayout = Join-Path $gmDirOut $entry.Keymap
                                     [IO.File]::WriteAllText($destLayout, $tokenContent, [Text.Encoding]::UTF8)
                                     $exportedLayouts[$entry.Keymap] = $entry.Title
@@ -438,7 +486,7 @@ function Export-KitCabinetProfile {
             if ($stagedFile.Extension -in '.json', '.xml', '.reg', '.txt') {
                 $rawContent = [IO.File]::ReadAllText($stagedFile.FullName)
                 # Check for absolute Windows drive paths
-                if ($stagedFile.Name -ne 'profile.json' -and $rawContent -match '[A-Za-z]:\\[A-Za-z0-9_]') {
+                if ($stagedFile.Name -ne 'profile.json' -and $rawContent -match '(?<![A-Za-z0-9_])[A-Za-z]:\\[A-Za-z0-9_]') {
                     # Allow foreign known paths like Program Files if needed, but not user profile
                     if ($rawContent -match 'Users\\[A-Za-z0-9_]+') {
                         throw "Staged file '$($stagedFile.Name)' contains private user path."
@@ -491,6 +539,59 @@ function Export-KitCabinetProfile {
     }
 }
 
+function Backup-ProfileFile {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [string] $Purpose = 'profile'
+    )
+    $backup = '{0}.bak_{1}_{2:yyyyMMdd-HHmmss-fff}' -f $Path, $Purpose, (Get-Date)
+    Copy-Item -LiteralPath $Path -Destination $backup
+    Write-KitLog "Profile import backup: $backup"
+    $backup
+}
+
+# Long form inside a .reg back to a provider path: HKEY_CURRENT_USER\X -> HKCU:\X.
+function ConvertFrom-RegFileKey([string] $Key) {
+    $k = $Key.Trim()
+    if ($k.StartsWith('[') -and $k.EndsWith(']')) { $k = $k.Substring(1, $k.Length - 2) }
+    ($k -replace '^HKEY_CURRENT_USER(?=\\|$)', 'HKCU:\' -replace '^HKEY_LOCAL_MACHINE(?=\\|$)', 'HKLM:\' `
+        -replace '^HKEY_USERS(?=\\|$)', 'HKU:\' -replace '^HKEY_CLASSES_ROOT(?=\\|$)', 'HKCR:\')
+}
+
+# Verify-first for a checked .reg text (output of Assert-KitRegText): true only when every REG_SZ/REG_DWORD
+# value it would write is already present with the same data. Hex forms (EXPAND_SZ, MULTI_SZ, BINARY) and
+# continued lines cannot be proven -> false, so the merge runs again (merging the same data is harmless).
+function Test-KitRegTextApplied {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Text)
+    $cur = $null
+    foreach ($line in ($Text -split '\r?\n')) {
+        $t = $line.Trim()
+        if (-not $t -or $t.StartsWith(';')) { continue }
+        if ($t.StartsWith('[')) { $cur = ConvertFrom-RegFileKey $t; continue }
+        if (-not $cur) { continue }
+        if ($t -match '^(?:"((?:[^"\\]|\\.)*)"|@)\s*=\s*(.*)$') {
+            if ($Matches[2].EndsWith('\')) { return $false } # continuation line, not provable
+            $name = if ($Matches[1]) { [regex]::Replace($Matches[1], '\\(.)', '$1') } else { '' }
+            $keyObj = Get-Item -LiteralPath $cur -ErrorAction SilentlyContinue
+            if (-not $keyObj) { return $false }
+            $existing = $keyObj.GetValue($name, $null, 'DoNotExpandEnvironmentNames')
+            if ($null -eq $existing) { return $false }
+            $d = $Matches[2].Trim()
+            if ($d.StartsWith('"') -and $d.EndsWith('"')) {
+                $want = [regex]::Replace($d.Substring(1, $d.Length - 2), '\\(.)', '$1')
+                if ($existing -isnot [string] -or $existing -ne $want) { return $false }
+            } elseif ($d -match '^dword:([0-9a-fA-F]{8})$') {
+                if ([long]$existing -ne [long]('0x' + $Matches[1])) { return $false }
+            } else {
+                return $false
+            }
+        }
+    }
+    $true
+}
+
 function Import-KitCabinetProfile {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -531,6 +632,14 @@ function Import-KitCabinetProfile {
 
     Assert-KitProfileManifest -Manifest $manifest
 
+    if ($manifest.PSObject.Properties['KitVersion'] -and $manifest.KitVersion) {
+        $versionFileB = Join-Path (Split-Path -Parent $PSScriptRoot) 'VERSION'
+        $localVersion = if (Test-Path -LiteralPath $versionFileB) { ([IO.File]::ReadAllText($versionFileB)).Trim() } else { '0.1.0' }
+        if ($manifest.KitVersion -ne $localVersion) {
+            Write-Warning "Profile was created with kit version $($manifest.KitVersion); this kit is $localVersion."
+        }
+    }
+
     # Resolve roots on machine B
     $roots = @{}
     if ($manifest.Suite -eq 'Pinball') {
@@ -569,39 +678,74 @@ function Import-KitCabinetProfile {
                 $results.Add([pscustomobject]@{
                     Name = 'pinball-root'; Status = 'NeedsUser'; Detail = 'Pinball target root on cabinet B is unknown. Specify -RootMap @{ "{PinballRoot}" = "..." }.'
                 })
-                return @($results)
+                $out = New-Object object[] $results.Count
+                [void]$results.CopyTo($out)
+                return $out
             }
 
-            # 1. Registry import
-            $regEntries = @($zip.Entries | Where-Object { $_.FullName -like 'registry/*.reg' })
+            # 1. Registry import: remap A's key roots onto B's roots, validate, merge - and verify first,
+            #    so a second import stays idle (Skipped).
+            $regEntries = @($zip.Entries | Where-Object { $_.FullName -like 'registry/*.reg' } | Sort-Object FullName)
             if ($regEntries.Count -gt 0) {
-                $regAllowed = if ($RegistryRoots) { $RegistryRoots } else { Get-PinballRegistryImportRoot }
-                $regChanged = $false
-                foreach ($re in $regEntries) {
+                # @() around the if-assignment: a single-element string[] unwraps to String otherwise,
+                # and StrictMode 2.0 refuses .Count on it.
+                $regAllowed = @(if ($RegistryRoots) { $RegistryRoots } else { Get-PinballRegistryImportRoot })
+                $regItems = @($manifest.Items | Where-Object { $_.Kind -eq 'Registry' } | Sort-Object Path)
+                $regHandled = $true
+                $regImported = $false
+                for ($i = 0; $i -lt $regEntries.Count; $i++) {
+                    $re = $regEntries[$i]
+                    $sourceKey = if ($i -lt $regItems.Count -and $regItems[$i].PSObject.Properties['Key']) { [string]$regItems[$i].Key } else { $null }
+                    # Target root: identity when A's root is also allowed on B, else positional pairing
+                    # with -RegistryRoots (the list the operator maintains on both cabinets).
+                    $targetKey = $null
+                    if ($sourceKey) {
+                        $srcLong = ConvertTo-RegFileKey $sourceKey
+                        $same = @($regAllowed | Where-Object { (ConvertTo-RegFileKey $_) -ieq $srcLong } | Select-Object -First 1)
+                        if ($same.Count -gt 0) { $targetKey = [string]$same[0] }
+                        elseif ($i -lt $regAllowed.Count) { $targetKey = [string]$regAllowed[$i] }
+                    } elseif ($i -lt $regAllowed.Count) { $targetKey = [string]$regAllowed[$i] }
+                    if (-not $targetKey) {
+                        $results.Add([pscustomobject]@{
+                            Name = 'pinball-registry'; Status = 'NeedsUser'
+                            Detail = "No target registry root for '$($re.FullName)'. Pass -RegistryRoots with one root per exported key."
+                        })
+                        $regHandled = $false
+                        break
+                    }
                     $rStream = $re.Open()
                     $sr = New-Object IO.StreamReader ($rStream, [Text.Encoding]::Unicode)
-                    $regText = $null
                     try { $regText = $sr.ReadToEnd() } finally { $sr.Dispose() }
-                    $cleanReg = Assert-KitRegText -Text $regText -AllowedRoots $regAllowed
-                    if (-not $isWhatIf) {
-                        # Import using reg.exe import with temp file
+                    $mapped = ConvertFrom-KitProfileText -Text $regText -Roots $roots -DoubleBackslash
+                    if ($sourceKey) {
+                        $srcLong = ConvertTo-RegFileKey $sourceKey
+                        $dstLong = ConvertTo-RegFileKey $targetKey
+                        $rep = $dstLong.Replace('$', '$$')
+                        $mapped = [regex]::Replace($mapped, '(?m)^\[' + [regex]::Escape($srcLong) + '(?=\\|\])', ('[' + $rep), 'IgnoreCase')
+                    }
+                    $checked = Assert-KitRegText -Text $mapped -AllowedRoots $regAllowed
+                    if ($isWhatIf) { continue }
+                    if (-not (Test-KitRegTextApplied -Text $checked)) {
                         $tmpReg = Join-Path $env:TEMP ('kit-import-' + [guid]::NewGuid().ToString('N') + '.reg')
-                        [IO.File]::WriteAllText($tmpReg, $cleanReg, [Text.Encoding]::Unicode)
                         try {
-                            & reg.exe import $tmpReg 2>&1 | Out-Null
-                            $regChanged = $true
+                            [IO.File]::WriteAllText($tmpReg, $checked, [Text.Encoding]::Unicode)
+                            Import-KitRegistryFile -Path $tmpReg -AllowedRoots $regAllowed
+                            $regImported = $true
                         } finally {
                             if (Test-Path -LiteralPath $tmpReg) { Remove-Item -LiteralPath $tmpReg -Force }
                         }
                     }
                 }
-                $results.Add([pscustomobject]@{
-                    Name = 'pinball-registry'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($regChanged) { 'Done' } else { 'Skipped' }
-                    Detail = "$($regEntries.Count) registry file(s) processed."
-                })
+                if ($regHandled) {
+                    $results.Add([pscustomobject]@{
+                        Name = 'pinball-registry'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($regImported) { 'Done' } else { 'Skipped' }
+                        Detail = "$($regEntries.Count) registry file(s) processed."
+                    })
+                }
             }
 
-            # 2. SQLite Settings merge
+            # 2. SQLite Settings merge: existing rows only, existing columns only (the real Popper schema
+            #    varies by version - never guess, read PRAGMA), backup before the first write.
             $sqliteEntry = $zip.GetEntry('files/pinball/sqlite-settings.json')
             if ($sqliteEntry) {
                 $dbFile = if ($PupDatabasePath) { $PupDatabasePath } else { Join-Path $pbRoot 'vPinball\PinUPSystem\PUPDatabase.db' }
@@ -614,38 +758,65 @@ function Import-KitCabinetProfile {
                     $sqData = $null
                     try { $sqData = $sr.ReadToEnd() | ConvertFrom-Json } finally { $sr.Dispose() }
 
+                    $updates = New-Object Collections.Generic.List[object]
+                    $dbConn = Open-KitSqlite -Path $dbFile -ReadOnly
+                    try {
+                        foreach ($tablePair in @(@('Emulators', 'EmuName', $sqData.Emulators), @('Playlists', 'Name', $sqData.Playlists))) {
+                            $table = $tablePair[0]; $nameCol = $tablePair[1]; $rows = @($tablePair[2])
+                            if ($rows.Count -eq 0 -or -not $rows[0]) { continue }
+                            $hasTable = @(Invoke-KitSqlQuery -Connection $dbConn -Sql "SELECT name FROM sqlite_master WHERE type='table' AND name='$table'").Count -gt 0
+                            if (-not $hasTable) { continue }
+                            $cols = @(Invoke-KitSqlQuery -Connection $dbConn -Sql "PRAGMA table_info($table)") | ForEach-Object { $_.name }
+                            if ($cols -notcontains $nameCol) {
+                                if ($table -eq 'Playlists' -and $cols -contains 'PlaylistName') { $nameCol = 'PlaylistName' } else { continue }
+                            }
+                            foreach ($row in $rows) {
+                                $rowName = if ($row.PSObject.Properties[$nameCol]) { [string]$row.$nameCol } else { $null }
+                                if (-not $rowName) { continue }
+                                $existing = @(Invoke-KitSqlQuery -Connection $dbConn -Sql "SELECT * FROM $table WHERE $nameCol = @n" -Parameters @{ n = $rowName })
+                                if ($existing.Count -eq 0) { continue }
+                                $cur = $existing[0]
+                                $set = [ordered]@{}
+                                foreach ($p in $row.PSObject.Properties) {
+                                    if ($p.Name -eq $nameCol) { continue }
+                                    if ($p.Value -isnot [string]) { continue }
+                                    if ($cols -notcontains $p.Name) { continue }
+                                    $resolved = ConvertFrom-KitProfileText -Text ([string]$p.Value) -Roots $roots
+                                    $curVal = if ($cur.PSObject.Properties[$p.Name]) { [string]$cur.($p.Name) } else { $null }
+                                    if ($curVal -ne $resolved) { $set[$p.Name] = $resolved }
+                                }
+                                if ($set.Count -gt 0) {
+                                    $updates.Add([pscustomobject]@{ Table = $table; NameCol = $nameCol; Name = $rowName; Set = $set })
+                                }
+                            }
+                        }
+                    } finally {
+                        Close-KitSqlite $dbConn
+                    }
+
                     $dbChanged = $false
-                    if (-not $isWhatIf) {
+                    if ($updates.Count -gt 0 -and -not $isWhatIf) {
                         # Backup database before modifying
-                        $backup = New-KitBackup -Files $dbFile -Purpose 'profile_import'
+                        $backupZip = Join-Path (Split-Path -Parent $dbFile) ('PUPDatabase_backup_{0:yyyyMMdd-HHmmss}.zip' -f (Get-Date))
+                        $null = New-KitBackup -Files @($dbFile) -Destination $backupZip
 
                         $dbConn = Open-KitSqlite -Path $dbFile
                         try {
-                            if ($sqData.Emulators) {
-                                foreach ($emu in $sqData.Emulators) {
-                                    $eName = $emu.EmuName
-                                    if (-not $eName) { continue }
-                                    $existing = @(Invoke-KitSqlQuery -Connection $dbConn -Sql 'SELECT EMUID FROM Emulators WHERE EmuName = @n' -Parameters @{ n = $eName })
-                                    if ($existing.Count -gt 0) {
-                                        # Update paths
-                                        $dirGames = ConvertFrom-KitProfilePath -Path ([string]$emu.DirGames) -Roots $roots
-                                        $dirMedia = ConvertFrom-KitProfilePath -Path ([string]$emu.DirMedia) -Roots $roots
-                                        $dirRoms  = ConvertFrom-KitProfilePath -Path ([string]$emu.DirRoms) -Roots $roots
-                                        $launch   = ConvertFrom-KitProfilePath -Path ([string]$emu.LaunchScript) -Roots $roots
-
-                                        $null = Invoke-KitSqlNonQuery -Connection $dbConn -Sql 'UPDATE Emulators SET DirGames = @g, DirMedia = @m, DirRoms = @r, LaunchScript = @s WHERE EmuName = @n' `
-                                            -Parameters @{ g = $dirGames; m = $dirMedia; r = $dirRoms; s = $launch; n = $eName }
-                                        $dbChanged = $true
-                                    }
-                                }
+                            foreach ($u in $updates) {
+                                $assignments = foreach ($colName in $u.Set.Keys) { "[$colName] = @$colName" }
+                                $sql = 'UPDATE [{0}] SET {1} WHERE [{2}] = @n' -f $u.Table, ($assignments -join ', '), $u.NameCol
+                                $params = @{ n = $u.Name }
+                                foreach ($colName in $u.Set.Keys) { $params[$colName] = $u.Set[$colName] }
+                                $null = Invoke-KitSqlNonQuery -Connection $dbConn -Sql $sql -Parameters $params
                             }
+                            $dbChanged = $true
                         } finally {
                             Close-KitSqlite $dbConn
                         }
                     }
                     $results.Add([pscustomobject]@{
                         Name = 'pinball-sqlite'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($dbChanged) { 'Done' } else { 'Skipped' }
-                        Detail = "Popper database emulators/settings merged."
+                        Detail = "$($updates.Count) emulator/playlist row(s) differ from cabinet B."
                     })
                 }
             }
@@ -684,9 +855,14 @@ function Import-KitCabinetProfile {
 
             # 2. es_settings.cfg merge
             $esEntry = $zip.GetEntry('files/lightgun/es_settings.json')
-            if ($esEntry -and $rb -and (Test-Path -LiteralPath $rb)) {
-                $cfgPath = Join-Path $rb 'emulationstation\.emulationstation\es_settings.cfg'
-                if (Test-Path -LiteralPath $cfgPath) {
+            if ($esEntry) {
+                $cfgPath = if ($rb -and (Test-Path -LiteralPath $rb)) { Join-Path $rb 'emulationstation\.emulationstation\es_settings.cfg' } else { $null }
+                if (-not $cfgPath -or -not (Test-Path -LiteralPath $cfgPath)) {
+                    $results.Add([pscustomobject]@{
+                        Name = 'lightgun-essettings'; Status = 'NeedsUser'
+                        Detail = 'RetroBat with es_settings.cfg not found on cabinet B. Finish the RetroBat install (lightgun steps 1-2), then import again.'
+                    })
+                } else {
                     $sr = New-Object IO.StreamReader ($esEntry.Open(), [Text.Encoding]::UTF8)
                     $esData = $null
                     try { $esData = $sr.ReadToEnd() | ConvertFrom-Json } finally { $sr.Dispose() }
@@ -711,7 +887,7 @@ function Import-KitCabinetProfile {
                     }
 
                     if ($cfgModified -and -not $isWhatIf) {
-                        $null = New-KitBackup -Files $cfgPath -Purpose 'profile_import'
+                        $null = Backup-ProfileFile -Path $cfgPath -Purpose 'profile'
                         $xml.Save($cfgPath)
                     }
 
@@ -724,31 +900,47 @@ function Import-KitCabinetProfile {
 
             # 3. Gunmote layouts merge
             $metaEntry = $zip.GetEntry('files/lightgun/gunmote/layouts-meta.json')
-            if ($metaEntry -and $gm -and (Test-Path -LiteralPath $gm)) {
-                $kmJson = Join-Path $gm 'Keymaps\Keymaps.json'
-                if (Test-Path -LiteralPath $kmJson) {
+            if ($metaEntry) {
+                $kmJson = if ($gm -and (Test-Path -LiteralPath $gm)) { Join-Path $gm 'Keymaps\Keymaps.json' } else { $null }
+                if (-not $kmJson -or -not (Test-Path -LiteralPath $kmJson)) {
+                    $results.Add([pscustomobject]@{
+                        Name = 'lightgun-gunmote'; Status = 'NeedsUser'
+                        Detail = 'Gunmote with Keymaps\Keymaps.json not found on cabinet B. Run lightgun step 4, then import again.'
+                    })
+                } else {
                     $sr = New-Object IO.StreamReader ($metaEntry.Open(), [Text.Encoding]::UTF8)
                     $meta = $null
                     try { $meta = $sr.ReadToEnd() | ConvertFrom-Json } finally { $sr.Dispose() }
 
                     $kmData = Get-Content -LiteralPath $kmJson -Raw | ConvertFrom-Json
                     $kmModified = $false
+                    $gmRefused = $false
 
                     foreach ($prop in $meta.psobject.Properties) {
                         $file = $prop.Name
-                        $title = $prop.Value
+                        $title = [string]$prop.Value
+                        # The meta file is untrusted: refuse traversal and anything outside Gunmote\Keymaps.
+                        Assert-KitProfilePathSafe -Path $file
+                        $targetFile = Join-Path $gm "Keymaps\$file"
+                        if (-not (Test-KitPathUnder -Path $targetFile -Root @((Join-Path $gm 'Keymaps')))) {
+                            $results.Add([pscustomobject]@{
+                                Name = 'lightgun-gunmote'; Status = 'NeedsUser'
+                                Detail = "Refused layout '$file' outside the Gunmote Keymaps folder."
+                            })
+                            $gmRefused = $true
+                            break
+                        }
                         $layoutEntry = $zip.GetEntry("files/lightgun/gunmote/$file")
                         if ($layoutEntry) {
-                            $targetFile = Join-Path $gm "Keymaps\$file"
                             $lReader = New-Object IO.StreamReader ($layoutEntry.Open(), [Text.Encoding]::UTF8)
                             $lText = $null
                             try { $lText = $lReader.ReadToEnd() } finally { $lReader.Dispose() }
-                            $resolvedLayout = ConvertFrom-KitProfilePath -Path $lText -Roots $roots
+                            $resolvedLayout = ConvertFrom-KitProfileText -Text $lText -Roots $roots
 
                             $currentContent = if (Test-Path -LiteralPath $targetFile) { [IO.File]::ReadAllText($targetFile) } else { '' }
                             if ($currentContent -ne $resolvedLayout) {
                                 if (-not $isWhatIf) {
-                                    if (Test-Path -LiteralPath $targetFile) { $null = New-KitBackup -Files $targetFile -Purpose 'profile_import' }
+                                    if (Test-Path -LiteralPath $targetFile) { $null = Backup-ProfileFile -Path $targetFile -Purpose 'profile' }
                                     [IO.File]::WriteAllText($targetFile, $resolvedLayout, [Text.Encoding]::UTF8)
                                 }
                                 $kmModified = $true
@@ -763,47 +955,65 @@ function Import-KitCabinetProfile {
                         }
                     }
 
-                    if ($kmModified -and -not $isWhatIf) {
-                        $null = New-KitBackup -Files $kmJson -Purpose 'profile_import'
-                        [IO.File]::WriteAllText($kmJson, (ConvertTo-Json $kmData -Depth 5), [Text.Encoding]::UTF8)
-                    }
+                    if (-not $gmRefused) {
+                        if ($kmModified -and -not $isWhatIf) {
+                            $null = Backup-ProfileFile -Path $kmJson -Purpose 'profile'
+                            [IO.File]::WriteAllText($kmJson, (ConvertTo-Json $kmData -Depth 5), [Text.Encoding]::UTF8)
+                        }
 
-                    $results.Add([pscustomobject]@{
-                        Name = 'lightgun-gunmote'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($kmModified) { 'Done' } else { 'Skipped' }
-                        Detail = 'Gunmote layouts merged.'
-                    })
+                        $results.Add([pscustomobject]@{
+                            Name = 'lightgun-gunmote'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($kmModified) { 'Done' } else { 'Skipped' }
+                            Detail = 'Gunmote layouts merged.'
+                        })
+                    }
                 }
             }
 
             # 4. TeknoParrot profiles merge
-            $tpEntries = @($zip.Entries | Where-Object { $_.FullName -like 'files/lightgun/teknoparrot/*.xml' })
-            if ($tpEntries.Count -gt 0 -and $rb -and (Test-Path -LiteralPath $rb)) {
-                $tpProfiles = Join-Path $rb 'emulators\teknoparrot\UserProfiles'
-                if (Test-Path -LiteralPath $tpProfiles) {
+            $tpEntries = @($zip.Entries | Where-Object { $_.FullName -like 'files/lightgun/teknoparrot/*.xml' } | Sort-Object FullName)
+            if ($tpEntries.Count -gt 0) {
+                $tpProfiles = if ($rb -and (Test-Path -LiteralPath $rb)) { Join-Path $rb 'emulators\teknoparrot\UserProfiles' } else { $null }
+                if (-not $tpProfiles -or -not (Test-Path -LiteralPath $tpProfiles)) {
+                    $results.Add([pscustomobject]@{
+                        Name = 'lightgun-teknoparrot'; Status = 'NeedsUser'
+                        Detail = "TeknoParrot UserProfiles not found under '$rb'. Run lightgun step 10 for the games you want, then import again."
+                    })
+                } else {
                     $tpModified = $false
                     foreach ($te in $tpEntries) {
                         $fileName = Split-Path -Leaf $te.FullName
+                        Assert-KitProfilePathSafe -Path $te.FullName
                         $targetXml = Join-Path $tpProfiles $fileName
+                        if (-not (Test-KitPathUnder -Path $targetXml -Root @($tpProfiles))) {
+                            $results.Add([pscustomobject]@{
+                                Name = 'lightgun-teknoparrot'; Status = 'NeedsUser'
+                                Detail = "Refused profile '$fileName' outside the TeknoParrot UserProfiles folder."
+                            })
+                            $tpModified = $null
+                            break
+                        }
                         if (Test-Path -LiteralPath $targetXml) {
                             $tReader = New-Object IO.StreamReader ($te.Open(), [Text.Encoding]::UTF8)
                             $teXml = $null
                             try { $teXml = $tReader.ReadToEnd() } finally { $tReader.Dispose() }
-                            $resolvedXml = ConvertFrom-KitProfilePath -Path $teXml -Roots $roots
+                            $resolvedXml = ConvertFrom-KitProfileText -Text $teXml -Roots $roots
 
                             $currentXml = [IO.File]::ReadAllText($targetXml)
                             if ($currentXml -ne $resolvedXml) {
                                 if (-not $isWhatIf) {
-                                    $null = New-KitBackup -Files $targetXml -Purpose 'profile_import'
+                                    $null = Backup-ProfileFile -Path $targetXml -Purpose 'profile'
                                     [IO.File]::WriteAllText($targetXml, $resolvedXml, [Text.Encoding]::UTF8)
                                 }
                                 $tpModified = $true
                             }
                         }
                     }
-                    $results.Add([pscustomobject]@{
-                        Name = 'lightgun-teknoparrot'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($tpModified) { 'Done' } else { 'Skipped' }
-                        Detail = "$($tpEntries.Count) TeknoParrot profile(s) checked."
-                    })
+                    if ($null -ne $tpModified) {
+                        $results.Add([pscustomobject]@{
+                            Name = 'lightgun-teknoparrot'; Status = if ($isWhatIf) { 'WhatIf' } elseif ($tpModified) { 'Done' } else { 'Skipped' }
+                            Detail = "$($tpEntries.Count) TeknoParrot profile(s) checked."
+                        })
+                    }
                 }
             }
         }
@@ -811,5 +1021,8 @@ function Import-KitCabinetProfile {
         $zip.Dispose()
     }
 
-    @($results)
+    # List[object] -> object[]: a plain cast keeps PS 5.1 from tripping its dynamic array binder.
+    $out = New-Object object[] $results.Count
+    [void]$results.CopyTo($out)
+    $out
 }

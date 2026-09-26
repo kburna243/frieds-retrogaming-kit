@@ -1,4 +1,4 @@
-# Deutsche Texte. Platzhalter {0}, {1} ... werden per -f gefüllt.
+﻿# Deutsche Texte. Platzhalter {0}, {1} ... werden per -f gefüllt.
 @{
     'Kit.Title'               = 'Retro Cabinet Kit'
     'Log.Started'             = 'Protokoll gestartet: {0}'
