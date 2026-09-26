@@ -206,6 +206,7 @@ We adhere to a non-negotiable software safety charter:
 | **Security Policy** | Vulnerability reporting, task privilege model, and hardening disclosures. | [English](SECURITY.md) |
 | **Contribution Guidelines** | Coding standards, Pester tests, and PR submission rules. | [English](CONTRIBUTING.md) |
 | **Architecture** | Layers, the step contract, Definition of Done, quality gates. | [English](ARCHITECTURE.md) |
+| **Kit API** | One entry point for scripts and external tools: operations, results, dry run, approvals, JSON. | [English](API.md) |
 | **Changelog & Roadmap** | What changed per version and what comes next. | [Changelog](CHANGELOG.md) • [Roadmap](ROADMAP.md) |
 
 ---

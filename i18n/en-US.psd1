@@ -561,4 +561,14 @@
     'Gui.Status.Row'                = '{0} OK  {1} warning(s)  {2} error(s)'
     'Gui.Footer.Version'            = 'v{0}  -  Windows PowerShell {1}  -  local only, no telemetry'
     'Gui.Footer.Claim'              = 'No headaches.'
+    # --- Kit API ------------------------------------------------------------------------------------------------
+    'Api.UnknownOperation'          = 'Unknown operation: {0}'
+    'Api.UnknownParameter'          = 'Unknown parameter or not allowed through the API: {0}'
+    'Api.MissingParameter'          = 'Missing parameter: {0}'
+    'Api.NotAvailable'              = 'Not available yet: {0}'
+    'Api.Interactive'               = '{0} needs a person at the cabinet; run it in the wizard.'
+    'Api.NoResult'                  = 'The step returned no result.'
+    'Api.RestoredFiles'             = '{0} file(s) in the plan.'
+    'Api.ExportPlan'                = 'Dry run: {0} would be copied to {1}.'
+    'Api.BundlePlan'                = 'Dry run: a support bundle would be written to {0}.'
 }

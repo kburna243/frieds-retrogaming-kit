@@ -206,6 +206,7 @@ Wir arbeiten nach strengen, unverhandelbaren Grundsätzen:
 | **Sicherheits-Richtlinie** | Sicherheitsmodell, Privilegien der Hintergrundaufgaben und Deaktivierung. | [English](SECURITY.md) |
 | **Richtlinien für Beiträge** | Codierungsstandards, Pester-Tests und Pull-Request-Ablauf. | [English](CONTRIBUTING.md) |
 | **Architektur** | Schichten, Schritt-Vertrag, Definition of Done, Qualitätsprüfungen. | [English](ARCHITECTURE.md) |
+| **Kit-API** | Ein Einstieg für Skripte und externe Werkzeuge: Operationen, Ergebnisse, Trockenlauf, Freigaben, JSON. | [English](API.md) |
 | **Changelog & Roadmap** | Änderungen je Version und nächste Schritte. | [Changelog](CHANGELOG.md) • [Roadmap](ROADMAP.md) |
 
 ---

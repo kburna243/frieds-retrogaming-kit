@@ -9,7 +9,7 @@
       refuses large files such as the i18n tables)
     - network APIs appear only in core/modules/Download.ps1 (no telemetry, no hidden downloads)
     - every *.xaml (gui views and themes) is well-formed XML
-    - the module manifests (core, pinball, lightgun, gui) carry the version from the VERSION file
+    - the module manifests (core, pinball, lightgun, gui, api) carry the version from the VERSION file
     Runs on Windows PowerShell 5.1 and on PowerShell 7.
 .PARAMETER Root
     Repository root. Default: the parent folder of this script's folder.
@@ -70,7 +70,7 @@ foreach ($rel in $files | Sort-Object -Unique) {
 $networkApi = '\b(Invoke-WebRequest|Invoke-RestMethod|Start-BitsTransfer|Send-MailMessage|Net\.WebClient|Net\.WebRequest|Net\.HttpWebRequest|Net\.Http\.HttpClient|Net\.Sockets\.|Net\.Mail\.|iwr|irm|wget|curl)\b'
 $networkAllowed = @('core/modules/Download.ps1')
 foreach ($rel in $files | Sort-Object -Unique) {
-    if ($rel -notmatch '^(core|pinball|lightgun|gui)/.+\.ps(m?)1$' -or $networkAllowed -contains $rel) { continue }
+    if ($rel -notmatch '^(core|pinball|lightgun|gui|api)/.+\.ps(m?)1$' -or $networkAllowed -contains $rel) { continue }
     $full = Join-Path $Root $rel
     if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { continue }
     $tokens = $null; $errors = $null
@@ -105,7 +105,7 @@ if (Test-Path -LiteralPath $versionFile) {
         $problems.Add("VERSION: invalid version '$version'")
     } else {
         $moduleVersion = $Matches[1]
-        foreach ($m in 'core/RetroCabinetKit.Core.psd1', 'pinball/RetroCabinetKit.Pinball.psd1', 'lightgun/RetroCabinetKit.Lightgun.psd1', 'gui/RetroCabinetKit.Gui.psd1') {
+        foreach ($m in 'core/RetroCabinetKit.Core.psd1', 'pinball/RetroCabinetKit.Pinball.psd1', 'lightgun/RetroCabinetKit.Lightgun.psd1', 'gui/RetroCabinetKit.Gui.psd1', 'api/RetroCabinetKit.Api.psd1') {
             $data = Import-PowerShellDataFile -LiteralPath (Join-Path $Root $m)
             if ($data.ModuleVersion -ne $moduleVersion) { $problems.Add("${m}: ModuleVersion $($data.ModuleVersion) differs from VERSION $moduleVersion") }
         }

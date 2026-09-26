@@ -12,7 +12,7 @@ Describe 'Release package' {
     It 'VERSION is a semantic version and matches the module manifests' {
         $version | Should Match '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$'
         $moduleVersion = ($version -split '-')[0]
-        foreach ($m in 'core\RetroCabinetKit.Core.psd1', 'pinball\RetroCabinetKit.Pinball.psd1', 'lightgun\RetroCabinetKit.Lightgun.psd1', 'gui\RetroCabinetKit.Gui.psd1') {
+        foreach ($m in 'core\RetroCabinetKit.Core.psd1', 'pinball\RetroCabinetKit.Pinball.psd1', 'lightgun\RetroCabinetKit.Lightgun.psd1', 'gui\RetroCabinetKit.Gui.psd1', 'api\RetroCabinetKit.Api.psd1') {
             (Import-PowerShellDataFile -LiteralPath (Join-Path $kitRoot $m)).ModuleVersion | Should Be $moduleVersion
         }
     }

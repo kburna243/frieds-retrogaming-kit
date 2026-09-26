@@ -52,6 +52,7 @@ $required = @(
     'core/RetroCabinetKit.Core.psd1', 'core/RetroCabinetKit.Core.psm1',
     'pinball/RetroCabinetKit.Pinball.psd1', 'pinball/RetroCabinetKit.Pinball.psm1',
     'lightgun/RetroCabinetKit.Lightgun.psd1', 'lightgun/RetroCabinetKit.Lightgun.psm1',
+    'api/RetroCabinetKit.Api.psd1', 'api/RetroCabinetKit.Api.psm1', 'api/Invoke-KitApi.ps1', 'API.md',
     'gui/RetroCabinetKit.Gui.psd1', 'gui/RetroCabinetKit.Gui.psm1', 'gui/Start-KitGui.ps1', 'gui/Views/MainWindow.xaml', 'gui/Themes/Brand.xaml',
     'i18n/en-US.psd1', 'i18n/de-DE.psd1'
 )
