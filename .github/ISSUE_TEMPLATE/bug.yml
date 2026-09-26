@@ -1,0 +1,69 @@
+name: Bug report
+description: A step failed, reported a wrong result or changed something it should not have.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Before you paste logs:** remove personal data (user names in paths, computer
+        names, IP addresses). Security problems go to a private advisory instead, see [SECURITY.md](https://github.com/kburna243/frieds-retrogaming-kit/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Kit version
+      description: Content of the VERSION file, or the release zip name.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Core (launcher, backup, logging, downloads)
+        - Pinball
+        - Lightgun (steps 1-9, base setup)
+        - Lightgun (steps 10-14, emulators)
+        - Documentation / website
+    validations:
+      required: true
+  - type: input
+    id: step
+    attributes:
+      label: Step
+      description: Script or wizard page, e.g. lightgun\steps\10-TeknoParrot.ps1
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: What did you do?
+      description: Command line or wizard clicks, including parameters such as -WhatIf.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log excerpt (depersonalized)
+      description: The relevant lines from the kit's logs\ folder.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed personal data (user names, computer names, IP addresses) from everything above.
+          required: true
+        - label: No ROMs, BIOS files or other copyrighted material are attached.
+          required: true

@@ -1,0 +1,89 @@
+# Runs on every push to main and every pull request:
+#   depersonalization scan -> static checks (parse, BOM, versions) -> Pester tests -> package build + integrity
+# The kit targets Windows PowerShell 5.1, so static checks, tests and packaging run with "shell: powershell"
+# (Windows PowerShell 5.1 and the Pester 3.4 that ships with Windows, exactly like tests\Run-Tests.ps1 expects).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  depersonalization:
+    name: Depersonalization scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for personal or machine-specific data
+        shell: pwsh
+        run: ./tools/Test-Depersonalized.ps1
+
+  static:
+    name: Static checks (PowerShell 5.1)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse, encoding and version checks
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion
+          .\tools\Test-KitSyntax.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  tests:
+    name: Pester tests (PowerShell 5.1)
+    needs: static
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests\Run-Tests.ps1
+        shell: powershell
+        run: |
+          .\tests\Run-Tests.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  package:
+    name: Package build and integrity
+    needs: [depersonalization, tests]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build release zip
+        shell: powershell
+        run: .\tools\New-ReleasePackage.ps1 -DestinationDir dist
+      - name: Verify release zip
+        shell: powershell
+        run: |
+          $zip = Get-ChildItem dist\frieds-retrogaming-kit-v*.zip | Select-Object -First 1
+          .\tools\Test-ReleasePackage.ps1 -ZipPath $zip.FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frieds-retrogaming-kit-${{ github.sha }}
+          path: dist/
+          retention-days: 14
+
+  site:
+    name: Website build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run build

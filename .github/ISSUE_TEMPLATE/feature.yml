@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a new step, emulator integration or improvement.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Which problem does it solve?
+      description: What is tedious, fragile or impossible on your cabinet today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should the kit test, change and then verify? What should the dry run (-WhatIf) show?
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Official sources
+      description: Upstream project pages or releases of any tool involved (the kit only uses official sources).
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: The request does not need the kit to ship or download ROMs, BIOS files or other copyrighted material.
+          required: true
