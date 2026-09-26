@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Core demo: unblock kit files, start the log, show the language, run one example step with -WhatIf.
     With -Doctor, -Backups or -SupportBundle it runs that tool instead (core\Start-KitTools.ps1).
@@ -16,11 +16,14 @@ param(
     [string] $Culture,
     [switch] $Doctor,
     [switch] $Backups,
-    [switch] $SupportBundle
+    [switch] $SupportBundle,
+    [switch] $ExportProfile,
+    [string] $Suite,
+    [string] $ImportProfile
 )
 
 $ErrorActionPreference = 'Stop'
-if ($Doctor -or $Backups -or $SupportBundle) {
+if ($Doctor -or $Backups -or $SupportBundle -or $ExportProfile -or $ImportProfile) {
     & (Join-Path $PSScriptRoot 'Start-KitTools.ps1') @PSBoundParameters
     exit $LASTEXITCODE
 }

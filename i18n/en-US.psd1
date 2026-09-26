@@ -1,4 +1,4 @@
-﻿# English texts (fallback for every culture). Placeholders {0}, {1} ... are filled via -f.
+# English texts (fallback for every culture). Placeholders {0}, {1} ... are filled via -f.
 @{
     'Kit.Title'               = 'Retro Cabinet Kit'
     'Log.Started'             = 'Log started: {0}'
@@ -526,4 +526,11 @@
     'Ui.Care.SupportHead'           = 'Support bundle'
     'Ui.Care.SupportDesc'           = 'One anonymized zip for an issue report: health check, environment, step states and the newest logs. No ROMs, tables or configuration files.'
     'Ui.Care.CreateBundle'          = 'Create support bundle'
+    # --- Cabinet profile (migration) -------------------------------------------------------------------------
+    'Profile.Title'                 = 'Cabinet Profile'
+    'Profile.Exported'              = 'Cabinet profile exported: {0}'
+    'Profile.Imported'              = 'Cabinet profile imported from {0}.'
+    'Profile.Refused.Format'        = 'Profile format {0} is not supported (maximum supported: {1}).'
+    'Profile.Refused.Absolute'      = 'Profile contains absolute paths, refusing import.'
+    'Profile.Refused.Traverse'      = 'Profile contains invalid path traversal, refusing import.'
 }

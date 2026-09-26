@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Kit tools: doctor (health check), backups (recovery) and support bundle.
 .DESCRIPTION
@@ -27,6 +27,12 @@ param(
     [Parameter(ParameterSetName = 'Export', Mandatory)] [Parameter(ParameterSetName = 'Support')] [string] $Destination,
     [Parameter(ParameterSetName = 'Remove', Mandatory)] [string] $RemoveBackup,
     [Parameter(ParameterSetName = 'Support', Mandatory)] [switch] $SupportBundle,
+    [Parameter(ParameterSetName = 'ExportProfile', Mandatory)] [switch] $ExportProfile,
+    [Parameter(ParameterSetName = 'ExportProfile', Mandatory)] [ValidateSet('Pinball', 'Lightgun')] [string] $Suite,
+    [Parameter(ParameterSetName = 'ExportProfile')] [string] $ProfileDestination,
+    [Parameter(ParameterSetName = 'ImportProfile', Mandatory)] [string] $ImportProfile,
+    [Parameter(ParameterSetName = 'ImportProfile')] [hashtable] $RootMap,
+    [Parameter(ParameterSetName = 'ImportProfile')] [switch] $AutoInstall,
     [string] $Culture
 )
 
@@ -118,6 +124,20 @@ switch ($PSCmdlet.ParameterSetName) {
         $zip = Export-KitSupportBundle -Destination $Destination -DoctorResult $result -StatePath $pinballState, $lightgunState -LogDir $logDir
         Write-Host (Get-KitText 'Support.Hint')
         $zip
+    }
+    'ExportProfile' {
+        $dest = if ($ProfileDestination) { $ProfileDestination } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads' }
+        $res = Export-KitCabinetProfile -Suite $Suite -Destination $dest
+        Write-Host (Get-KitText 'Profile.Exported' -f $res.Path) -ForegroundColor Green
+        $res
+    }
+    'ImportProfile' {
+        $rMap = if ($RootMap) { $RootMap } else { @{} }
+        $results = Import-KitCabinetProfile -Path $ImportProfile -RootMap $rMap -WhatIf:$WhatIfPreference -AutoInstall:$AutoInstall
+        foreach ($r in $results) {
+            $color = switch ($r.Status) { 'Done' { 'Green' } 'Skipped' { 'DarkGray' } 'WhatIf' { 'Cyan' } 'NeedsUser' { 'Yellow' } default { 'White' } }
+            Write-Host ("[{0}] {1}: {2}" -f $r.Status, $r.Name, $r.Detail) -ForegroundColor $color
+        }
     }
 }
 

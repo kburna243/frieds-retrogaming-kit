@@ -1,4 +1,4 @@
-﻿# Deutsche Texte. Platzhalter {0}, {1} ... werden per -f gefüllt.
+# Deutsche Texte. Platzhalter {0}, {1} ... werden per -f gefüllt.
 @{
     'Kit.Title'               = 'Retro Cabinet Kit'
     'Log.Started'             = 'Protokoll gestartet: {0}'
@@ -526,4 +526,11 @@
     'Ui.Care.SupportHead'           = 'Support-Paket'
     'Ui.Care.SupportDesc'           = 'Ein anonymisiertes ZIP für eine Fehlermeldung: Gesundheitscheck, Umgebung, Schrittstatus und die neuesten Logs. Keine ROMs, Tische oder Konfigurationsdateien.'
     'Ui.Care.CreateBundle'          = 'Support-Paket erstellen'
+    # --- Kabinett-Profil (Migration) -------------------------------------------------------------------------
+    'Profile.Title'                 = 'Kabinett-Profil'
+    'Profile.Exported'              = 'Kabinett-Profil exportiert: {0}'
+    'Profile.Imported'              = 'Kabinett-Profil importiert aus {0}.'
+    'Profile.Refused.Format'        = 'Profilformat {0} wird nicht unterstützt (maximal unterstützt: {1}).'
+    'Profile.Refused.Absolute'      = 'Profil enthält absolute Pfade, Import abgelehnt.'
+    'Profile.Refused.Traverse'      = 'Profil enthält ungültige Pfad-Navigation, Import abgelehnt.'
 }
