@@ -7,6 +7,8 @@ that matches it.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-27
+
 ### Fixed
 - Lightgun: no pointer in Model 2, Model 3, Naomi, Atomiswave and Dreamcast started from RetroBat
   (found on the cabinet 27.09.). Their emulators and DemulShooter read RawInput, but the kit sent a pad
@@ -257,7 +259,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.2.0...v0.3.0

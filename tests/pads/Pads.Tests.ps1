@@ -67,7 +67,7 @@ Describe 'Pad adapter catalog' {
             @($errors).Count | Should Be 0
         }
         $m = Import-PowerShellDataFile (Join-Path $kitRoot 'pads\RetroCabinetKit.Pads.psd1')
-        $m.ModuleVersion | Should Be '0.4.0'
+        $m.ModuleVersion | Should Be '0.4.1'
         $m.RootModule | Should Be 'RetroCabinetKit.Pads.psm1'
         $m.FunctionsToExport | Should Be '*-Pad*'
         $m.GUID | Should Match '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
