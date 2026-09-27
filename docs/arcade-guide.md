@@ -75,7 +75,7 @@ manual work; the adapters name the official sources instead of downloading.
 
 > ⚠️ Bench check pending: the `[Controllers]` keys and values follow the community design doc; the
 > kit writes them idempotently and backs everything up, but confirm on a real RetroBat that these
-> keys drive your wheels as intended.
+> keys drive your wheels as intended. Work through [bench-check.md](bench-check.md) – section 1/2.
 
 ### Mad Catz and Code 43
 
@@ -97,7 +97,7 @@ compatibility option. Detection still classifies the stick — the quirk is repo
 & arcade\steps\01-Adapter.ps1
 
 # vendor tool from a locally downloaded ZIP (the kit never downloads itself):
-& arcade\steps\01-Adapter.ps1 -Install -Name LogitechWheel -PackagePath D:\downloads\lgs.zip -Approved
+& arcade\steps\01-Adapter.ps1 -Install -Name LogitechWheel -PackagePath C:\Games\lgs.zip -Approved
 ```
 
 Module level:

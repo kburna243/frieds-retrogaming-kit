@@ -76,7 +76,8 @@ herunterzuladen.
 
 > ⚠️ Noch nicht auf Hardware verifiziert: Die `[Controllers]`-Schlüssel folgen dem
 > Community-Design-Dokument. Das Kit schreibt sie idempotent und mit Backup — aber prüfe an einem
-> echten RetroBat, ob diese Schlüssel deine Lenkraderkennung wie vorgesehen steuern.
+> echten RetroBat, ob diese Schlüssel deine Lenkraderkennung wie vorgesehen steuern. Abarbeitbar
+> als Checkliste in [bench-check.de.md](bench-check.de.md), Kapitel 1/2.
 
 ### Mad Catz und Code 43
 
@@ -99,7 +100,7 @@ der Quirk wird gemeldet, nicht versteckt.
 & arcade\steps\01-Adapter.ps1
 
 # Hersteller-Tool aus lokal geladener ZIP (das Kit lädt nie selbst):
-& arcade\steps\01-Adapter.ps1 -Install -Name LogitechWheel -PackagePath D:\downloads\lgs.zip -Approved
+& arcade\steps\01-Adapter.ps1 -Install -Name LogitechWheel -PackagePath C:\Games\lgs.zip -Approved
 ```
 
 Auf Modulebene:

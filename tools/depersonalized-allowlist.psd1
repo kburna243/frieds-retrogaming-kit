@@ -1,4 +1,4 @@
-# Allowlist for tools/Test-Depersonalized.ps1: legitimate examples, never real machines or people.
+﻿# Allowlist for tools/Test-Depersonalized.ps1: legitimate examples, never real machines or people.
 # Every entry: Path (wildcard on the repo-relative path with /), optional Kind (PrivateIp, HostName, DrivePath,
 # Email, Secret), optional Match (regex the found text must match) and a Reason. Keep entries as narrow as
 # possible; a new entry needs a reason a reviewer can check.
@@ -41,6 +41,18 @@
             Kind   = 'DrivePath'
             Match  = '^[CDE]:\\((Games|Pinball|RetroBat|Old Build|New Build|ProgramData)(\\[^\\]*)*|Windows|Program Files( \(x86\))?|Program|Old)?$'
             Reason = 'Guides use a small fixed set of example folders (D:\Pinball, C:\RetroBat, E:\Old Build, ...) and Windows system folders.'
+        }
+        @{
+            Path   = 'docs/*.md'
+            Kind   = 'DrivePath'
+            Match  = '^C:\\DirectOutput'
+            Reason = 'DOF R3++ installs to C:\DirectOutput by community convention; the output guide names the tool folder as fact, not as a personal path.'
+        }
+        @{
+            Path   = 'output/*'
+            Kind   = 'DrivePath'
+            Match  = '^C:\\DirectOutput'
+            Reason = 'The DirectOutputFramework adapter documents DOF''s conventional install folder in header comments and its README.'
         }
         # --- this tool --------------------------------------------------------------------------------------
         @{

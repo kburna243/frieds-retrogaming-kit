@@ -439,6 +439,28 @@
     'Arcade.Adapter.ShieldReportsOnly' = 'The shield only reports; processes are never killed.'
     'Arcade.Quirk.Code43'            = 'Code 43 found: PS3 arcade sticks often fail on USB-3.0 xHCI – put a USB-2.0 hub in front or change the xHCI option in the BIOS.'
 
+    # Pads package (gamepads as the third input class)
+    'Pad.Adapter.Scanning'           = 'Checking pad adapter {0} …'
+    'Pad.Adapter.Detected'           = 'Gamepad detected: {0}'
+    'Pad.Adapter.None'               = 'No USB/Bluetooth gamepad (8BitDo, Xbox, PlayStation, Switch Pro) detected.'
+    'Pad.Adapter.Incomplete'         = 'Pad adapter {0} incomplete ({1} missing) – skipped.'
+    'Pad.Adapter.Error'              = 'Error in pad adapter {0}: {1}'
+    'Pad.Adapter.NotFound'           = 'No pad adapter {0} found in pads\adapters\.'
+    'Pad.Adapter.MissingFunction'    = 'Pad adapter {0} lacks function {1} – nothing executed.'
+    'Pad.Adapter.NextStep'           = 'Next step: {0}'
+    'Pad.Adapter.NeedsApproval'      = 'Software deployment aborted: without -Approved the kit writes nothing.'
+    'Pad.Adapter.SoftwareLink'       = '{0}: {1} – fetch the ZIP there and deploy it via -PackagePath.'
+    'Pad.Adapter.PackageMissing'     = 'Package not found: {0}'
+    'Pad.Adapter.PackageHash'        = 'SHA256 {0}: {1}'
+    'Pad.Adapter.SoftwareInstalled'  = 'Software deployed for {0}: {1}'
+    'Pad.Adapter.NoRetroBatIni'      = 'retrobat.ini not found ({0}) – [Controllers] skipped; start RetroBat once for it.'
+    'Pad.Adapter.Changes'            = 'Pad adapter {0} configured: {1} change(s).'
+    'Pad.Adapter.ShieldReportsOnly'  = 'The shield only reports; processes are never killed.'
+    'Pad.Excluded'                   = 'Device {0} belongs to class {1} – pad detection deliberately leaves it alone.'
+    'Pad.Quirk.BtImpersonation'      = 'This pad presents as {1} in {0} mode – another pad adapter sees it first; that is normal.'
+    'Pad.Quirk.BleFirmware'          = 'Xbox Series pads in BLE mode need the Xbox Accessories firmware update (manual) – otherwise double input.'
+    'Pad.NoBlacklist'                = 'Pads are deliberately NOT put on the Steam blacklist – Steam should see them for navigation input.'
+
     # Output package (rumble/haptics middleware)
     'Output.Adapter.Scanning'        = 'Checking output middleware {0} …'
     'Output.Adapter.Detected'        = 'Output middleware detected: {0}'

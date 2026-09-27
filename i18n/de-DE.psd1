@@ -439,6 +439,28 @@
     'Arcade.Adapter.ShieldReportsOnly' = 'Der Shield meldet nur; Prozesse werden nie beendet.'
     'Arcade.Quirk.Code43'            = 'Code 43 gefunden: PS3-Arcade-Sticks hängen an USB-3.0-xHCI oft fest – USB-2.0-Hub davor oder xHCI-Option im BIOS.'
 
+    # Pads-Paket (Gamepads als dritte Eingabeklasse)
+    'Pad.Adapter.Scanning'           = 'Prüfe Pad-Adapter {0} …'
+    'Pad.Adapter.Detected'           = 'Gamepad erkannt: {0}'
+    'Pad.Adapter.None'               = 'Kein USB-/Bluetooth-Gamepad (8BitDo, Xbox, PlayStation, Switch Pro) erkannt.'
+    'Pad.Adapter.Incomplete'         = 'Pad-Adapter {0} unvollständig ({1} fehlt) – übersprungen.'
+    'Pad.Adapter.Error'              = 'Fehler im Pad-Adapter {0}: {1}'
+    'Pad.Adapter.NotFound'           = 'Kein Pad-Adapter {0} in pads\adapters\ gefunden.'
+    'Pad.Adapter.MissingFunction'    = 'Pad-Adapter {0} hat die Funktion {1} nicht – nichts ausgeführt.'
+    'Pad.Adapter.NextStep'           = 'Nächster Schritt: {0}'
+    'Pad.Adapter.NeedsApproval'      = 'Software-Einsatz abgebrochen: ohne -Approved schreibt das Kit nichts.'
+    'Pad.Adapter.SoftwareLink'       = '{0}: {1} – ZIP dort holen und mit -PackagePath einsetzen.'
+    'Pad.Adapter.PackageMissing'     = 'Paket nicht gefunden: {0}'
+    'Pad.Adapter.PackageHash'        = 'SHA256 {0}: {1}'
+    'Pad.Adapter.SoftwareInstalled'  = 'Software für {0} bereitgestellt: {1}'
+    'Pad.Adapter.NoRetroBatIni'      = 'retrobat.ini nicht gefunden ({0}) – [Controllers] übersprungen; dafür RetroBat einmal starten.'
+    'Pad.Adapter.Changes'            = 'Pad-Adapter {0} konfiguriert: {1} Änderung(en).'
+    'Pad.Adapter.ShieldReportsOnly'  = 'Der Shield meldet nur; Prozesse werden nie beendet.'
+    'Pad.Excluded'                   = 'Gerät {0} gehört zur Klasse {1} – Pad-Erkennung lässt es bewusst aus.'
+    'Pad.Quirk.BtImpersonation'      = 'Dieses Pad meldet sich im {0}-Modus als {1} – ein anderer Pad-Adapter sieht es zuerst; das ist normal.'
+    'Pad.Quirk.BleFirmware'          = 'Xbox-Series-Pads im BLE-Modus brauchen das Xbox-Accessoire-Update (Handarbeit) – sonst Doppel-Eingaben.'
+    'Pad.NoBlacklist'                = 'Pads werden bewusst NICHT auf die Steam-Blacklist gesetzt – Steam soll sie für Navigations-Input sehen.'
+
     # Output-Paket (Rumble-/Haptik-Middleware)
     'Output.Adapter.Scanning'        = 'Prüfe Output-Middleware {0} …'
     'Output.Adapter.Detected'        = 'Output-Middleware erkannt: {0}'

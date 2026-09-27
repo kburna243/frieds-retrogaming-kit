@@ -20,6 +20,7 @@
     <a href="docs/pinball-guide.de.md"><strong>Pinball-Anleitung</strong></a> •
     <a href="docs/lightgun-guide.de.md"><strong>Lightgun-Anleitung</strong></a> •
     <a href="docs/arcade-guide.de.md"><strong>Arcade-Anleitung</strong></a> •
+    <a href="docs/pads-guide.de.md"><strong>Gamepad-Anleitung</strong></a> •
     <a href="docs/output-guide.de.md"><strong>Output-Anleitung</strong></a> •
     <a href="docs/troubleshooting.de.md"><strong>Fehlerbehebung</strong></a> •
     <a href="docs/faq.de.md"><strong>FAQ</strong></a> •
@@ -245,6 +246,7 @@ Wir arbeiten nach strengen, unverhandelbaren Grundsätzen:
 | **Virtual Pinball Handbuch** | Schritt-für-Schritt-Anleitung für Baller-Umzug, COM-Registrierung und Monitorkalibrierung. | [Deutsch](docs/pinball-guide.de.md) • [English](docs/pinball-guide.md) |
 | **Wiimote Lightgun Handbuch** | DolphinBar Modus 4, ViGEmBus, Gunmote-Layouts und Profil-Automation. | [Deutsch](docs/lightgun-guide.de.md) • [English](docs/lightgun-guide.md) |
 | **Arcade-Eingabe-Handbuch** | Fightsticks, Arcade-Encoder und USB-Lenkräder als Adapter in `arcade\adapters\`, klassensichere Erkennung und `[Controllers]`-Pflege. | [Deutsch](docs/arcade-guide.de.md) • [English](docs/arcade-guide.md) |
+| **Gamepad-Handbuch** | 8BitDo-, Xbox-, PlayStation- und Switch-Pro-Pads als dritte Eingabeklasse: Multi-Erkennung, Klassen-Ausnahmen, Treiber bleiben Handarbeit. | [Deutsch](docs/pads-guide.de.md) • [English](docs/pads-guide.md) |
 | **Output-Haptik-Handbuch** | MAMEHooker, qMamehook und Hook of the Reaper: Multi-Erkennung, exklusiver `output`-Schlüssel, erzwungener Spulenschutz. | [Deutsch](docs/output-guide.de.md) • [English](docs/output-guide.md) |
 | **Fehlerbehebungs-Handbuch** | Schnelle Lösungen für COM-Fehler, Monitor-Verschiebungen, Steam-Konflikte und Drift. | [Deutsch](docs/troubleshooting.de.md) • [English](docs/troubleshooting.md) |
 | **Häufig gestellte Fragen (FAQ)** | Antworten zu Architektur, Hardware-Kompatibilität und Sicherheit. | [Deutsch](docs/faq.de.md) • [English](docs/faq.md) |

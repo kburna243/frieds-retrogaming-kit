@@ -18,7 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $testsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $Path) {
-    $Path = if ($Local) { @(Join-Path $testsDir 'local') } else { @((Join-Path $testsDir 'core'), (Join-Path $testsDir 'pinball'), (Join-Path $testsDir 'lightgun'), (Join-Path $testsDir 'arcade'), (Join-Path $testsDir 'output'), (Join-Path $testsDir 'gui'), (Join-Path $testsDir 'api')) }
+    $Path = if ($Local) { @(Join-Path $testsDir 'local') } else { @((Join-Path $testsDir 'core'), (Join-Path $testsDir 'pinball'), (Join-Path $testsDir 'lightgun'), (Join-Path $testsDir 'arcade'), (Join-Path $testsDir 'output'), (Join-Path $testsDir 'pads'), (Join-Path $testsDir 'gui'), (Join-Path $testsDir 'api')) }
 }
 Import-Module Pester -MaximumVersion 3.99
 $result = Invoke-Pester -Script $Path -PassThru
