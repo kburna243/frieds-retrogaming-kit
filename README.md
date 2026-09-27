@@ -114,12 +114,17 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 | **Model 2** | ⚠️ Automated · emulator user-supplied | Checks and RetroBat settings, step 13 |
 | **Supermodel** (Model 3) | ✅ Automated | Crosshairs, XInput gun bindings, step 13 |
 | **DuckStation / PCSX2** | 🔎 Guided check | Audits settings and explains the mapping, step 14 |
+| **USB lightgun adapters** (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, **Sinden**) | ✅ Automated · hardware bench: community call | Step 15: read-only detection by exact VID&PID, RetroBat `[Guns]` settings, DemulShooter routing, Steam blacklist, official packages linked only — never auto-downloaded |
+| **Arcade package** (fightsticks, encoders, wheels — Brook, GP2040CE, Hori, IPAC, ZeroDelay, Fanatec, Logitech …) | ✅ Automated · hardware bench: community call | Twelve adapters in `arcade\adapters\`, VID/PID detection, mame.ini, `[Controllers]`, Supermodel and EMULATOR.INI writes, Steam controller_blacklist |
+| **Pads package** (8BitDo, Xbox, PlayStation, Switch Pro) | ✅ Automated | Third input class; tight VID/PID plus BTHENUM detection, writes only retrobat.ini `[Controllers]`, never on the Steam blacklist, always behind guns and arcade |
+| **Haptic middleware** (MAMEHooker, qMameHook, Hook of the Reaper, DirectOutput, DMD Extensions) | ⚠️ Automated · middleware user-supplied | `output\adapters\` detects by process, port and supported board; writes mame.ini `output=`, configures the middleware, solenoid guard (HotR `0x53` / 200 ms); never installs services, never kills processes |
+| **PinballY** | ✅ Automated | Inspect and retarget operations over the API (`pinbally.detect`, `pinbally.retarget`), dry run before every change |
 | **Flycast** | ⛔ Not covered | — |
 | **Doctor, backups, support bundle** | ✅ Read-only / guarded | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
 | **Cabinet migration (A → B)** | ✅ Dry run first, backup before every write | Dashboard *migrate*, `Start-Kit.cmd -ExportProfile` / `-ImportProfile` |
 | **Desktop dashboard** (new cabinet, migrate, recover, status) | ✅ WPF, nothing to install | `Start-Kit.cmd` |
 | **Kit API & MCP server** (scripts, agents) | ✅ Dry run by default, approvals by a person | [`API.md`](API.md), `api\Start-KitMcpServer.ps1` |
-| **Rumble / force feedback** | 🚧 Planned | See [ROADMAP](ROADMAP.md) |
+| **Rumble / force feedback** | 🚧 Planned | Vehicle: the output package. First test candidate: **Wiimote rumble** through MAMEHooker EmuOutput over the DolphinBar. See [ROADMAP](ROADMAP.md) |
 
 ---
 

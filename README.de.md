@@ -114,12 +114,17 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 | **Model 2** | ⚠️ Automatisiert · Emulator selbst mitgebracht | Prüfungen und RetroBat-Einstellungen, Schritt 13 |
 | **Supermodel** (Model 3) | ✅ Automatisiert | Fadenkreuz, XInput-Gun-Belegung, Schritt 13 |
 | **DuckStation / PCSX2** | 🔎 Geführte Prüfung | Prüft Einstellungen und erklärt die Zuordnung, Schritt 14 |
+| **USB-Lightgun-Adapter** (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, **Sinden**) | ✅ Automatisiert · Hardware-Bank: Community-Call | Schritt 15: Erkennung nur lesend per exakter VID&PID, RetroBat-`[Guns]`-Einstellungen, DemulShooter-Routing, Steam-Blacklist, nur Links auf die offiziellen Pakete — niemals Auto-Download |
+| **Arcade-Paket** (Fightsticks, Encoder, Lenkräder — Brook, GP2040CE, Hori, IPAC, ZeroDelay, Fanatec, Logitech …) | ✅ Automatisiert · Hardware-Bank: Community-Call | Zwölf Adapter in `arcade\adapters\`, Erkennung per VID/PID, mame.ini-, `[Controllers]`-, Supermodel- und EMULATOR.INI-Schreiben, Steam-controller_blacklist |
+| **Pads-Paket** (8BitDo, Xbox, PlayStation, Switch Pro) | ✅ Automatisiert | Dritte Eingabeklasse; enge VID/PID- plus BTHENUM-Erkennung, schreibt nur retrobat.ini `[Controllers]`, nie auf der Steam-Blacklist, immer hinter Guns und Arcade |
+| **Haptik-Middleware** (MAMEHooker, qMameHook, Hook of the Reaper, DirectOutput, DMD Extensions) | ⚠️ Automatisiert · Middleware selbst mitgebracht | `output\adapters\` erkennt per Prozess, Port und unterstütztem Board; schreibt mame.ini `output=`, konfiguriert die Middleware, Solenoid-Schutz (HotR `0x53` / 200 ms); installiert keine Dienste, killt keine Prozesse |
+| **PinballY** | ✅ Automatisiert | Prüf- und Retarget-Operation über die API (`pinbally.detect`, `pinbally.retarget`), erst Probelauf, dann Änderung |
 | **Flycast** | ⛔ Nicht abgedeckt | — |
 | **Doctor, Backups, Support-Paket** | ✅ Nur lesend / abgesichert | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
 | **Kabinett-Umzug (A → B)** | ✅ Erst Probelauf, Backup vor jedem Schreiben | Dashboard *Umziehen*, `Start-Kit.cmd -ExportProfile` / `-ImportProfile` |
 | **Desktop-Dashboard** (Neues Kabinett, Umziehen, Retten, Status) | ✅ WPF, nichts zu installieren | `Start-Kit.cmd` |
 | **Kit-API & MCP-Server** (Skripte, Agenten) | ✅ Standardmäßig Probelauf, Freigaben durch einen Menschen | [`API.md`](API.md), `api\Start-KitMcpServer.ps1` |
-| **Rumble / Force-Feedback** | 🚧 Geplant | Siehe [ROADMAP](ROADMAP.md) |
+| **Rumble / Force-Feedback** | 🚧 Geplant | Träger: das Output-Paket. Erster Testkandidat: **Wiimote-Rumble** über MAMEHooker EmuOutput am DolphinBar. Siehe [ROADMAP](ROADMAP.md) |
 
 ---
 

@@ -44,9 +44,12 @@ when they ship.
 
 - [ ] **Rumble / force feedback** — `lightgun\modules\Rumble.ps1` with one API (`Enable-`, `Disable-`, `Test-`,
       `Get-...RumbleStatus`) and emulator adapters (MAME, TeknoParrot, DemulShooter, DuckStation, PCSX2);
-      tool choice (OutputHooker / MAMEHooker) still open
-- [ ] **Hardware abstraction** — lightgun providers (Wiimote today; Sinden, Gun4IR, AimTrak later) behind one
-      input layer, so emulator steps no longer assume Wiimote + Gunmote
+      the output package (MAMEHooker, qMameHook, Hook of the Reaper) is the vehicle and the MAMEHooker side the
+      likely tool; first test candidate: **Wiimote rumble** through EmuOutput over the DolphinBar, since the
+      Wiimote already hangs off it for Gunmote
+- [ ] **Hardware abstraction** — lightgun providers (Wiimote today; Gun4IR, OpenFIRE, AimTrak, Retro Shooter and
+      Sinden arrive as setup adapters in v0.4.0) behind one input layer, so emulator steps no longer assume
+      Wiimote + Gunmote
 - [ ] Code signing of the release scripts, signed `SHA256SUMS.txt`
 - [ ] Further emulator integrations — only after the items above are stable
 
