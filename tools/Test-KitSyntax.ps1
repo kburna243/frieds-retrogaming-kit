@@ -45,7 +45,7 @@ foreach ($rel in $files | Sort-Object -Unique) {
     $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
     if (-not $hasBom) {
         foreach ($b in $bytes) {
-            if ($b -gt 0x7F) { $problems.Add("${rel}: non-ASCII characters without UTF-8 BOM"); break }
+            if ($b -gt 0x7F) { $problems.Add("${rel}: non-ASCII characters without UTF-8 BOM (tools\Repair-KitBom.ps1 adds it)"); break }
         }
     }
 

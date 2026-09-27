@@ -62,7 +62,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\Test-KitSyntax.ps1    
 powershell -NoProfile -ExecutionPolicy Bypass -File tests\Run-Tests.ps1             # Pester 3.4, Windows PowerShell 5.1
 ```
 PowerShell files containing non-ASCII characters (umlauts, dashes, emoji) must be saved as **UTF-8 with BOM**;
-Windows PowerShell 5.1 reads files without BOM as ANSI. Network APIs are only allowed in `core\modules\Download.ps1`.
+Windows PowerShell 5.1 reads files without BOM as ANSI. You rarely have to think about it: `.editorconfig` tells
+editors, `tests\Run-Tests.ps1` repairs missing BOMs before a local run (`tools\Repair-KitBom.ps1`) and the
+pre-commit hook does the same for staged files — enable it once per clone with `git config core.hooksPath .githooks`.
+CI does not repair; `Test-KitSyntax` fails there. Network APIs are only allowed in `core\modules\Download.ps1`.
 
 ### 6. Versioning & Releases
 - The version lives only in [`VERSION`](VERSION). The `ModuleVersion` of the three module manifests

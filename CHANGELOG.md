@@ -15,6 +15,9 @@ that matches it.
 - `tools\Set-KitVersion.ps1`: sets the version in all 16 places (VERSION, manifests, website, READMEs,
   CHANGELOG) and prints the commit and tag commands; `Test-KitSyntax` also checks the website version and the
   README status line. The pads manifest test reads VERSION instead of a hard-coded number.
+- Missing UTF-8 BOMs are repaired instead of only reported: `tools\Repair-KitBom.ps1` (valid UTF-8 only), run by
+  `tests\Run-Tests.ps1` before a local run and by the new pre-commit hook (`.githooks`, enable with
+  `git config core.hooksPath .githooks`); `.editorconfig` sets `utf-8-bom` for PowerShell files. CI stays strict.
 
 ## [0.4.1] - 2026-09-27
 

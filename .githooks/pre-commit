@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Adds the UTF-8 BOM that Windows PowerShell 5.1 needs to staged PowerShell files with non-ASCII characters
+# (tools/Repair-KitBom.ps1) and stages the repaired file again. Enable once per clone:
+#   git config core.hooksPath .githooks
+# A file that was only partly staged is staged completely after a repair.
+files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ps1' '*.psm1' '*.psd1')
+[ -z "$files" ] && exit 0
+root=$(git rev-parse --show-toplevel)
+fixed=$(printf '%s\n' "$files" | tr '\n' ',' | sed 's/,$//')
+fixed=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$root/tools/Repair-KitBom.ps1" -Path "$fixed" | tr -d '\r')
+[ -z "$fixed" ] && exit 0
+printf '%s\n' "$fixed" | while IFS= read -r f; do
+    git add -- "$f"
+    echo "pre-commit: UTF-8 BOM added to $f"
+done

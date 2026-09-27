@@ -1,0 +1,5 @@
+# Windows PowerShell 5.1 reads PowerShell files without BOM as ANSI (tools/Repair-KitBom.ps1 repairs it).
+root = true
+
+[*.{ps1,psm1,psd1}]
+charset = utf-8-bom

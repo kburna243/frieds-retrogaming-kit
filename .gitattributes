@@ -1,0 +1,2 @@
+# Git runs hooks with bash: CRLF would break them (autocrlf checkouts).
+.githooks/* text eol=lf

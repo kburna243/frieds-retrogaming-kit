@@ -20,6 +20,11 @@ $testsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $Path) {
     $Path = if ($Local) { @(Join-Path $testsDir 'local') } else { @((Join-Path $testsDir 'core'), (Join-Path $testsDir 'pinball'), (Join-Path $testsDir 'lightgun'), (Join-Path $testsDir 'arcade'), (Join-Path $testsDir 'output'), (Join-Path $testsDir 'pads'), (Join-Path $testsDir 'gui'), (Join-Path $testsDir 'api')) }
 }
+# A PowerShell file saved without BOM would be read as ANSI and fail for a reason nobody is looking for; repair
+# first (not in CI, where tools\Test-KitSyntax.ps1 is the strict gate).
+if (-not $env:CI) {
+    foreach ($f in & (Join-Path (Split-Path -Parent $testsDir) 'tools\Repair-KitBom.ps1')) { Write-Host "UTF-8 BOM added: $f (commit it)" -ForegroundColor Yellow }
+}
 Import-Module Pester -MaximumVersion 3.99
 $result = Invoke-Pester -Script $Path -PassThru
 Write-Host ''
