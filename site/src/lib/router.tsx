@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Hash routing: works on GitHub Pages without server rewrites.
-export const ROUTES = ["landing", "pinball", "lightgun", "skills", "knowledge", "feedback", "credits"] as const;
+export const ROUTES = ["landing", "pinball", "lightgun", "skills", "knowledge", "credits"] as const;
 export type Route = (typeof ROUTES)[number];
 
 export function parseHash(): Route {
