@@ -21,6 +21,32 @@ that matches it.
   through `-PackagePath` with `-Approved`. `_Template.ps1` and `lightgun\adapters\README.md` document the
   community contract. New wizard page 15; `Set-/Test-LightgunSteamBlacklist` gained optional
   `-ExtraEntries` (defaults unchanged). Tests: `tests\lightgun\Adapters.Tests.ps1`.
+- **Arcade package** (`arcade\`) — USB fightsticks, arcade encoders and steering wheels as a device class
+  beside the lightguns, on the proven five-function adapter contract. `arcade\adapters\` ships 12 plugins:
+  sticks **GP2040-CE, Brook UFB, I-PAC, Zero Delay, Mad Catz (with language-independent Code-43 quirk
+  reporting), Hori, multi-console (Razer/Mayflash/Qanba), PS2 bridges** and wheels **Xbox 360 Racing Wheel,
+  Logitech, Thrustmaster/Fanatec, DIY OpenFFB**. Detection is signature-tight and class-safe: lightgun
+  devices are never re-claimed (`2E8A/000A` stays OpenFIRE, `16C0/05E1` stays Retro Shooter, `D209` is split
+  by exact PID against AimTrak, no bare VIDs), name hints only ever stand alone where VID/PID is genuinely
+  ambiguous. Configure drives `mame.ini`, `retrobat.ini [Controllers]`, Model 2 `Emulator.ini` and
+  Supermodel `[Global]` (absent files are skipped both on write and on verify) plus the Steam
+  `controller_blacklist` through lightgun's audited writers. Step `arcade\steps\01-Adapter.ps1`
+  (`arcade-1-adapter-detect`/`-configure`, `-Devices` injection, `-SteamConfigVdf ''` skip, `-Install
+  -PackagePath -Approved` for local ZIPs only). Tests: `tests\arcade\Adapters.Tests.ps1` (14).
+- **Output package** (`output\`) — haptic middleware (rumble, lamps, solenoids) as middleware of its own for
+  guns *and* wheels: adapters **MameHooker** (`output windows`), **QMamehook** (`output network`, community
+  port 9735), **HookOfTheReaper** (port 8000, board `16C0/0006`). Detection is snapshot-based
+  (processes/ports/boards/tools folders, fully injectable) and MULTI by design; mame.ini's single `output`
+  key is exclusive, so a `windows`-vs-`network` disagreement surfaces as a structured `OutputModeConflict`
+  and Configure refuses to rewrite anything while it stands. HookOfTheReaper's solenoid protection
+  (`SolenoidProtection=1`, `SolenoidMaxOpenTime=200`) is an enforced `Safety` value on every existing
+  settings file. No services, no firewall, no process kills, no downloads. Step
+  `output\steps\01-Middleware.ps1`. Tests: `tests\output\Middleware.Tests.ps1` (14). `Run-Tests.ps1`
+  defaults now include both new folders.
+- Guides `docs\arcade-guide.md`/`.de.md` and `docs\output-guide.md`/`.de.md`; README doc index and FAQ
+  (arcade support, parallel haptics, drivers-stay-manual); i18n namespaces `Arcade.*` and `Output.*`
+  (de/en parity). `[Controllers]` values follow the community design doc and still await a hardware-bench
+  check — the kit writes them idempotently with backups.
 - Pinball: `pinball\modules\PinballY.ps1` describes a **PinballY** installation, the second front end for the same
   tables. Read only: version from `PinballY.exe`, every `SystemN.*` with its enabled state, the settings file as it
   is (UTF-8 with BOM, comment lines counted separately), the table databases with their game counts, other programs

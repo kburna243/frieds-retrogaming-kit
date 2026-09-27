@@ -54,6 +54,22 @@ The guided core automation (layouts, profile automation) stays tailored for **Wi
 
 ---
 
+## 🕹️ Arcade, Wheels & Haptics Questions
+
+### Does the kit support fightsticks, arcade encoders and wheels?
+Yes — the `arcade\` package ships twelve adapters (GP2040-CE, Brook UFB, I-PAC, Zero Delay, Mad Catz, Hori, multi-console sticks, PS2 bridges, plus the Xbox 360 Racing Wheel, Logitech, Thrustmaster/Fanatec and DIY wheels). They configure `mame.ini`, `retrobat.ini [Controllers]`, Model 2/Supermodel files where present, and add their VIDs to Steam's controller blacklist. See the [Arcade guide](arcade-guide.md).
+
+### Won't that collide with my lightguns on the same USB ids?
+The kits deliberately splits classes: lightgun devices are detected **first** and never re-claimed by arcade, signatures use exact VID/PID pairs (a bare `VID_0079` would hit the DolphinBar, `2E8A/000A` is OpenFIRE's bootloader, `D209/16xx` are AimTrak guns — so none of those match an arcade adapter), and name-only matching exists solely where hardware genuinely has no own id (GP2040-CE).
+
+### My wheel rumble and gun solenoids — who does that?
+The `output\` package manages the haptic middleware (MAMEHooker, qMamehook, Hook of the Reaper). It detects several tools running side by side but treats MAME's single `output` key honestly: `windows` and `network` cannot be active at once, and while detected tools disagree the kit only reports the structured conflict — it never rewrites your cabinet behind your back. Hook of the Reaper's 200 ms solenoid protection is enforced on every managed settings file. See the [Output guide](output-guide.md).
+
+### Does the kit install device drivers (Lavendy, Logitech G Software)?
+No — kernel drivers and vendor suites touch HKLM and are outside the kit's safety model. Adapters write the configuration values the drivers enable and name the official download link; you install the driver yourself, optionally letting the kit unpack a locally downloaded portable package via `-PackagePath … -Approved`.
+
+---
+
 ## 🔒 Privacy & Safety Questions
 
 ### Does Fried's Retrogaming Kit collect telemetry or phone home?
