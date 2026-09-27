@@ -148,7 +148,7 @@ Mehr in [ARCHITECTURE.md](../ARCHITECTURE.md).
 | [ARCHITECTURE.md](../ARCHITECTURE.md) | Aufbau, Module, Schritt-Definition-of-Done |
 | [CHANGELOG.md](../CHANGELOG.md) / [ROADMAP.md](../ROADMAP.md) | Was geliefert ist / was kommt |
 | [handoff/MIGRATION-A-B.md](MIGRATION-A-B.md) | Ursprüngliche Spezifikation der Migration |
-| [handoff/PLAN-WIIMOTE-KOPPELN.md](PLAN-WIIMOTE-KOPPELN.md) | Plan (Entwurf): Wiimotes koppeln — TeknoParrot, DemulShooter/DSWiio, Rumble-Test |
+| [handoff/PLAN-WIIMOTE-KOPPELN.md](PLAN-WIIMOTE-KOPPELN.md) | Plan (Überführung, Stand 27.09.): Wiimotes koppeln — TeknoParrot (2-Gun-Limit), DemulShooter auf Gunmote-HID, MAMEHooker-Rumble |
 | [handoff/AGENT-HARNESS.md](AGENT-HARNESS.md) | Grenze Kit ↔ Agent-Harness, Policy-Mapping, MCP |
 | `docs\` | Anleitungen Pinball/Lightgun, Fehlerbehebung, FAQ (DE/EN) |
 | `tests\local\` | Tests gegen echte Hardware und Datenbanken (nur lokal, nicht in der CI) |

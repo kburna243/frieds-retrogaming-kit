@@ -9,9 +9,12 @@ that matches it.
 
 ### Added
 - `handoff\PLAN-WIIMOTE-KOPPELN.md`: pairing the Wiimotes where that route still works — TeknoParrot
-  XInput bindings (steps 10–11), DemulShooter's DSWiio plugin as the only real-pointer path, the
-  output package with MAMEHooker EmuOutput as first rumble test, every write gated dry run first.
-  Draft for the cabinet session, nothing executed.
+  XInput bindings (steps 10–11, remembering the native two-RawInput-gun limit), DemulShooter
+  already running on the Gunmote pads in HID mode as the real-pointer path (DSWiio kept as the
+  fallback note), the output package with MAMEHooker `xip 1/2` rumble as the documented first
+  test, every write gated dry run first. Revised the same day against the recorded cabinet
+  state: the chain is built and live, so this is a transfer plan, not a build plan — Namco 357
+  runs, Point Blank X runs via a desktop workaround, Cooper's 9 is the one open trace.
 
 ## [0.4.0] - 2026-09-27
 
