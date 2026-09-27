@@ -229,17 +229,15 @@ export default function FeedbackPage() {
               <ArrowLeft size={12} aria-hidden="true" /> {t.guide.back}
             </a>
             <div className="mt-6 font-pixel text-[10px] text-pixel">
-              PLAYER 2 · FEEDBACK & TESTMATRIX
+              BLITZ-FEEDBACK IN 60 SEKUNDEN
             </div>
             <h1 className="mt-3 font-display text-4xl font-black leading-[1.05] text-cream sm:text-6xl">
-              System melden & <span className="italic text-gold">Testergebnisse</span>
+              Läuft dein Cabinet? <span className="italic text-gold">Sag kurz Bescheid</span>
             </h1>
             <div className="mt-5 h-1.5 w-16 bg-retro" />
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-cream/85">
-              Ein reales Cabinet ist kein steriles Labor: VPX mit 3 Displays, Wiimotes an
-              DolphinBars, Sinden-Kameras und Popper-Datenbanken lassen sich nur gemeinsam
-              validieren. Sag uns in wenigen Schritten, wie es bei dir läuft – direkt im
-              Browser, ohne Login.
+              Kein Konto nötig, kein Entwickler-Wissen, kein Zeitaufwand. Wähle einfach mit 2 Klicks
+              dein Setup aus und sag uns, ob es läuft – jeder Bericht hilft der ganzen Community!
             </p>
           </Reveal>
           <div className="hidden md:block">
@@ -457,7 +455,7 @@ export default function FeedbackPage() {
 
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  DEIN NICKNAME / FORUM-HANDLE (OPTIONAL)
+                  DEIN NAME / NICKNAME (OPTIONAL)
                 </label>
                 <input
                   type="text"
