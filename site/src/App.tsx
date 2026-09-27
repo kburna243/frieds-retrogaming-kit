@@ -10,6 +10,7 @@ import Landing from "./pages/Landing";
 import GuidePage from "./pages/GuidePage";
 import SkillsPage from "./pages/SkillsPage";
 import KnowledgePage from "./pages/KnowledgePage";
+import FeedbackPage from "./pages/FeedbackPage";
 import CreditsPage from "./pages/CreditsPage";
 
 const BOOT_KEY = "rck-booted";
@@ -51,6 +52,7 @@ function Shell() {
         {route === "lightgun" && <GuidePage kind="lightgun" />}
         {route === "skills" && <SkillsPage />}
         {route === "knowledge" && <KnowledgePage />}
+        {route === "feedback" && <FeedbackPage />}
         {route === "credits" && <CreditsPage />}
       </main>
       <Footer showLegal={!isGuide} />

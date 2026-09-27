@@ -12,6 +12,7 @@ const en: Dict = {
     lightgun: "Lightgun",
     skills: "Skills",
     chat: "Knowledge Chat",
+    feedback: "Feedback",
     credits: "Thanks",
     menu: "Menu",
     skip: "Skip to content",

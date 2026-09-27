@@ -10,6 +10,7 @@ const de = {
     lightgun: "Lightgun",
     skills: "Skills",
     chat: "Wissens-Chat",
+    feedback: "Feedback",
     credits: "Danke",
     menu: "Menü",
     skip: "Zum Inhalt springen",

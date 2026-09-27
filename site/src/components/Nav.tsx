@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, CircleDot, Crosshair, BookOpen, Bot, Heart, Menu, X } from "lucide-react";
+import { Home, CircleDot, Crosshair, BookOpen, Bot, MessageSquare, Heart, Menu, X } from "lucide-react";
 import { ROUTES, hrefOf, type Route } from "../lib/router";
 import { useRetro } from "../lib/retro";
 import { useI18n, type Lang } from "../i18n";
@@ -11,6 +11,7 @@ const ICONS: Record<Route, typeof Home> = {
   lightgun: Crosshair,
   skills: BookOpen,
   knowledge: Bot,
+  feedback: MessageSquare,
   credits: Heart,
 };
 
@@ -41,7 +42,7 @@ export default function Nav({ route }: { route: Route }) {
   const [open, setOpen] = useState(false);
 
   const label = (r: Route) =>
-    ({ landing: t.nav.home, pinball: t.nav.pinball, lightgun: t.nav.lightgun, skills: t.nav.skills, knowledge: t.nav.chat, credits: t.nav.credits })[r];
+    ({ landing: t.nav.home, pinball: t.nav.pinball, lightgun: t.nav.lightgun, skills: t.nav.skills, knowledge: t.nav.chat, feedback: t.nav.feedback, credits: t.nav.credits })[r];
 
   const link = (r: Route, mobile = false) => {
     const Icon = ICONS[r];
