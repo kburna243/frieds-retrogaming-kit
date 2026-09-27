@@ -21,7 +21,9 @@ interface MostWanted {
   id: string;
   tag: string;
   title: string;
+  titleEn?: string;
   desc: string;
+  descEn?: string;
   cabinet: string;
   os: string;
   hw: string;
@@ -32,7 +34,9 @@ const MOST_WANTED: MostWanted[] = [
     id: "vpx-3screen",
     tag: "PINBALL",
     title: "VPX · 3 Monitore + NVIDIA",
+    titleEn: "VPX · 3 Screens + NVIDIA",
     desc: "Referenz-Setup für Virtual Pinball. Playfield, Backglass und DMD-Positionierung.",
+    descEn: "Reference setup for Virtual Pinball. Playfield, backglass, and DMD alignment.",
     cabinet: "Virtual Pinball (3 Screens)",
     os: "Windows 11",
     hw: "NVIDIA GPU, DirectOutput (DOF)",
@@ -41,7 +45,9 @@ const MOST_WANTED: MostWanted[] = [
     id: "sinden-lightgun",
     tag: "LIGHTGUN",
     title: "Sinden Lightgun (im Feinschliff)",
+    titleEn: "Sinden Lightgun (Finalizing)",
     desc: "Wird aktuell finalisiert. Weißer Rand, Software-Kalibrierung & Recoil-Profile im Test.",
+    descEn: "Currently being finalized. White border, software calibration & recoil profiles in test.",
     cabinet: "Lightgun Cabinet",
     os: "Windows 11 / 10",
     hw: "Sinden Lightgun (mit/ohne Recoil)",
@@ -50,7 +56,9 @@ const MOST_WANTED: MostWanted[] = [
     id: "diy-gun4ir-aimtrak",
     tag: "HARDWARE",
     title: "Gun4IR & AimTrak",
+    titleEn: "Gun4IR & AimTrak",
     desc: "DIY-Infrarot- und LED-Lightguns. Sensor-Balken, COM-Ports & Tasten-Mapping.",
+    descEn: "DIY infrared and LED lightguns. Sensor bars, COM ports & button mapping.",
     cabinet: "Lightgun Cabinet",
     os: "Windows 11",
     hw: "Gun4IR / AimTrak",
@@ -59,7 +67,9 @@ const MOST_WANTED: MostWanted[] = [
     id: "pinup-popper",
     tag: "FRONTEND",
     title: "PinUP Popper + Future Pinball",
+    titleEn: "PinUP Popper + Future Pinball",
     desc: "Alternative Frontends und BAM-Integration jenseits von purem VPX.",
+    descEn: "Alternative frontends and BAM integration beyond pure VPX.",
     cabinet: "Virtual Pinball",
     os: "Windows 10 / 11",
     hw: "PinUP Player / Popper, Future Pinball BAM",
@@ -68,7 +78,9 @@ const MOST_WANTED: MostWanted[] = [
     id: "amd-dual",
     tag: "GPU",
     title: "AMD Radeon + 2 Monitore",
+    titleEn: "AMD Radeon + 2 Screens",
     desc: "Pinball auf AMD-Grafikkarten. Bildschirm-Reihenfolge und Eyefinity-Verhalten.",
+    descEn: "Pinball on AMD graphics cards. Display ordering and Eyefinity behavior.",
     cabinet: "Virtual Pinball (2 Screens)",
     os: "Windows 10 / 11",
     hw: "AMD Radeon GPU",
@@ -77,7 +89,9 @@ const MOST_WANTED: MostWanted[] = [
     id: "ollama-local",
     tag: "AGENT / AI",
     title: "Lokale KI (Ollama Qwen / Llama)",
+    titleEn: "Local AI (Ollama Qwen / Llama)",
     desc: "Offline-Diagnose und Plan-Generierung mit fagent am geschützten Kabinett.",
+    descEn: "Offline diagnosis and plan generation with fagent on protected cabinets.",
     cabinet: "Pinball / Lightgun Cabinet",
     os: "Windows 11",
     hw: "Ollama (qwen2.5:3b / llama3)",
@@ -85,7 +99,7 @@ const MOST_WANTED: MostWanted[] = [
 ];
 
 export default function FeedbackPage() {
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
   const { play } = useRetro();
 
   const [type, setType] = useState<ReportType>("works");
@@ -106,7 +120,7 @@ export default function FeedbackPage() {
     setOs(mw.os);
     setHw(mw.hw);
     if (!title) {
-      setTitle(`${mw.title} – Testergebnis`);
+      setTitle(lang === "en" ? `${mw.titleEn || mw.title} – Test result` : `${mw.title} – Testergebnis`);
     }
   };
 
@@ -121,45 +135,45 @@ export default function FeedbackPage() {
 
   const buildMarkdownReport = () => {
     const typeLabel = {
-      works: "Es läuft bei mir (Erfolgsbericht)",
-      partial: "Läuft teilweise (Eingrenzung)",
-      bug: "Problem / Fehlerbericht",
-      idea: "Idee / Wunsch",
+      works: lang === "en" ? "Runs great (Success report)" : "Es läuft bei mir (Erfolgsbericht)",
+      partial: lang === "en" ? "Runs partially (Narrowed down)" : "Läuft teilweise (Eingrenzung)",
+      bug: lang === "en" ? "Problem / Bug report" : "Problem / Fehlerbericht",
+      idea: lang === "en" ? "Idea / Request" : "Idee / Wunsch",
     }[type];
 
     const safeTitle = sanitizeText(title.trim() || `[Feedback] ${cabinet} – ${os}`);
-    const safeSummary = sanitizeText(summary.trim() || "Keine Details angegeben.");
+    const safeSummary = sanitizeText(summary.trim() || (lang === "en" ? "No details provided." : "Keine Details angegeben."));
     const safeExpected = sanitizeText(expected.trim());
     const safeDiag = sanitizeText(diagnostics.trim());
-    const safeNick = nickname.trim() || "Anonym";
+    const safeNick = nickname.trim() || (lang === "en" ? "Anonymous" : "Anonym");
 
     const lines: string[] = [
       `## [Cabinet Report] ${safeTitle}`,
       "",
-      `> Eingereicht von **${safeNick}** für Fried's Retro Cabinet Kit.`,
+      `> ${lang === "en" ? `Submitted by **${safeNick}** for Fried's Retro Cabinet Kit.` : `Eingereicht von **${safeNick}** für Fried's Retro Cabinet Kit.`}`,
       "",
-      "### System & Hardware",
-      `| Feld | Angabe |`,
+      `### ${lang === "en" ? "System & Hardware" : "System & Hardware"}`,
+      `| ${lang === "en" ? "Field | Detail" : "Feld | Angabe"} |`,
       `| :--- | :--- |`,
-      `| **Art der Meldung** | ${typeLabel} |`,
-      `| **Cabinet-Typ** | ${cabinet} |`,
-      `| **Betriebssystem** | ${os} |`,
-      `| **Hardware / Controller** | ${hw || "–"} |`,
+      `| **${lang === "en" ? "Report Type" : "Art der Meldung"}** | ${typeLabel} |`,
+      `| **${lang === "en" ? "Cabinet Type" : "Cabinet-Typ"}** | ${cabinet} |`,
+      `| **${lang === "en" ? "Operating System" : "Betriebssystem"}** | ${os} |`,
+      `| **${lang === "en" ? "Hardware / Controller" : "Hardware / Controller"}** | ${hw || "–"} |`,
       `| **Kit-Version** | v${kitVer} |`,
       "",
-      "### Was ist passiert?",
+      `### ${lang === "en" ? "What happened?" : "Was ist passiert?"}`,
       safeSummary,
       "",
     ];
 
     if (safeExpected) {
-      lines.push("### Was hättest du erwartet?", safeExpected, "");
+      lines.push(`### ${lang === "en" ? "What did you expect?" : "Was hättest du erwartet?"}`, safeExpected, "");
     }
 
     if (safeDiag) {
       lines.push(
-        "### Diagnose / Log-Ausgabe (Client-anonymisiert)",
-        "<details><summary>Log anzeigen</summary>",
+        `### ${lang === "en" ? "Diagnostics / Log output (Client anonymized)" : "Diagnose / Log-Ausgabe (Client-anonymisiert)"}`,
+        `<details><summary>${lang === "en" ? "Show log" : "Log anzeigen"}</summary>`,
         "",
         "```text",
         safeDiag.slice(0, 15000),
@@ -172,7 +186,7 @@ export default function FeedbackPage() {
 
     lines.push(
       "---",
-      `_Erstellt über Retro Cabinet Kit Website · ${new Date().toLocaleDateString("de-DE")}_`
+      `_${lang === "en" ? "Generated via Retro Cabinet Kit Website" : "Erstellt über Retro Cabinet Kit Website"} · ${new Date().toLocaleDateString(lang === "en" ? "en-US" : "de-DE")}_`
     );
 
     return lines.join("\n");
@@ -229,15 +243,24 @@ export default function FeedbackPage() {
               <ArrowLeft size={12} aria-hidden="true" /> {t.guide.back}
             </a>
             <div className="mt-6 font-pixel text-[10px] text-pixel">
-              BLITZ-FEEDBACK IN 60 SEKUNDEN
+              {lang === "en" ? "FAST FEEDBACK IN 60 SECONDS" : "BLITZ-FEEDBACK IN 60 SEKUNDEN"}
             </div>
             <h1 className="mt-3 font-display text-4xl font-black leading-[1.05] text-cream sm:text-6xl">
-              Läuft dein Cabinet? <span className="italic text-gold">Sag kurz Bescheid</span>
+              {lang === "en" ? (
+                <>
+                  Is your cabinet running? <span className="italic text-gold">Let us know</span>
+                </>
+              ) : (
+                <>
+                  Läuft dein Cabinet? <span className="italic text-gold">Sag kurz Bescheid</span>
+                </>
+              )}
             </h1>
             <div className="mt-5 h-1.5 w-16 bg-retro" />
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-cream/85">
-              Kein Konto nötig, kein Entwickler-Wissen, kein Zeitaufwand. Wähle einfach mit 2 Klicks
-              dein Setup aus und sag uns, ob es läuft – jeder Bericht hilft der ganzen Community!
+              {lang === "en"
+                ? "No account needed, no developer knowledge, no time commitment. Pick your setup in 2 clicks and let us know if it works – every report helps the whole community!"
+                : "Kein Konto nötig, kein Entwickler-Wissen, kein Zeitaufwand. Wähle einfach mit 2 Klicks dein Setup aus und sag uns, ob es läuft – jeder Bericht hilft der ganzen Community!"}
             </p>
           </Reveal>
           <div className="hidden md:block">
@@ -256,11 +279,11 @@ export default function FeedbackPage() {
                 <Flame size={18} className="text-gold" />
                 <span className="font-pixel text-[11px] text-gold">★ MOST WANTED SETUPS ★</span>
                 <span className="text-xs text-cream/60">
-                  (Klick übernimmt das Setup direkt in das Formular)
+                  {lang === "en" ? "(Click pre-fills this setup into the form)" : "(Klick übernimmt das Setup direkt in das Formular)"}
                 </span>
               </div>
               <span className="border border-pixel/40 bg-screen px-2.5 py-1 font-pixel text-[9px] text-pixel">
-                6 PROFILE
+                {lang === "en" ? "6 PROFILES" : "6 PROFILE"}
               </span>
             </div>
 
@@ -279,10 +302,10 @@ export default function FeedbackPage() {
                     <Sparkles size={13} className="text-cream/40 group-hover:text-gold" />
                   </div>
                   <h3 className="mt-2 font-display text-base font-bold text-cream group-hover:text-gold">
-                    {mw.title}
+                    {lang === "en" && mw.titleEn ? mw.titleEn : mw.title}
                   </h3>
                   <p className="mt-2 text-xs leading-relaxed text-cream/70 flex-1">
-                    {mw.desc}
+                    {lang === "en" && mw.descEn ? mw.descEn : mw.desc}
                   </p>
                   <div className="mt-4 border-t border-night-3 pt-2 font-mono text-[10px] text-cream/50">
                     {mw.hw}
@@ -299,21 +322,21 @@ export default function FeedbackPage() {
             <div className="mb-6 flex items-center gap-3">
               <Terminal size={20} className="text-pixel" />
               <h2 className="font-pixel text-[13px] text-cream">
-                BERICHT ERFASSEN
+                {lang === "en" ? "SUBMIT REPORT" : "BERICHT ERFASSEN"}
               </h2>
             </div>
 
             {/* Step 1: Type */}
             <div className="mb-8">
               <label className="mb-3 block font-pixel text-[10px] text-gold">
-                01 · ART DER MELDUNG
+                {lang === "en" ? "01 · REPORT TYPE" : "01 · ART DER MELDUNG"}
               </label>
               <div className="grid gap-3 sm:grid-cols-4">
                 {[
-                  { id: "works", label: "Läuft super", tone: "border-pixel text-pixel bg-screen" },
-                  { id: "partial", label: "Läuft teilweise", tone: "border-gold text-gold bg-screen" },
-                  { id: "bug", label: "Problem / Fehler", tone: "border-retro text-retro bg-screen" },
-                  { id: "idea", label: "Idee / Wunsch", tone: "border-cream/40 text-cream bg-screen" },
+                  { id: "works", label: lang === "en" ? "Runs great" : "Läuft super", tone: "border-pixel text-pixel bg-screen" },
+                  { id: "partial", label: lang === "en" ? "Runs partially" : "Läuft teilweise", tone: "border-gold text-gold bg-screen" },
+                  { id: "bug", label: lang === "en" ? "Issue / Bug" : "Problem / Fehler", tone: "border-retro text-retro bg-screen" },
+                  { id: "idea", label: lang === "en" ? "Idea / Request" : "Idee / Wunsch", tone: "border-cream/40 text-cream bg-screen" },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -339,7 +362,7 @@ export default function FeedbackPage() {
             <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  CABINET-TYP
+                  {lang === "en" ? "CABINET TYPE" : "CABINET-TYP"}
                 </label>
                 <select
                   value={cabinet}
@@ -357,7 +380,7 @@ export default function FeedbackPage() {
 
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  BETRIEBSSYSTEM
+                  {lang === "en" ? "OPERATING SYSTEM" : "BETRIEBSSYSTEM"}
                 </label>
                 <select
                   value={os}
@@ -373,20 +396,20 @@ export default function FeedbackPage() {
 
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  HARDWARE / CONTROLLER
+                  {lang === "en" ? "HARDWARE / CONTROLLER" : "HARDWARE / CONTROLLER"}
                 </label>
                 <input
                   type="text"
                   value={hw}
                   onChange={(e) => setHw(e.target.value)}
-                  placeholder="z. B. Wiimote Mode 4, NVIDIA RTX"
+                  placeholder={lang === "en" ? "e.g. Wiimote Mode 4, NVIDIA RTX" : "z. B. Wiimote Mode 4, NVIDIA RTX"}
                   className="w-full border-2 border-night-3 bg-screen px-3 py-2 font-term text-lg text-pixel outline-none focus:border-gold"
                 />
               </div>
 
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  KIT-VERSION
+                  {lang === "en" ? "KIT VERSION" : "KIT-VERSION"}
                 </label>
                 <input
                   type="text"
@@ -401,53 +424,61 @@ export default function FeedbackPage() {
             <div className="mb-8 space-y-4">
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  TITEL DER MELDUNG
+                  {lang === "en" ? "REPORT TITLE" : "TITEL DER MELDUNG"}
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="z. B. VPX 3-Monitor Setup läuft stabil mit NVIDIA"
+                  placeholder={lang === "en" ? "e.g. VPX 3-Monitor setup runs rock-solid with NVIDIA" : "z. B. VPX 3-Monitor Setup läuft stabil mit NVIDIA"}
                   className="w-full border-2 border-night-3 bg-screen px-3 py-2.5 font-term text-lg text-pixel outline-none focus:border-gold"
                 />
               </div>
 
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  WAS IST PASSIERT? (BESCHREIBUNG)
+                  {lang === "en" ? "WHAT HAPPENED? (DESCRIPTION)" : "WAS IST PASSIERT? (BESCHREIBUNG)"}
                 </label>
                 <textarea
                   rows={4}
                   value={summary}
                   onChange={(e) => setSummary(e.target.value)}
-                  placeholder="Beschreibe kurz in eigenen Worten, was du gemacht hast und wie das Cabinet reagiert hat..."
+                  placeholder={
+                    lang === "en"
+                      ? "Briefly describe in your own words what you did and how the cabinet reacted..."
+                      : "Beschreibe kurz in eigenen Worten, was du gemacht hast und wie das Cabinet reagiert hat..."
+                  }
                   className="w-full border-2 border-night-3 bg-screen p-3 font-term text-lg text-pixel outline-none focus:border-gold"
                 />
               </div>
 
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  WAS HÄTTEST DU ERWARTET? (OPTIONAL)
+                  {lang === "en" ? "WHAT DID YOU EXPECT? (OPTIONAL)" : "WAS HÄTTEST DU ERWARTET? (OPTIONAL)"}
                 </label>
                 <input
                   type="text"
                   value={expected}
                   onChange={(e) => setExpected(e.target.value)}
-                  placeholder="z. B. DMD soll auf Monitor 3 starten"
+                  placeholder={lang === "en" ? "e.g. DMD should start on Screen 3" : "z. B. DMD soll auf Monitor 3 starten"}
                   className="w-full border-2 border-night-3 bg-screen px-3 py-2 font-term text-lg text-pixel outline-none focus:border-gold"
                 />
               </div>
 
               <div>
                 <label className="mb-2 flex items-center justify-between font-pixel text-[9px] text-cream/70">
-                  <span>DIAGNOSE / LOG-AUSGABE (AUTOMATISCH ANONYMISIERT)</span>
-                  <span className="text-pixel">PFADE WERDEN ZU {"{user}"}</span>
+                  <span>{lang === "en" ? "DIAGNOSTICS / LOG OUTPUT (AUTOMATICALLY ANONYMIZED)" : "DIAGNOSE / LOG-AUSGABE (AUTOMATISCH ANONYMISIERT)"}</span>
+                  <span className="text-pixel">{lang === "en" ? "PATHS BECOME {user}" : "PFADE WERDEN ZU {user}"}</span>
                 </label>
                 <textarea
                   rows={4}
                   value={diagnostics}
                   onChange={(e) => setDiagnostics(e.target.value)}
-                  placeholder="Füge hier optional Log-Zeilen aus Get-CabinetStatus.ps1 oder der Konsole ein..."
+                  placeholder={
+                    lang === "en"
+                      ? "Optionally paste log lines from Get-CabinetStatus.ps1 or the console here..."
+                      : "Füge hier optional Log-Zeilen aus Get-CabinetStatus.ps1 oder der Konsole ein..."
+                  }
                   className="w-full border-2 border-night-3 bg-screen p-3 font-term text-base text-pixel outline-none focus:border-gold"
                   spellCheck={false}
                 />
@@ -455,13 +486,13 @@ export default function FeedbackPage() {
 
               <div>
                 <label className="mb-2 block font-pixel text-[9px] text-cream/70">
-                  DEIN NAME / NICKNAME (OPTIONAL)
+                  {lang === "en" ? "YOUR NAME / NICKNAME (OPTIONAL)" : "DEIN NAME / NICKNAME (OPTIONAL)"}
                 </label>
                 <input
                   type="text"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  placeholder="z. B. FlipperFriedel"
+                  placeholder={lang === "en" ? "e.g. PinballPete" : "z. B. FlipperFriedel"}
                   className="w-full max-w-sm border-2 border-night-3 bg-screen px-3 py-2 font-term text-lg text-pixel outline-none focus:border-gold"
                 />
               </div>
@@ -470,18 +501,20 @@ export default function FeedbackPage() {
             {/* Step 4: Action Buttons */}
             <div className="border-t-2 border-night-3 pt-6">
               <div className="mb-4 font-pixel text-[10px] text-gold">
-                04 · BERICHT ABSENDEN ODER EXPORTIEREN
+                {lang === "en" ? "04 · SUBMIT OR EXPORT REPORT" : "04 · BERICHT ABSENDEN ODER EXPORTIEREN"}
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <ChunkButton onClick={handleOpenGithub} variant="gold">
-                  <GithubMark size={16} /> Auf GitHub melden
+                  <GithubMark size={16} /> {lang === "en" ? "Report on GitHub" : "Auf GitHub melden"}
                 </ChunkButton>
                 <ChunkButton onClick={handleCopy} variant="red">
                   {copied ? <Check size={15} /> : <Copy size={15} />}
-                  {copied ? "In Zwischenablage kopiert!" : "Report kopieren"}
+                  {copied
+                    ? (lang === "en" ? "Copied to clipboard!" : "In Zwischenablage kopiert!")
+                    : (lang === "en" ? "Copy Report" : "Report kopieren")}
                 </ChunkButton>
                 <ChunkButton onClick={handleDownload} variant="ghost-light">
-                  <Download size={15} /> Als .md herunterladen
+                  <Download size={15} /> {lang === "en" ? "Download as .md" : "Als .md herunterladen"}
                 </ChunkButton>
               </div>
             </div>
