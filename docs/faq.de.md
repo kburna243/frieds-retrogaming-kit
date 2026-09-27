@@ -50,7 +50,23 @@ Gunmote (`gunmotelabs`) ist ein moderner, aktiv gepflegter Lightgun-Mapper, der 
 Für ein authentisches Gehäuse-Erlebnis muss der Profilwechsel beim Spielstart aus RetroBat automatisch und ohne störende Windows-UAC-Abfragen ablaufen. Da manche Emulatoren exklusive Vollbildrechte beanspruchen, benötigt der Hintergrund-Dienst (`profile.ps1`) erhöhte Ausführungsrechte. Das genaue Sicherheitsmodell und die Deaktivierung sind in [SECURITY.md](../SECURITY.md) offengelegt.
 
 ### Werden Sinden, AimTrak oder GUN4IR unterstützt?
-Die automatisierte Lightgun-Konfiguration dieses Kits ist aktuell auf **Wiimote + Mayflash DolphinBar** spezialisiert. Ausführliche Anleitungen für Sinden, AimTrak und GUN4IR findest du in unserer Partner-Community [Light Gun Lunatics](https://lightgun.retrolunatics.com/).
+Die geführte Kern-Automatik (Layouts, Profil-Automation) bleibt auf **Wiimote + Mayflash DolphinBar** zugeschnitten. Seit Schritt 15 erkennt das Kit zusätzlich **Gun4IR, OpenFIRE, AimTrak und Retro Shooter** an ihrer USB-Signatur und richtet `mame.ini`, `retrobat.ini [Guns]` und die Steam-Blacklist ein (siehe [`lightgun\adapters\`](../lightgun/adapters/README.md) – eigene Systeme als Community-Adapter nachlegbar). Sinden ist noch nicht dabei. Ausführliche Anleitungen für alle Systeme findest du in unserer Partner-Community [Light Gun Lunatics](https://lightgun.retrolunatics.com/).
+
+---
+
+## 🕹️ Arcade, Lenkräder & Haptik
+
+### Unterstützt das Kit Fightsticks, Arcade-Encoder und Lenkräder?
+Ja — das Paket `arcade\` bringt zwölf Adapter mit (GP2040-CE, Brook UFB, I-PAC, Zero Delay, Mad Catz, Hori, Multisystem-Sticks, PS2-Brücken sowie Xbox-360-Racing-Wheel, Logitech, Thrustmaster/Fanatec und DIY-Lenkräder). Sie pflegen `mame.ini`, `retrobat.ini [Controllers]`, Model-2-/Supermodel-Dateien wo vorhanden und tragen ihre VIDs in Steams Controller-Blacklist ein. Siehe [Arcade-Guide](arcade-guide.de.md).
+
+### Kollidiert das nicht mit den Lightguns bei denselben USB-IDs?
+Das Kit trennt die Klassen bewusst: Lightgun-Geräte werden **zuerst** erkannt und nie von arcade neu beansprucht, Signaturen nutzen exakte VID/PID-Paare (ein nacktes `VID_0079` träfe die DolphinBar, `2E8A/000A` ist der OpenFIRE-Bootloader, `D209/16xx` sind AimTrak-Guns — nichts davon matcht einen Arcade-Adapter), und reine Namenserkennung gibt es nur da, wo die Hardware wirklich keine eigene ID hat (GP2040-CE).
+
+### Wer macht Rumble fürs Lenkrad und die Gun-Spule?
+Das Paket `output\` verwaltet die Haptik-Middleware (MAMEHooker, qMamehook, Hook of the Reaper). Mehrere Werkzeuge dürfen parallel laufen — nur MAMEs einen `output`-Schlüssel nicht: `windows` und `network` schließen sich aus, und bei erkannten Uneinigkeiten meldet das Kit den strukturierten Konflikt, statt hinter deinem Rücken umzuschreiben. Hook of the Reapers 200-ms-Spulenschutz wird in jede verwaltete Settings-Datei erzwungen. Siehe [Output-Guide](output-guide.de.md).
+
+### Installiert das Kit Gerätetreiber (Lavendy, Logitech G Software)?
+Nein — Kernel-Treiber und Hersteller-Suiten greifen auf HKLM zu und liegen außerhalb des Sicherheitsmodells. Die Adapter schreiben die Konfigurationswerte, die diese Treiber aktivieren, und nennen die offizielle Quelle; den Treiber installierst du selbst, optional mit lokal geladenem Portable-Paket über `-PackagePath … -Approved`.
 
 ---
 

@@ -129,20 +129,21 @@ $script:LightgunSteamConfigPath = @('InstallConfigStore', 'Software', 'Valve', '
 
 function Test-LightgunSteamBlacklist {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $ConfigVdf)
+    param([Parameter(Mandatory)] [string] $ConfigVdf, [string[]] $ExtraEntries = @())
     $text = [IO.File]::ReadAllText($ConfigVdf)
     $current = Get-LightgunVdfValue -Text $text -Path $script:LightgunSteamConfigPath -Key 'controller_blacklist'
-    [string]$current -ceq (Merge-LightgunBlacklist -Current $current)
+    [string]$current -ceq (Merge-LightgunBlacklist -Current $current -Required (@($script:LightgunSteamBlacklist) + @($ExtraEntries)))
 }
 
 # Writes the missing blacklist entries (backup first, Steam and the other guarded programs must be closed).
-# Returns the number of changed values (0 or 1).
+# -ExtraEntries adds adapter VIDs (step 15) to the DolphinBar defaults. Returns the number of changed
+# values (0 or 1).
 function Set-LightgunSteamBlacklist {
     [CmdletBinding(SupportsShouldProcess)]
-    param([Parameter(Mandatory)] [string] $ConfigVdf)
+    param([Parameter(Mandatory)] [string] $ConfigVdf, [string[]] $ExtraEntries = @())
     $text = [IO.File]::ReadAllText($ConfigVdf)
     $current = Get-LightgunVdfValue -Text $text -Path $script:LightgunSteamConfigPath -Key 'controller_blacklist'
-    $wanted = Merge-LightgunBlacklist -Current $current
+    $wanted = Merge-LightgunBlacklist -Current $current -Required (@($script:LightgunSteamBlacklist) + @($ExtraEntries))
     if ([string]$current -ceq $wanted) { return 0 }
     Write-KitLog (Get-KitText 'Lightgun.Steam.Blacklist' -f $(if ($null -eq $current) { '-' } else { $current }), $wanted)
     if (-not $PSCmdlet.ShouldProcess($ConfigVdf, "controller_blacklist = $wanted")) { return 0 }

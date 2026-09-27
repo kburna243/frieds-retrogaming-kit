@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Scans the repository for personal or machine-specific data and exits with 1 when it finds any.
 .DESCRIPTION

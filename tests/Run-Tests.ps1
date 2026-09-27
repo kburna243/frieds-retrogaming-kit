@@ -3,7 +3,8 @@
     Runs the Pester tests with the Pester 3.x that ships with Windows. Exit code 1 on any failure,
     skip or pending test.
 .PARAMETER Path
-    Test files or folders. Default: tests\core, tests\pinball, tests\lightgun, tests\gui and tests\api.
+    Test files or folders. Default: tests\core, tests\pinball, tests\lightgun, tests\arcade,
+    tests\output, tests\gui and tests\api.
 .PARAMETER Local
     Runs tests\local instead: tests against real (non-synthetic) files in tests\fixtures-local\,
     which only exist on the developer's machine and are never committed.
@@ -17,7 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $testsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $Path) {
-    $Path = if ($Local) { @(Join-Path $testsDir 'local') } else { @((Join-Path $testsDir 'core'), (Join-Path $testsDir 'pinball'), (Join-Path $testsDir 'lightgun'), (Join-Path $testsDir 'gui'), (Join-Path $testsDir 'api')) }
+    $Path = if ($Local) { @(Join-Path $testsDir 'local') } else { @((Join-Path $testsDir 'core'), (Join-Path $testsDir 'pinball'), (Join-Path $testsDir 'lightgun'), (Join-Path $testsDir 'arcade'), (Join-Path $testsDir 'output'), (Join-Path $testsDir 'pads'), (Join-Path $testsDir 'gui'), (Join-Path $testsDir 'api')) }
 }
 Import-Module Pester -MaximumVersion 3.99
 $result = Invoke-Pester -Script $Path -PassThru

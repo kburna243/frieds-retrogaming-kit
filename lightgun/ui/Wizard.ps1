@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Lightgun wizard (Windows Forms): the lightgun steps 1-14 as pages, then calibration (guided, last), the
+    Lightgun wizard (Windows Forms): the lightgun steps 1-15 as pages, then calibration (guided, last), the
     thanks page and the maintenance page (doctor, backups, support bundle). Status list on the left (green only after the step's Verify), log below, language de/en,
     dry-run switch (on for the first run), a confirmation before every writing action.
     Opens without administrator rights; the start page can restart it elevated.
@@ -226,6 +226,18 @@ $pages = @(
         $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.DuckStationPcsx2.Desc')
         $null = Add-RunButton $p { Invoke-WizardStep 13 '14-DuckStationPcsx2.ps1' }
     } }
+    @{ TitleKey = 'Lightgun.Ui.Page.Adapter'; StepNames = @('lightgun-15-adapter-detect', 'lightgun-15-adapter-configure'); Build = {
+        param($w, $p)
+        $null = Add-KitUiText $p (Get-KitText 'Lightgun.Ui.Adapter.Desc')
+        $null = Add-KitUiCheck $p (Get-KitText 'Lightgun.Ui.Adapter.Install') ([bool]$w.Values['AdapterInstall']) { $script:W.Values['AdapterInstall'] = $this.Checked }
+        $null = Add-KitUiPathBox $p (Get-KitText 'Lightgun.Ui.Adapter.Package') $w.Values['AdapterPackage'] { $script:W.Values['AdapterPackage'] = $this.Text }
+        $null = Add-RunButton $p {
+            $params = @{ }
+            if ($script:W.Values['AdapterInstall']) { $params.Install = $true; $params.Approved = $true }
+            if ($script:W.Values['AdapterPackage']) { $params.PackagePath = $script:W.Values['AdapterPackage'] }
+            Invoke-WizardStep 14 '15-Adapter.ps1' $params
+        }
+    } }
     @{ TitleKey = 'Lightgun.Ui.Page.Calibration'; Build = {
         param($w, $p)
         foreach ($k in 'Lightgun.Ui.Calibration.Last', 'Lightgun.Ui.Calibration.One', 'Lightgun.Ui.Calibration.How', 'Lightgun.Ui.Calibration.Check') {
@@ -240,7 +252,7 @@ $pages = @(
         $null = Add-RunButton $p {
             $dry = $script:W.DryRunBox.Checked
             $script:W.DryRunBox.Checked = $false
-            try { Invoke-WizardStep 15 '09-Verify.ps1' @{ Again = [bool]$script:W.Values['VerifyAgain'] } (Get-KitText 'Lightgun.Ui.Verify.Confirm') }
+            try { Invoke-WizardStep 16 '09-Verify.ps1' @{ Again = [bool]$script:W.Values['VerifyAgain'] } (Get-KitText 'Lightgun.Ui.Verify.Confirm') }
             finally { $script:W.DryRunBox.Checked = $dry }
         }
     } }

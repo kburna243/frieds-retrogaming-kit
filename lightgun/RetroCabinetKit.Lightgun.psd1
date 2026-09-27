@@ -3,7 +3,7 @@
     ModuleVersion     = '0.3.1'
     GUID              = '8f0a3c55-2b61-4f7e-9a0d-6c1e4b7d2a93'
     Author            = 'retro-cabinet-kit contributors'
-    Description       = 'Lightgun package of retro-cabinet-kit: RetroBat detection, DolphinBar/display checks, ViGEmBus, Gunmote, interference (Steam, VMulti guard), Gunmote layouts, RetroBat settings, profile automation, measured verification.'
+    Description       = 'Lightgun package of retro-cabinet-kit: RetroBat detection, DolphinBar/display checks, ViGEmBus, Gunmote, interference (Steam, VMulti guard), Gunmote layouts, RetroBat settings, profile automation, measured verification, USB lightgun adapters (Gun4IR, OpenFIRE, AimTrak, Retro Shooter).'
     PowerShellVersion = '5.1'
     FunctionsToExport = '*'
     CmdletsToExport   = @()

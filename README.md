@@ -19,6 +19,9 @@
     <a href="README.de.md"><strong>Deutsch</strong></a> •
     <a href="docs/pinball-guide.md"><strong>Pinball Guide</strong></a> •
     <a href="docs/lightgun-guide.md"><strong>Lightgun Guide</strong></a> •
+    <a href="docs/arcade-guide.md"><strong>Arcade Guide</strong></a> •
+    <a href="docs/pads-guide.md"><strong>Gamepad Guide</strong></a> •
+    <a href="docs/output-guide.md"><strong>Output Guide</strong></a> •
     <a href="docs/troubleshooting.md"><strong>Troubleshooting</strong></a> •
     <a href="docs/faq.md"><strong>FAQ</strong></a> •
     <a href="https://github.com/kburna243/frieds-retrogaming-agent"><strong>AI Agent</strong></a> •
@@ -242,6 +245,9 @@ We adhere to a non-negotiable software safety charter:
 | :--- | :--- | :--- |
 | **Virtual Pinball Manual** | Step-by-step Baller Installer relocation, COM registration, and multi-screen setup. | [English](docs/pinball-guide.md) • [Deutsch](docs/pinball-guide.de.md) |
 | **Wiimote Lightgun Manual** | DolphinBar Mode 4 configuration, ViGEmBus, Gunmote layouts, and profile automation. | [English](docs/lightgun-guide.md) • [Deutsch](docs/lightgun-guide.de.md) |
+| **Arcade Input Manual** | Fightsticks, arcade encoders and USB wheels as adapters in `arcade\adapters\`, class-safe detection and `[Controllers]` setup. | [English](docs/arcade-guide.md) • [Deutsch](docs/arcade-guide.de.md) |
+| **Gamepad Manual** | 8BitDo, Xbox, PlayStation and Switch Pro pads as a third input class: multi detection, class exclusions, drivers stay manual. | [English](docs/pads-guide.md) • [Deutsch](docs/pads-guide.de.md) |
+| **Output Haptics Manual** | MAMEHooker, qMamehook and Hook of the Reaper: multi detection, the exclusive `output` key, enforced solenoid safety. | [English](docs/output-guide.md) • [Deutsch](docs/output-guide.de.md) |
 | **Troubleshooting Guide** | Solutions for COM errors, monitor offsets, Steam hijacking, and IR drift. | [English](docs/troubleshooting.md) • [Deutsch](docs/troubleshooting.de.md) |
 | **Frequently Asked Questions** | Answers regarding architecture, hardware compatibility, and safety. | [English](docs/faq.md) • [Deutsch](docs/faq.de.md) |
 | **Security Policy** | Vulnerability reporting, task privilege model, and hardening disclosures. | [English](SECURITY.md) |
