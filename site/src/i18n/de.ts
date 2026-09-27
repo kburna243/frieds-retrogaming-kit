@@ -68,12 +68,12 @@ const de = {
     open: "ANLEITUNG",
     badge: "STABIL",
     pinball: {
-      title: "Pinball Installer",
-      text: "Mitgebrachten PinUP-Popper-Build umziehen oder auf frischem Windows neu aufbauen: Pfade umschreiben, registrieren, Bildschirme einmessen, sichern.",
+      title: "Pinball Installer & Haptik",
+      text: "Mitgebrachten PinUP-Popper- & PinballY-Build umziehen oder neu aufbauen: Pfade umschreiben, Bildschirme einmessen, DOF/DMDext Force-Feedback einrichten, sichern.",
     },
     lightgun: {
-      title: "Lightgun / RetroBat Installer",
-      text: "RetroBat Wiimote-fertig machen: Gunmote, ViGEmBus, DolphinBar, Profil-Automatik, TeknoParrot, MAME, Demul — Kalibrierung zuletzt.",
+      title: "Lightguns, Wheels & Gamepads",
+      text: "RetroBat, MAME & Standalone-Emulatoren einrichten: Wiimote, Gun4IR, Sinden, AimTrak, Logitech/Fanatec-Wheels, Arcade-Fightsticks & Gamepads.",
     },
     skills: {
       title: "AI Skills",
@@ -98,6 +98,8 @@ const de = {
     changelog: "WAS IST NEU",
     features: [
       { title: "Desktop-Dashboard", text: "Start-Kit.cmd öffnet ein Fenster mit drei Modi — Neues Kabinett, Umziehen, Retten — und dem aktuellen Systemstatus. Nichts zu installieren." },
+      { title: "Hardware- & Controller-Adapter", text: "Plug-and-Play-Profile für Gamepads (Xbox, PlayStation, Switch Pro, 8BitDo), Arcade-Encoder (Brook, GP2040-CE, I-PAC) und Racing Wheels (Logitech, Thrustmaster, Fanatec)." },
+      { title: "Pinball Force Feedback & DMD", text: "Volle Unterstützung für DirectOutputFramework (DOF für Schütze, Shaker, Flasher) und DmdExtensions (DMDext für Real/Virtual DMDs) sowie PinballY-Erkennung." },
       { title: "Kabinett-Umzug A > B", text: "Einstellungen des alten Kabinetts als Zip exportieren, auf dem neuen im Probelauf prüfen, dann importieren — mit Backup vor jedem Schreiben. Nie ROMs, BIOS oder Tische." },
       { title: "Wartung eingebaut", text: "Gesundheitscheck, alle Backups in einer Liste zum Prüfen und Zurückspielen und ein anonymisiertes Support-Paket für Fehlermeldungen." },
       { title: "Lokale API & MCP", text: "Skripte und KI-Agenten nutzen dieselben Operationen: standardmäßig Probelauf, Installer nur nach Freigabe durch dich, Ergebnisse anonymisiert, kein Netzwerkport." },

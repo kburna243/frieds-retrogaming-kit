@@ -70,12 +70,12 @@ const en: Dict = {
     open: "GUIDE",
     badge: "STABLE",
     pinball: {
-      title: "Pinball Installer",
-      text: "Move the PinUP Popper build you bring, or rebuild it on a fresh Windows: rewrite paths, register components, calibrate screens, back up.",
+      title: "Pinball Installer & Haptics",
+      text: "Move your PinUP Popper or PinballY build, or rebuild it on fresh Windows: rewrite paths, calibrate screens, configure DOF/DMDext force feedback, back up.",
     },
     lightgun: {
-      title: "Lightgun / RetroBat Installer",
-      text: "Make RetroBat Wiimote-ready: Gunmote, ViGEmBus, DolphinBar, profile automation, TeknoParrot, MAME, Demul — calibration comes last.",
+      title: "Lightguns, Wheels & Gamepads",
+      text: "Configure RetroBat, MAME & standalone emulators: Wiimote, Gun4IR, Sinden, AimTrak, Logitech/Fanatec wheels, arcade fightsticks & gamepads.",
     },
     skills: {
       title: "AI Skills",
@@ -100,6 +100,8 @@ const en: Dict = {
     changelog: "WHAT'S NEW",
     features: [
       { title: "Desktop dashboard", text: "Start-Kit.cmd opens one window with three modes — new cabinet, migrate, recover — and the live system status. Nothing to install." },
+      { title: "Hardware & Controller Adapters", text: "Plug-and-play profiles for gamepads (Xbox, PlayStation, Switch Pro, 8BitDo), arcade encoders (Brook, GP2040-CE, I-PAC), and racing wheels (Logitech, Thrustmaster, Fanatec)." },
+      { title: "Pinball Force Feedback & DMD", text: "Full support for DirectOutputFramework (DOF for contactors, shakers, flashers) and DmdExtensions (DMDext for real/virtual DMDs) plus PinballY discovery." },
       { title: "Cabinet migration A > B", text: "Export the old cabinet's settings as a zip, check it on the new one with a dry run, then import — with a backup before every write. Never ROMs, BIOS or tables." },
       { title: "Maintenance built in", text: "Health check, every backup in one list to check and restore, and an anonymized support bundle for bug reports." },
       { title: "Local API & MCP", text: "Scripts and AI agents use the same operations: dry run by default, installers only after your approval, results anonymized, no network port." },
