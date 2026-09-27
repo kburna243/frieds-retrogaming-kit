@@ -105,6 +105,6 @@ function Set-MameHookerInterferenceShield {
         if ($owner.Count) { Write-KitLog (Get-KitText 'Output.Shield.PortOwner' -f $p, ($owner -join ', ')) -Level Info }
     }
     # Read-only glance at rival Win32 message listeners (report only, no action):
-    $rivals = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -in @('LEDBlinky', 'LEDBlinkyService') } | ForEach-Object { $_.Name } | Select-Object -Unique)
+    $rivals = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -in @('LEDBlinky', 'LEDBlinkyService', 'DirectOutput') } | ForEach-Object { $_.Name } | Select-Object -Unique)
     if ($rivals.Count) { Write-KitLog (Get-KitText 'Output.Shield.RivalListener' -f 'Win32 output messages', ($rivals -join ', ')) -Level Info }
 }

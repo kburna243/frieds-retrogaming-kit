@@ -9,9 +9,9 @@ $steps = Join-Path $kitRoot 'output\steps'
 Describe 'Output adapter catalog and multi detection' {
     Set-KitCulture -Culture 'en-US'
 
-    It 'ships three complete adapters; the underscore template is never listed' {
+    It 'ships five complete adapters; the underscore template is never listed' {
         $cat = @(Get-OutputAdapterCatalog)
-        ($cat | ForEach-Object Name) -join ',' | Should Be 'HookOfTheReaper,MameHooker,QMamehook'
+        ($cat | ForEach-Object Name) -join ',' | Should Be 'DirectOutputFramework,DmdExtensions,HookOfTheReaper,MameHooker,QMamehook'
         foreach ($a in $cat) {
             $a.HasParseErrors | Should Be $false
             $a.HasTest | Should Be $true
@@ -28,7 +28,7 @@ Describe 'Output adapter catalog and multi detection' {
         @($r.DetectedOutputs).Count | Should Be 0
         @($r.Conflicts).Count | Should Be 0
         @($r.Errors).Count | Should Be 0
-        $r.ScannedAdapters | Should Be 'HookOfTheReaper,MameHooker,QMamehook'
+        $r.ScannedAdapters | Should Be 'DirectOutputFramework,DmdExtensions,HookOfTheReaper,MameHooker,QMamehook'
     }
 
     It 'detects each middleware by process, port and tools folder' {
@@ -43,6 +43,38 @@ Describe 'Output adapter catalog and multi detection' {
         $r = Get-OutputDetectedMiddleware -RetroBatRoot $rb -Snapshot @{ Processes = @(); Ports = @(); Devices = @() } -Quiet
         $r.DetectedOutputs -join ',' | Should Be 'HookOfTheReaper'
         $r.OutputMode | Should Be 'windows'
+    }
+
+    It 'detects DirectOutputFramework by process and keeps its hands off the boards' {
+        $r = Get-OutputDetectedMiddleware -Snapshot @{ Processes = @('DirectOutput'); Ports = @(); Devices = @() } -Quiet
+        ($r.DetectedOutputs -join ',') | Should Be 'DirectOutputFramework'
+        $r.OutputMode | Should Be 'windows'
+        @($r.Conflicts).Count | Should Be 0
+        # DOF claims no BoardMatchIds: a lone LED-Wiz board stays MameHooker's evidence, never DOF's.
+        $r = Get-OutputDetectedMiddleware -Snapshot @{ Processes = @(); Ports = @(); Devices = @('USB\VID_0DFA&PID_0001&0') } -Quiet
+        ($r.DetectedOutputs -join ',') | Should Be 'MameHooker'
+    }
+
+    It 'dmdext is detected but adds no output mode (DMD is not the mame output key)' {
+        $r = Get-OutputDetectedMiddleware -Snapshot @{ Processes = @('dmdext'); Ports = @(); Devices = @() } -Quiet
+        ($r.DetectedOutputs -join ',') | Should Be 'DmdExtensions'
+        $r.OutputMode | Should BeNullOrEmpty
+        @($r.Conflicts).Count | Should Be 0
+        $rb = Join-Path $TestDrive 'DmdBat'
+        New-Item -ItemType Directory -Path (Join-Path $rb 'tools\dmdext') -Force | Out-Null
+        $r = Get-OutputDetectedMiddleware -RetroBatRoot $rb -Snapshot @{ Processes = @(); Ports = @(); Devices = @() } -Quiet
+        ($r.DetectedOutputs -join ',') | Should Be 'DmdExtensions'
+        @($r.Errors).Count | Should Be 0
+    }
+
+    It 'two windows consumers (DOF + MameHooker) coexist; only windows-vs-network conflicts' {
+        $r = Get-OutputDetectedMiddleware -Snapshot @{ Processes = @('DirectOutput', 'mamehooker'); Ports = @(); Devices = @() } -Quiet
+        ($r.DetectedOutputs -join '+') | Should Be 'DirectOutputFramework+MameHooker'
+        $r.OutputMode | Should Be 'windows'
+        @($r.Conflicts).Count | Should Be 0
+        $r = Get-OutputDetectedMiddleware -Snapshot @{ Processes = @('DirectOutput', 'qmamehook'); Ports = @(); Devices = @() } -Quiet
+        @($r.Conflicts).Count | Should Be 1
+        $r.Conflicts[0].Kind | Should Be 'OutputModeConflict'
     }
 
     It 'reports OutputModeConflict instead of picking a winner when windows and network tools run at once' {
@@ -115,6 +147,30 @@ Describe 'Output middleware configuration' {
         [IO.File]::ReadAllText((Join-Path $qmDir 'qmhook.ini')) | Should Match 'Port\s*=\s*9735'
         [IO.File]::ReadAllText((Join-Path $qmDir 'qmhook.ini')) | Should Match 'Other\s*=\s*keepme'
         Set-OutputMiddlewareConfiguration -Names @('QMamehook') -RetroBatRoot $rb -Confirm:$false | Should Be 0
+    }
+
+    It 'DOF and MameHooker agree on windows: Set writes the key, safety files stay untouched' {
+        $hotrBefore = [IO.File]::ReadAllText((Join-Path $hotrDir 'settings.ini'))
+        Set-OutputMiddlewareConfiguration -Names @('DirectOutputFramework', 'MameHooker') -RetroBatRoot $rb -Confirm:$false | Should BeGreaterThan 0
+        [IO.File]::ReadAllText((Join-Path $mameDir 'mame.ini')) | Should Match 'output\s+windows'
+        # neither new adapter has SettingsTargets/Safety - the HoTR safety file must survive byte-identical
+        [IO.File]::ReadAllText((Join-Path $hotrDir 'settings.ini')) | Should BeExactly $hotrBefore
+        Test-OutputMiddlewareConfiguration -Names @('DirectOutputFramework', 'MameHooker') -RetroBatRoot $rb | Should Be $true
+        Set-OutputMiddlewareConfiguration -Names @('DirectOutputFramework', 'MameHooker') -RetroBatRoot $rb -Confirm:$false | Should Be 0
+    }
+
+    It 'DOF plus QMamehook is a mode conflict too: Set refuses the mame key' {
+        $before = [IO.File]::ReadAllText((Join-Path $mameDir 'mame.ini'))
+        $null = Set-OutputMiddlewareConfiguration -Names @('DirectOutputFramework', 'QMamehook') -RetroBatRoot $rb -Confirm:$false
+        [IO.File]::ReadAllText((Join-Path $mameDir 'mame.ini')) | Should BeExactly $before
+        Test-OutputMiddlewareConfiguration -Names @('DirectOutputFramework', 'QMamehook') -RetroBatRoot $rb | Should Be $false
+    }
+
+    It 'dmdext alone writes nothing: no output key, no settings file, verify stays green' {
+        $before = [IO.File]::ReadAllText((Join-Path $mameDir 'mame.ini'))
+        Set-OutputMiddlewareConfiguration -Names @('DmdExtensions') -RetroBatRoot $rb -Confirm:$false | Should Be 0
+        [IO.File]::ReadAllText((Join-Path $mameDir 'mame.ini')) | Should BeExactly $before
+        Test-OutputMiddlewareConfiguration -Names @('DmdExtensions') -RetroBatRoot $rb | Should Be $true
     }
 }
 

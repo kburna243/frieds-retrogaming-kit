@@ -32,6 +32,14 @@ und tools-Ordner, läuft also auch, wenn die Tools gerade nicht starten).
 | `MameHooker` | Win32-Messages | `windows` | Prozess `MameHooker`, LED-Wiz-Board `0DFA:0001`, tools-Ordner |
 | `QMamehook` | TCP (Port 9735*) | `network` | Prozess, lauschender Port, tools-Ordner |
 | `HookOfTheReaper` | Win32 + eigener TCP-Server auf **8000** | `windows` | Prozess, Port, tools-Ordner |
+| `DirectOutputFramework` | Win32-Messages (DOF R3++) | `windows` | nur Prozess `DirectOutput` — die XML-Welt (`C:\DirectOutput\Config`) bleibt Handarbeit |
+| `DmdExtensions` | DMD-Frames (freezy dmdext) | *nicht beteiligt* | Prozess `dmdext`, tools-Ordner; nie an einem Modus-Konflikt beteiligt |
+
+Zwei `windows`-Adapter koexistieren bewusst (DOF und MAMEHooker belauschen denselben Broadcast —
+das Kit meldet Rivale-Lausher, es kürt nie einen Sieger). Nur `windows` gegen `network` ist ein
+Konflikt. LED-Boards gehören zur Beweiskette der *Consumer*-Adapter: Der LED-Wiz ist MameHookers
+Claim, DOF und dmdext beanspruchen bewusst keine Boards (die ZeDMD-ID `303A:1001` ist OpenFIREs
+Lightgun, und generische CH340/FTDI-IDs würden an jedem USB-Kabel feuern).
 
 \* 9735 ist Community-Konvention für qMamehook, kein amtlicher Standard — der Port bleibt in
 `qmhook.ini` konfigurierbar, die das Kit nur anfasst, wenn sie existiert.
@@ -80,7 +88,7 @@ nie angelegt — der Sicherheitseingriff gilt genau dort, wo das Tool installier
 & output\steps\01-Middleware.ps1
 
 # portables ZIP selbst heruntergeladen (das Kit lädt nichts):
-& output\steps\01-Middleware.ps1 -Install -Name MameHooker -PackagePath D:\downloads\mamehook5.1.zip -Approved
+& output\steps\01-Middleware.ps1 -Install -Name MameHooker -PackagePath C:\Games\mamehook5.1.zip -Approved
 ```
 
 ## 🧪 Tests & Grenzen
@@ -93,6 +101,11 @@ Bewusst (noch) nicht automatisiert:
 
 - **MAMEHooker-Profile** (`P1_CtmRecoil=scom 3 1000 1` — die Cabinet-Verdrahtung pro Spiel): Das
   Kit konfiguriert die Middleware, nicht den Lampen-/Spulen-Plan.
+- **DOFs XML-Welt** — `GlobalConfig_B2SServer.xml`, `Cabinet.xml` und COM-Registrierung unter
+  `C:\DirectOutput` liegen außerhalb des RetroBat-Root-Vertrags, und das Kit besitzt keinen
+  XML-Writer; `directoutputconfig30.ini` erzeugt das Online-DOF-Config-Tool, nie lokal erfunden.
+- **DmdDevice.ini** gehört zum pinball-Paket (dessen Screens-Schritt besitzt die VP/FP-DMD-Einträge);
+  das Output-Paket konfiguriert dmdext selbst, nicht die gemeinsame Table-Config.
 - **Firewall** — Loopback braucht keine; es wird nichts geöffnet.
 - Hersteller-Downloads (dragonking.arcadecontrols.com ist reines HTTP, die qMamehook-Repos brauchen
   Pflege-Verifizierung) — bewusst außerhalb der Core-Download-Allowlist: bitte `-PackagePath`.
