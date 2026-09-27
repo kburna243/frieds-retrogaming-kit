@@ -8,7 +8,7 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
   [![Documentation](https://img.shields.io/badge/Docs-English%20%7C%20Deutsch-3DDC84?style=for-the-badge&logo=gitbook&logoColor=white)](docs/)
   [![Live Website](https://img.shields.io/badge/Website-kburna243.github.io%2Ffrieds--retrogaming--kit-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-kit/)
-  [![AI Companion Agent](https://img.shields.io/badge/AI%20Agent-fagent%20v0.2.0-00f0ff?style=for-the-badge&logo=openai)](https://github.com/kburna243/frieds-retrogaming-agent)
+  [![AI Companion Agent](https://img.shields.io/badge/AI%20Agent-fagent%20v0.3.0-00f0ff?style=for-the-badge&logo=openai)](https://github.com/kburna243/frieds-retrogaming-agent)
   [![Agent Website](https://img.shields.io/badge/Agent%20Website-Live-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-agent/)
   [![Release](https://img.shields.io/github/v/release/kburna243/frieds-retrogaming-kit?style=for-the-badge&label=Release&color=FFC857)](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)
   [![CI](https://img.shields.io/github/actions/workflow/status/kburna243/frieds-retrogaming-kit/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/kburna243/frieds-retrogaming-kit/actions/workflows/ci.yml)
@@ -17,6 +17,7 @@
   <p>
     <a href="README.md"><strong>English</strong></a> •
     <a href="README.de.md"><strong>Deutsch</strong></a> •
+    <a href="https://kburna243.github.io/frieds-retrogaming-kit/#/feedback"><strong>Feedback</strong></a> •
     <a href="docs/pinball-guide.md"><strong>Pinball Guide</strong></a> •
     <a href="docs/lightgun-guide.md"><strong>Lightgun Guide</strong></a> •
     <a href="docs/arcade-guide.md"><strong>Arcade Guide</strong></a> •
@@ -36,15 +37,16 @@
 
 ---
 
-## ✨ New in v0.3.0
+## ✨ New in v0.4.0
 
 | | What you get |
 | :--- | :--- |
-| 🖥️ **Desktop dashboard** | `Start-Kit.cmd` opens one window with three modes — **new cabinet**, **migrate**, **recover** — and the live system status. Windows PowerShell 5.1 and WPF: nothing to install. English and German. |
-| 🚚 **Cabinet migration A → B** | Export the settings of your old cabinet into one zip per suite, check it on the new one with a dry run, then import — with a backup before every write. Paths travel as placeholders; ROMs, BIOS files and tables never go into the profile. |
-| 🩺 **Maintenance built in** | Health check, every backup in one list (check, preview, restore, export, delete) and an anonymized support bundle — in the dashboard, the wizards and on the command line. |
-| 🤖 **Local API & MCP server** | Every operation through one [Kit API](API.md) with dry run by default and approvals from a person; an MCP server over stdio lets [Fried's Retrogaming Agent](https://github.com/kburna243/frieds-retrogaming-agent) diagnose your cabinet without a network port. Results are anonymized by default. |
-| 🎮 **Steam may stay open** | A running Steam client only blocks the steps that write Steam's own files. |
+| 🎯 **Sinden Lightgun Adapter** | Camera tracking (`16C0/0F01-0F02`), white border configuration in RetroBat (`retrobat.ini [Guns]`), DemulShooter device mapping, rawinput MAME configuration, and recoil COM port handling. |
+| 🔫 **USB Lightgun Adapters** | Modular drop-in adapters for **Gun4IR, OpenFIRE, AimTrak, Retro Shooter and Sinden** with PnP discovery, device conflict prevention, and official source enforcement. |
+| 🕹️ **Arcade & Fightstick Package** | Plug-and-play support for 12 encoders and wheels (**GP2040-CE, Brook UFB, I-PAC, Zero Delay, Hori, Mad Catz, Logitech, Thrustmaster**) with class-safe bindings. |
+| 📳 **Output & Haptics Middleware** | Coordinated haptic feedback for guns and wheels (**MameHooker, QMamehook, Hook of the Reaper**) with 200 ms solenoid protection. |
+| 📍 **PinballY Inspection & Retarget** | API 1.3 operations `pinbally.detect` and `pinbally.retarget`: automatic drive letter and folder mapping for copied pinball installations without breaking databases. |
+| 💬 **Community Blitz-Feedback** | 60-second interactive web feedback form with 6 Most Wanted profiles, automatic client-side sanitization, and 1-click GitHub report export. |
 
 ---
 
@@ -236,6 +238,23 @@ We adhere to a non-negotiable software safety charter:
 4. **Dry-Run by Default**: Review every file copy, registry entry, and screen coordinate modification using `-WhatIf` before committing changes.
 5. **Local Only**: No telemetry, no analytics, no accounts, no cloud, no tracking. The only network code is the verified download module (`core\modules\Download.ps1`); CI fails if network calls appear anywhere else.
 6. **Zero Data Leaking**: Strict CI scans (`tools\Test-Depersonalized.ps1`) guarantee no personal hostnames, private IP addresses, or system paths are committed to the repository.
+
+---
+
+## 💬 Community Feedback (60 Seconds · Zero Barrier)
+
+Is your cabinet running, or did you hit a snag with a specific hardware setup? Help the entire retro gaming community without opening pull requests, joining chat servers, or creating accounts:
+
+- **[Interactive Feedback Form](https://kburna243.github.io/frieds-retrogaming-kit/#/feedback)** on our website: pick your setup in 2 clicks and tell us if it runs.
+- **Client-Side Sanitization:** Windows user profile paths, private IPs, SIDs, and MAC addresses are automatically replaced with safe placeholders before anything leaves your browser.
+- **1-Click Export:** Submit directly as a pre-filled GitHub issue, copy the ready markdown report to your clipboard, or download it as `.md`.
+- **★ Most Wanted Profiles:**
+  1. *VPX · 3 Screens + NVIDIA* (Playfield, Backglass, DMD alignment)
+  2. *Sinden Lightgun* (White border, software calibration & recoil)
+  3. *Gun4IR & AimTrak* (DIY infrared and LED lightgun sensor bars)
+  4. *PinUP Popper + Future Pinball* (Alternative frontends and BAM integration)
+  5. *AMD Radeon + 2 Screens* (Display ordering and Eyefinity behavior)
+  6. *Local AI (Ollama Qwen / Llama)* (Offline diagnosis with fagent)
 
 ---
 

@@ -8,7 +8,7 @@
   [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow?style=for-the-badge)](LICENSE)
   [![Dokumentation](https://img.shields.io/badge/Doku-Deutsch%20%7C%20English-3DDC84?style=for-the-badge&logo=gitbook&logoColor=white)](docs/)
   [![Webseite](https://img.shields.io/badge/Webseite-kburna243.github.io%2Ffrieds--retrogaming--kit-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-kit/)
-  [![KI-Begleiter Agent](https://img.shields.io/badge/KI--Agent-fagent%20v0.2.0-00f0ff?style=for-the-badge&logo=openai)](https://github.com/kburna243/frieds-retrogaming-agent)
+  [![KI-Begleiter Agent](https://img.shields.io/badge/KI--Agent-fagent%20v0.3.0-00f0ff?style=for-the-badge&logo=openai)](https://github.com/kburna243/frieds-retrogaming-agent)
   [![Agent-Webseite](https://img.shields.io/badge/Agent--Webseite-Live-ff2d95?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kburna243.github.io/frieds-retrogaming-agent/)
   [![Release](https://img.shields.io/github/v/release/kburna243/frieds-retrogaming-kit?style=for-the-badge&label=Release&color=FFC857)](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)
   [![CI](https://img.shields.io/github/actions/workflow/status/kburna243/frieds-retrogaming-kit/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/kburna243/frieds-retrogaming-kit/actions/workflows/ci.yml)
@@ -17,6 +17,7 @@
   <p>
     <a href="README.de.md"><strong>Deutsch</strong></a> •
     <a href="README.md"><strong>English</strong></a> •
+    <a href="https://kburna243.github.io/frieds-retrogaming-kit/#/feedback"><strong>Feedback</strong></a> •
     <a href="docs/pinball-guide.de.md"><strong>Pinball-Anleitung</strong></a> •
     <a href="docs/lightgun-guide.de.md"><strong>Lightgun-Anleitung</strong></a> •
     <a href="docs/arcade-guide.de.md"><strong>Arcade-Anleitung</strong></a> •
@@ -36,15 +37,16 @@
 
 ---
 
-## ✨ Neu in v0.3.0
+## ✨ Neu in v0.4.0
 
 | | Was du bekommst |
 | :--- | :--- |
-| 🖥️ **Desktop-Dashboard** | `Start-Kit.cmd` öffnet ein Fenster mit drei Modi — **Neues Kabinett**, **Umziehen**, **Retten** — und dem aktuellen Systemstatus. Windows PowerShell 5.1 und WPF: nichts zu installieren. Deutsch und Englisch. |
-| 🚚 **Kabinett-Umzug A → B** | Die Einstellungen des alten Kabinetts als eine Zip pro Suite exportieren, auf dem neuen im Probelauf prüfen, dann importieren — mit Backup vor jedem Schreiben. Pfade reisen als Platzhalter; ROMs, BIOS-Dateien und Tische kommen nie ins Profil. |
-| 🩺 **Wartung eingebaut** | Gesundheitscheck, alle Backups in einer Liste (prüfen, Vorschau, zurückspielen, exportieren, löschen) und ein anonymisiertes Support-Paket — im Dashboard, in den Assistenten und auf der Kommandozeile. |
-| 🤖 **Lokale API & MCP-Server** | Jede Operation über eine [Kit-API](API.md), standardmäßig als Probelauf und mit Freigaben durch einen Menschen; ein MCP-Server über stdio lässt [Fried's Retrogaming Agent](https://github.com/kburna243/frieds-retrogaming-agent) dein Kabinett untersuchen, ohne Netzwerkport. Ergebnisse sind standardmäßig anonymisiert. |
-| 🎮 **Steam darf offen bleiben** | Ein laufendes Steam blockiert nur noch die Schritte, die Steams eigene Dateien schreiben. |
+| 🎯 **Sinden Lightgun-Adapter** | Kamera-Tracking (`16C0/0F01-0F02`), automatische Rand-Konfiguration in RetroBat (`retrobat.ini [Guns]`), DemulShooter-Zuordnung, Rawinput für MAME und COM-Port-Schnittstelle für Recoil-Modelle. |
+| 🔫 **USB-Lightgun-Adapter** | Modulare Drop-In-Adapter für **Gun4IR, OpenFIRE, AimTrak, Retro Shooter und Sinden** mit PnP-Erkennung, Kollisionsschutz und Prüfung offizieller Bezugsquellen. |
+| 🕹️ **Arcade- & Fightstick-Paket** | Plug-and-Play-Unterstützung für 12 Encoder und Lenkräder (**GP2040-CE, Brook UFB, I-PAC, Zero Delay, Hori, Mad Catz, Logitech, Thrustmaster**) mit kollisionsfreier Tastenbindung. |
+| 📳 **Output- & Haptik-Middleware** | Koordinierte Haptik-Signale für Guns und Lenkräder (**MameHooker, QMamehook, Hook of the Reaper**) mit fest verdrahtetem 200-ms-Schutz für Magnetspulen. |
+| 📍 **PinballY Inspektion & Retarget** | API 1.3 Operationen `pinbally.detect` und `pinbally.retarget`: Automatische Laufwerks- und Pfadanpassung für kopierte Flipper-Installationen, ohne Datenbanken zu beschädigen. |
+| 💬 **Community Blitz-Feedback** | 60-Sekunden-Feedback-Formular im Web mit 6 Most-Wanted-Profilen, automatischer Browser-Anonymisierung und 1-Klick-Issue-Export. |
 
 ---
 
@@ -236,6 +238,23 @@ Wir arbeiten nach strengen, unverhandelbaren Grundsätzen:
 4. **Standardmäßig Trockenlauf fähig**: Prüfe jeden Kopiervorgang, Registry-Eintrag und Monitor-Offset mit `-WhatIf`, bevor etwas geschrieben wird.
 5. **Nur lokal**: Keine Telemetrie, keine Analyse, kein Konto, keine Cloud, kein Tracking. Netzwerkzugriff gibt es nur im geprüften Download-Modul (`core\modules\Download.ps1`); die CI schlägt fehl, wenn anderswo Netzwerkaufrufe auftauchen.
 6. **Kein Datenabfluss**: Automatisierte CI-Scans (`tools\Test-Depersonalized.ps1`) stellen sicher, dass niemals private Hostnamen, IP-Adressen oder persönliche Benutzerpfade ins Repository gelangen.
+
+---
+
+## 💬 Community-Feedback (60 Sekunden · Ohne Hürden)
+
+Läuft dein Kabinett oder gibt es Probleme mit einer bestimmten Hardware-Kombination? Hilf der ganzen Retro-Community – ohne Pull Requests, Chat-Server oder Account-Zwang:
+
+- **[Interaktives Blitz-Feedback-Formular](https://kburna243.github.io/frieds-retrogaming-kit/#/feedback)** auf der Website: Wähle dein Setup mit 2 Klicks aus und sag uns kurz, ob es läuft.
+- **Lokale Anonymisierung:** Windows-Benutzerpfade, private IP-Adressen, SIDs und MAC-Adressen werden vor dem Absenden direkt im Browser durch sichere Platzhalter ersetzt.
+- **1-Klick-Export:** Direkt als vorausgefülltes GitHub-Issue melden, fertigen Markdown-Report in die Zwischenablage kopieren oder als `.md` herunterladen.
+- **★ Most-Wanted-Profile:**
+  1. *VPX · 3 Monitore + NVIDIA* (Playfield, Backglass, DMD-Ausrichtung)
+  2. *Sinden Lightgun* (Weißer Rand, Software-Kalibrierung & Recoil)
+  3. *Gun4IR & AimTrak* (DIY-Infrarot- und LED-Sensorleisten)
+  4. *PinUP Popper + Future Pinball* (Alternative Frontends und BAM-Integration)
+  5. *AMD Radeon + 2 Monitore* (Bildschirm-Reihenfolge und Eyefinity)
+  6. *Lokale KI (Ollama Qwen / Llama)* (Offline-Diagnose mit fagent)
 
 ---
 
