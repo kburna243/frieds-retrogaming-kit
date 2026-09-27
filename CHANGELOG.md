@@ -7,6 +7,8 @@ that matches it.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-27
+
 ### Added
 - Lightgun adapter **Sinden** (step 15, fifth shipped adapter): camera-based guns (P1 `16C0/0F01`,
   P2 `16C0/0F02`, recoil models `16C0/0F38`/`0F39`, UVC camera `16C0/0F37`) — matched as exact VID&PID
@@ -234,7 +236,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.1.0...v0.2.0

@@ -26,6 +26,7 @@ ist über GitHub Actions deployt.
 | **PR #18** → **v0.3.0** | Dashboard nur noch über die API; **MCP-Server**; API-Regeln für Migration; Fix: `-AutoInstall` fragt jetzt nach; **Umziehen-Modus** im Dashboard; Steam-Schutz eingegrenzt; Version 0.3.0 |
 | **PR #19, #20** | Website und README mit den v0.3.0-Funktionen, Versionsabgleich Website ↔ `VERSION`, Meta-Beschreibung |
 | **PR #24, #25** → **v0.3.1** | Issues des Harness: `ApiVersion` 1.1, `KitVersion` in jedem Ergebnis, `Apply`/`Approved` als Parameternamen gesperrt (#21–#23); Website auf TypeScript 7 (ersetzt #16) |
+| **PR #26–#29** → **v0.4.0** | Pakete Arcade, Output und Pads; Lightgun-Schritt 15 mit USB-Adaptern (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, **Sinden**); PinballY (API 1.2/1.3: `pinbally.detect`, `pinbally.retarget`); Dashboard über die API; Anleitungen DE/EN; Website-Release-Sektion |
 
 Der [CHANGELOG](../CHANGELOG.md) führt jede Änderung einzeln auf.
 

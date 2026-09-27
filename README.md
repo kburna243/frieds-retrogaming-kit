@@ -32,7 +32,7 @@
 ---
 
 > [!NOTE]
-> **Status: v0.3.1** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–14 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel and a guided DuckStation / PCSX2 check) are functional. New in v0.3.0: the desktop dashboard, cabinet migration A → B and a local API for scripts and agents. v0.3.1 adds the kit version to every API result (API 1.1) for [Fried's Retrogaming Agent](https://github.com/kburna243/frieds-retrogaming-agent) and custom scripts. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
+> **Status: v0.4.0** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–15 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel, a guided DuckStation / PCSX2 check and USB adapters for Gun4IR, OpenFIRE, AimTrak, Retro Shooter and **Sinden**) are functional, next to the arcade, output and pads packages. New in v0.4.0: those four suites, the PinballY inspection and retarget operations (API 1.3) and the desktop dashboard over the API. Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
 
 ---
 
