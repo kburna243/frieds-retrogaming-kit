@@ -12,13 +12,19 @@
     Folder to create.
 .PARAMETER ForeignDrive
     A drive letter that is not mounted on this machine (see Get-PinballYUnmountedDrive in the tests).
+.PARAMETER Retarget
+    Adds the second half of the copied-installation story: settings values that point at the other machine AND
+    the counterparts they should become, next to the installation. One counterpart is deliberately left out, so
+    a test can show that a target which does not exist here is never written. Off by default: the read tests
+    measure the installation exactly as it is.
 .OUTPUTS
     The root folder path.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $Root,
-    [Parameter(Mandatory)][ValidatePattern('^[A-Za-z]$')] [string] $ForeignDrive
+    [Parameter(Mandatory)][ValidatePattern('^[A-Za-z]$')] [string] $ForeignDrive,
+    [switch] $Retarget
 )
 $ErrorActionPreference = 'Stop'
 
@@ -98,5 +104,30 @@ $ini = @(
     'FP=D:\Games\Future Pinball\fpRAM\'
 )
 [IO.File]::WriteAllText((Join-Path $Root 'PINemHi\pinemhi.ini'), ($ini -join "`r`n"), (New-Object Text.UTF8Encoding $false))
+
+if ($Retarget) {
+    # The other machine's content, as it sits on THIS one: the same names under a folder next to the
+    # installation. A map pair turns the dead values above into these paths. One target is deliberately
+    # missing, so the case "no counterpart here" is measured and not assumed.
+    $target = Join-Path (Split-Path -Parent $Root) 'PinballYRetargetTarget'
+    foreach ($sub in @('Games\Pinball Arcade', 'Scripts', 'vpinmame\nvram', 'futurepinball\fpRAM')) {
+        $null = New-Item -ItemType Directory -Path (Join-Path $target $sub) -Force
+    }
+    Write-Utf8Bom -Path (Join-Path $target 'Games\Pinball Arcade\TPAFreeCamMod.exe') -Text 'the counterpart of the program on the other machine'
+    Write-Utf8Bom -Path (Join-Path $target 'Scripts\Run_Arcooda.exe') -Text 'the counterpart of the script on the other machine'
+
+    # A value that is ALIVE on this machine and sits under a prefix the map also covers: a correct path must
+    # never be touched, even when a pair would match it. That is the guard against a rewrite that "cleans up".
+    $lines += "System4.MediaDir = $(Join-Path $Root 'Media\Sub')"
+    Write-Utf8Bom -Path (Join-Path $Root 'Settings.txt') -Text (($lines -join "`r`n") + "`r`n")
+    # The same dead path a second time in the companion: two lines, one value, both must land in the plan.
+    $ini += 'NVRAMExtra=D:\Per\VisualPinball\VPinMame\nvram\'
+    [IO.File]::WriteAllText((Join-Path $Root 'PINemHi\pinemhi.ini'), ($ini -join "`r`n"), (New-Object Text.UTF8Encoding $false))
+
+    # Never rewritten, whatever the map says: the factory file PinballY copies back on a reset, and one of
+    # the rolling copies the program keeps itself. Both hold the same dead path as the settings.
+    Write-Utf8Bom -Path (Join-Path $Root 'DefaultSettings.txt') -Text "System5.Exe = $foreignExe`r`n"
+    Write-Utf8Bom -Path (Join-Path $Root 'Settings backup 2020-07-08.txt') -Text "System5.Exe = $foreignExe`r`n"
+}
 
 $Root

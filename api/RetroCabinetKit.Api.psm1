@@ -5,7 +5,7 @@
 
 Set-StrictMode -Version 2.0
 
-$script:ApiVersion = '1.2'
+$script:ApiVersion = '1.3'
 $script:ApiDir     = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 # The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
@@ -127,6 +127,7 @@ function Get-KitOperation {
         @{ Name = 'components'; Kind = 'Read'; Description = 'Detected components: Windows, RetroBat, Gunmote, ViGEmBus, DolphinBar, Steam, pinball build, PinballY.'; Parameters = @() }
         # The second front end is not part of a build, so its folder is asked for, not derived from the state.
         @{ Name = 'pinbally.detect'; Kind = 'Read'; Description = 'Inspect a PinballY installation: version, systems, table databases and which path references do not resolve on this machine. Reads only.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }) }
+        @{ Name = 'pinbally.retarget'; Kind = 'Change'; Description = 'Give the dead absolute paths of a PinballY installation the targets of this machine, following pairs written as Old=New (the same folder under another drive is the usual case). Only path values that do not resolve here are planned, and only when the new path exists; comments, [TOKEN] values, relative paths, DefaultSettings.txt and the own copies of the program are never touched. Dry run without -Apply; the plan needs -Approved.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Map'; Type = 'String[]'; Mandatory = $true }, [pscustomobject]@{ Name = 'BackupDir'; Type = 'String'; Mandatory = $false }) }
         @{ Name = 'backups.list'; Kind = 'Read'; Description = 'The kit''s backups, newest first.'; Parameters = @([pscustomobject]@{ Name = 'Root'; Type = 'String[]'; Mandatory = $false }) }
         @{ Name = 'backup.check'; Kind = 'Read'; Description = 'Checks a backup against its checksums (zip) or its original (file copy).'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }) }
         @{ Name = 'backup.restore'; Kind = 'Change'; Description = 'Restores a backup; the current file is saved first. Zip backups need AllowedRoot.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'AllowedRoot'; Type = 'String[]'; Mandatory = $false }) }
@@ -304,6 +305,68 @@ function Invoke-KitOperation {
                         ReferenceForeign = @($info.ReferenceForeign)
                         Database = $info.Database; Game = $info.Game; Companion = $info.Companion
                         Running = $info.Running; WriteSafe = $info.WriteSafe
+                    })
+            }
+            'pinbally.retarget' {
+                # Change: the plan comes first, and only a person's yes (-Approved) turns it into a write.
+                # Values that resolve here, comments, [TOKEN] values, relative paths and the copies the program
+                # keeps for itself are not part of any plan (pinball\modules\PinballYRetarget.ps1).
+                $map = @(foreach ($m in @($p.Map)) { [string]$m })
+                # Writing is only for an installation, not for a folder that happens to hold a Settings.txt.
+                if (-not (Test-PinballYInstall -Path $p.Path)) {
+                    $m2 = Get-KitText 'PinballY.NotAnInstall' -f $p.Path, 'PinballY.exe + Settings.txt'
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status Failed -Message $m2 -Errors @($m2) `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started
+                }
+                $backupDir = if ($p.ContainsKey('BackupDir')) { $p.BackupDir } else { '' }
+                $plan = Invoke-PinballYRetarget -Path $p.Path -Map $map
+                $ready = @($plan.Ready); $pending = @($plan.Pending)
+                $files = @($ready | ForEach-Object { $_.File } | Sort-Object -Unique)
+                $approvals = @(foreach ($f in $files) {
+                    $rows = @($ready | Where-Object { $_.File -eq $f })
+                    Get-KitText 'PinballY.Retarget.Approve' -f (Split-Path -Leaf $f), $rows.Count, ('{0} -> {1}' -f $rows[0].Old, $rows[0].New)
+                })
+                $left = @(foreach ($x in $pending) { $x.Reason })
+                $planData = [pscustomobject]@{
+                    Root = $plan.Root; Pair = $plan.Pair; Plan = $plan.Plan
+                    Ready = $ready; Pending = $pending; Written = @(); Backup = ''
+                }
+                if (-not $ready.Count) {
+                    # Nothing this map could fix: with -Apply that answers Skipped, without it the plan says
+                    # the same thing. A value the map does not cover stays a Warning, never a silent change.
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status $(if ($apply) { 'Skipped' } else { 'WhatIf' }) `
+                        -Message (Get-KitText 'PinballY.Retarget.None') -Warnings $left `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $planData
+                }
+                if (-not $apply) {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                        -Message (Get-KitText 'PinballY.Retarget.Plan' -f $ready.Count, $pending.Count, $files.Count) `
+                        -Warnings $left -Approvals $approvals `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $planData
+                }
+                if (-not $Approved) {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status NeedsUser `
+                        -Message (Get-KitText 'PinballY.Retarget.NeedsApproval' -f $files.Count) `
+                        -Warnings $left -Approvals $approvals `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $planData
+                }
+                # The plan is made a second time inside the write, on the file as it is now: PinballY rewrites
+                # its own settings when it closes, so a line that moved since the shown plan is refused there.
+                $done = Invoke-PinballYRetarget -Path $p.Path -Map $map -Apply -BackupDir $backupDir
+                $written = @($done.Written)
+                $changes = @(foreach ($w in $written) {
+                    [pscustomobject]@{ Kind = 'File'; Target = $w.File; Detail = ('line {0}: {1} -> {2}' -f $w.Line, $w.Old, $w.New) }
+                })
+                # The folder becomes known to the kit only with the write: a dry run changes nothing, the state
+                # file included, and components must not report an installation nobody decided to keep.
+                $null = Set-KitStateValue -Path $PinballStatePath -Key 'PinballYRoot' -Value $done.Root
+                return New-KitOperationResult -Operation $Name -Kind Change -Status Done -Applied $true `
+                    -Message (Get-KitText 'PinballY.Retarget.Done' -f $written.Count, @($written | ForEach-Object { $_.File } | Sort-Object -Unique).Count, (Split-Path -Leaf $done.Backup)) `
+                    -Warnings $left -Changes $changes -Backups @($done.Backup) `
+                    -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                    -Data ([pscustomobject]@{
+                        Root = $done.Root; Pair = $done.Pair; Plan = $done.Plan; Ready = @($done.Ready)
+                        Pending = @($done.Pending); Written = $written; Backup = $done.Backup
                     })
             }
             'backups.list' {
