@@ -145,8 +145,8 @@ Steps 10–13 only touch emulators you actually have; missing ones are reported,
 
 A second route beside the Wiimote: optical USB guns, recognised by their VID/PID signature.
 
-- `lightgun-15-adapter-detect`: **Read-only.** Scans `lightgun\adapters\` and matches every attached USB gun against the adapters' signatures (Gun4IR, OpenFIRE, AimTrak, Retro Shooter); the result is recorded as `LightgunAdapter` in `install-state.json`. The Wiimote route does not need this page.
-- `lightgun-15-adapter-configure`: Writes the detected adapter's values into `mame.ini` (`lightgun 1`, `lightgun_device rawinput`, `output windows` …), sets `retrobat.ini [Guns]`, records the gun in `DemulShooter.ini [Player1] Device` and extends Steam's controller blacklist with the gun VIDs. The kit never kills a process and never writes HKLM. With `-Install -PackagePath <ZIP> -Approved` the adapter places a brought-along portable package into `tools\<Name>`; without a package the step only names the official source. Contributing adapters: [`lightgun\adapters\README.md`](../lightgun/adapters/README.md).
+- `lightgun-15-adapter-detect`: **Read-only.** Scans `lightgun\adapters\` and matches every attached USB gun against the adapters' signatures (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, Sinden); the result is recorded as `LightgunAdapter` in `install-state.json`. The Wiimote route does not need this page.
+- `lightgun-15-adapter-configure`: Writes the detected adapter's values into `mame.ini` (`lightgun 1`, `lightgun_device rawinput`, `output windows` …), sets `retrobat.ini [Guns]`, records the gun in `DemulShooter.ini [Player1] Device` and extends Steam's controller blacklist with the gun VIDs. The kit never kills a process and never writes HKLM. With `-Install -PackagePath <ZIP> -Approved` the adapter places a brought-along portable package into `tools\<Name>`; without a package the step only names the official source. Sinden is camera-based: it only tracks against a closed white border, which RetroBat draws from the `SindenBorder` values written into `[Guns]`; outside RetroBat use the ReShade shader `SindenBorder.fx` or a white MAME artwork bezel. Contributing adapters: [`lightgun\adapters\README.md`](../lightgun/adapters/README.md).
 
 ---
 
@@ -193,6 +193,6 @@ powershell -ExecutionPolicy Bypass -File lightgun\steps\13-Model2Supermodel.ps1
 # Console emulators (guided check)
 powershell -ExecutionPolicy Bypass -File lightgun\steps\14-DuckStationPcsx2.ps1
 
-# USB lightguns beside the Wiimote route (Gun4IR, OpenFIRE, AimTrak, Retro Shooter)
+# USB lightguns beside the Wiimote route (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, Sinden)
 powershell -ExecutionPolicy Bypass -File lightgun\steps\15-Adapter.ps1
 ```

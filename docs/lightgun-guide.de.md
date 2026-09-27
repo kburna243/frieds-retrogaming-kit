@@ -145,8 +145,8 @@ Die Schritte 10–13 fassen nur Emulatoren an, die du wirklich hast; fehlende we
 
 Zweiter Weg neben der Wiimote: optische USB-Pistolen, erkannt an ihrer VID/PID-Signatur.
 
-- `lightgun-15-adapter-detect`: **Rein lesend.** Scannt `lightgun\adapters\` und gleicht jede USB-Pistole gegen die Signaturen der Adapter ab (Gun4IR, OpenFIRE, AimTrak, Retro Shooter); das Ergebnis steht als `LightgunAdapter` in `install-state.json`. Der Wiimote-Weg braucht diese Seite nicht.
-- `lightgun-15-adapter-configure`: Schreibt die Werte des erkannten Adapters in `mame.ini` (`lightgun 1`, `lightgun_device rawinput`, `output windows` …), setzt `retrobat.ini [Guns]`, trägt die erkannte Waffe in `DemulShooter.ini [Player1] Device` ein und ergänzt Steams Controller-Blacklist um die Gun-VIDs. Das Kit beendet dabei niemals Prozesse und schreibt nie ins HKLM-Registry. Mit `-Install -PackagePath <ZIP> -Approved` legt der Adapter ein mitgebrachtes Portable-Paket in `tools\<Name>` ab; ohne Paket nennt der Schritt nur die offizielle Quelle. Community-Adapter anlegen: [`lightgun\adapters\README.md`](../lightgun/adapters/README.md).
+- `lightgun-15-adapter-detect`: **Rein lesend.** Scannt `lightgun\adapters\` und gleicht jede USB-Pistole gegen die Signaturen der Adapter ab (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, Sinden); das Ergebnis steht als `LightgunAdapter` in `install-state.json`. Der Wiimote-Weg braucht diese Seite nicht.
+- `lightgun-15-adapter-configure`: Schreibt die Werte des erkannten Adapters in `mame.ini` (`lightgun 1`, `lightgun_device rawinput`, `output windows` …), setzt `retrobat.ini [Guns]`, trägt die erkannte Waffe in `DemulShooter.ini [Player1] Device` ein und ergänzt Steams Controller-Blacklist um die Gun-VIDs. Das Kit beendet dabei niemals Prozesse und schreibt nie ins HKLM-Registry. Mit `-Install -PackagePath <ZIP> -Approved` legt der Adapter ein mitgebrachtes Portable-Paket in `tools\<Name>` ab; ohne Paket nennt der Schritt nur die offizielle Quelle. Sinden ist kamera-basiert: Sie trackt nur gegen einen geschlossenen weißen Rand, den RetroBat über die mitgeschriebenen `[Guns]`-`SindenBorder`-Werte zeichnet; außerhalb von RetroBat nutzt man das ReShade-Shader `SindenBorder.fx` oder einen weißen MAME-Artwork-Bezel. Community-Adapter anlegen: [`lightgun\adapters\README.md`](../lightgun/adapters/README.md).
 
 ---
 
@@ -193,6 +193,6 @@ powershell -ExecutionPolicy Bypass -File lightgun\steps\13-Model2Supermodel.ps1
 # Konsolen-Emulatoren (geführte Prüfung)
 powershell -ExecutionPolicy Bypass -File lightgun\steps\14-DuckStationPcsx2.ps1
 
-# USB-Lightguns neben dem Wiimote-Weg (Gun4IR, OpenFIRE, AimTrak, Retro Shooter)
+# USB-Lightguns neben dem Wiimote-Weg (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, Sinden)
 powershell -ExecutionPolicy Bypass -File lightgun\steps\15-Adapter.ps1
 ```

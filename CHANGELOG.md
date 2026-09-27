@@ -8,6 +8,20 @@ that matches it.
 ## [Unreleased]
 
 ### Added
+- Lightgun adapter **Sinden** (step 15, fifth shipped adapter): camera-based guns (P1 `16C0/0F01`,
+  P2 `16C0/0F02`, recoil models `16C0/0F38`/`0F39`, UVC camera `16C0/0F37`) — matched as exact VID&PID
+  pairs only, because bare `VID_16C0` also covers the Retro Shooter hub and the Reaper board. The gun
+  tracks a white border, so the adapter enables RetroBat's native border handling through
+  `retrobat.ini [Guns]` (`Gun1Device=Sinden`, `SindenBorder=1`, `SindenBorderSize=2`,
+  `SindenBorderColor=white`), MAME gets `lightgun_device rawinput` + dual/offscreen values, DemulShooter
+  records the gun instance (never the camera endpoint) and Steam's blacklist gets the four gun PIDs.
+  Recoil models fire their solenoid over their virtual COM port (byte `0x53`) — the kit's output package
+  drives that through Hook of the Reaper with its enforced 200 ms solenoid guard; active hub power and
+  separate USB controllers for two guns are documented in the adapter header. Signatures come from the
+  2026-09 Sinden integration analysis and await a hardware-bench check. No auto-download (the vendor
+  suite stays an official-source hint / local ZIP via `-PackagePath -Approved`), no process kills —
+  the kit's rules hold. Docs (adapters README, lightgun guides de/en, FAQ de/en), i18n desc keys and
+  `tests\lightgun\Adapters.Tests.ps1` (catalog, collision, camera-vs-gun, end-to-end switch) updated.
 - Lightgun step 15 — **USB lightgun adapters** as a route beside the Wiimote/DolphinBar path.
   `lightgun\adapters\` is a drop-in folder: every `<Name>.ps1` provides `Test-<Name>Hardware` (read-only,
   standalone), `Get-<Name>AdapterInfo` (VID/PID signatures, ini values, official links) and
