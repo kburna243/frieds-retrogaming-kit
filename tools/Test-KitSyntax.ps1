@@ -109,6 +109,14 @@ if (Test-Path -LiteralPath $versionFile) {
             $data = Import-PowerShellDataFile -LiteralPath (Join-Path $Root $m)
             if ($data.ModuleVersion -ne $moduleVersion) { $problems.Add("${m}: ModuleVersion $($data.ModuleVersion) differs from VERSION $moduleVersion") }
         }
+        # The website and the README status line show the version too (tools\Set-KitVersion.ps1 sets all of them).
+        $siteConfig = Join-Path $Root 'site/src/config.ts'
+        if ((Test-Path -LiteralPath $siteConfig) -and -not [IO.File]::ReadAllText($siteConfig).Contains("KIT_VERSION = `"$version`"")) {
+            $problems.Add("site/src/config.ts: KIT_VERSION differs from VERSION $version")
+        }
+        foreach ($r in 'README.md', 'README.de.md') {
+            if (-not [IO.File]::ReadAllText((Join-Path $Root $r)).Contains("**Status: v$version**")) { $problems.Add("${r}: status line differs from VERSION $version") }
+        }
     }
 } else {
     $problems.Add('VERSION file missing')

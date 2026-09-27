@@ -68,8 +68,9 @@ Windows PowerShell 5.1 reads files without BOM as ANSI. Network APIs are only al
 - The version lives only in [`VERSION`](VERSION). The `ModuleVersion` of the three module manifests
   (`core`, `pinball`, `lightgun`) must match it — CI checks this.
 - Add every user-visible change to the *Unreleased* section of [CHANGELOG.md](CHANGELOG.md).
-- To release: move the *Unreleased* entries to a new version section, update `VERSION` and the manifests, merge,
-  then push a tag `vX.Y.Z`. The release workflow runs all checks, builds the zip with `SHA256SUMS.txt`, attests
+- To release: `tools\Set-KitVersion.ps1 -Version X.Y.Z` moves the *Unreleased* entries to a new version section
+  and sets the version in `VERSION`, the manifests, the website and both READMEs (`Test-KitSyntax` checks they
+  agree). Commit that, then tag **that** commit `vX.Y.Z` and push main and the tag. The release workflow runs all checks, builds the zip with `SHA256SUMS.txt`, attests
   its build provenance and publishes the GitHub release.
 - Local build: `tools\New-ReleasePackage.ps1 -DestinationDir dist`, then `tools\Test-ReleasePackage.ps1 -ZipPath <zip>`.
 

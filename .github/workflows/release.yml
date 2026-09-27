@@ -1,5 +1,5 @@
 # Publishes a release when a tag "vX.Y.Z" is pushed. The tag must match the VERSION file.
-#   git tag v0.2.0 && git push origin v0.2.0
+#   powershell -File tools\Set-KitVersion.ps1 -Version X.Y.Z, commit, then git tag -a vX.Y.Z and push main + tag
 # Steps: version check -> depersonalization -> static checks -> tests -> build -> integrity check
 #        -> build provenance attestation -> GitHub release with the zip and SHA256SUMS.txt
 name: Release

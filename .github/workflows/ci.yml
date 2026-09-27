@@ -1,5 +1,7 @@
 # Runs on every push (any branch except gh-pages) and every pull request:
-#   depersonalization scan -> static checks (parse, BOM, versions) -> Pester tests -> package build + integrity
+#   depersonalization scan | static checks (parse, BOM, versions) | Pester tests in two shards | website build
+#   -> package build + integrity -> (main only) GitHub Pages deploy of the website built above
+# The website goes live only when everything is green; it used to deploy on its own before any test ran.
 # The kit targets Windows PowerShell 5.1, so static checks, tests and packaging run with "shell: powershell"
 # (Windows PowerShell 5.1 and the Pester 3.4 that ships with Windows, exactly like tests\Run-Tests.ps1 expects).
 name: CI
@@ -38,11 +40,26 @@ jobs:
           $PSVersionTable.PSVersion
           .\tools\Test-KitSyntax.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Every test folder belongs to a test shard
+        shell: powershell
+        run: |
+          # Keep in sync with the tests matrix below; tests\local and the fixtures are not part of CI.
+          $sharded = 'core', 'api', 'output', 'arcade', 'pinball', 'lightgun', 'gui', 'pads'
+          $missing = @(Get-ChildItem tests -Directory | Where-Object { $_.Name -notin $sharded + 'local', 'fixtures', 'fixtures-local' })
+          if ($missing) { Write-Error "Test folders without a CI shard: $($missing.Name -join ', ')"; exit 1 }
 
   tests:
-    name: Pester tests (PowerShell 5.1)
-    needs: static
+    # Two shards of about the same run time (~75 s each, measured 27.09.) instead of one ~150 s run.
+    name: Pester tests ${{ matrix.shard }} (PowerShell 5.1)
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: core-api
+            paths: tests\core,tests\api,tests\output,tests\arcade
+          - shard: pinball-lightgun-gui
+            paths: tests\pinball,tests\lightgun,tests\gui,tests\pads
     steps:
       - uses: actions/checkout@v7
       - name: Provide the synthetic test drives E and X
@@ -59,11 +76,13 @@ jobs:
           }
       - name: Run tests\Run-Tests.ps1
         shell: powershell
+        env:
+          TEST_PATHS: ${{ matrix.paths }}
         run: |
-          .\tests\Run-Tests.ps1
+          .\tests\Run-Tests.ps1 -Path ($env:TEST_PATHS -split ',')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Dashboard snapshots for review (sample status, nothing is read from the runner)
-        if: always()
+        if: always() && matrix.shard == 'pinball-lightgun-gui'
         shell: powershell
         run: |
           # The GUI module loads the core for itself; the rows below need the core in this session too.
@@ -80,7 +99,7 @@ jobs:
             .\gui\Start-KitGui.ps1 -Culture $culture -DoctorResult $rows -View Migrate -Screenshot "snapshots\migrate-$culture.png"
           }
       - name: Print snapshots into the log (opt-in with [snapshot-log] in the commit message)
-        if: contains(github.event.head_commit.message, '[snapshot-log]')
+        if: matrix.shard == 'pinball-lightgun-gui' && contains(github.event.head_commit.message, '[snapshot-log]')
         shell: powershell
         run: |
           # For reviewers without access to artifact storage: base64 between markers, 4000 characters per line.
@@ -91,7 +110,7 @@ jobs:
             "SNAPSHOT-END $($f.Name)"
           }
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && matrix.shard == 'pinball-lightgun-gui'
         with:
           name: dashboard-snapshots
           path: snapshots/
@@ -99,7 +118,7 @@ jobs:
 
   package:
     name: Package build and integrity
-    needs: [depersonalization, tests]
+    needs: [depersonalization, static, tests]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -133,3 +152,28 @@ jobs:
           cache-dependency-path: site/package-lock.json
       - run: npm ci
       - run: npm run build
+        env:
+          SITE_BASE: /frieds-retrogaming-kit/
+      - uses: actions/upload-pages-artifact@v5
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: site/dist
+
+  pages:
+    # Deploys the website built in "site", only from main and only after every other job is green.
+    name: Deploy GitHub Pages
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [site, package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v6
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -7,6 +7,15 @@ that matches it.
 
 ## [Unreleased]
 
+### Changed
+- CI: the Pester suite runs in two parallel shards (~75 s each instead of ~150 s in one job) and no longer waits
+  for the static checks; a static step fails when a test folder belongs to no shard. The website is built once in
+  the CI and deployed to GitHub Pages only from main and only after every job is green (`pages.yml` removed; it
+  used to deploy before any test had run).
+- `tools\Set-KitVersion.ps1`: sets the version in all 16 places (VERSION, manifests, website, READMEs,
+  CHANGELOG) and prints the commit and tag commands; `Test-KitSyntax` also checks the website version and the
+  README status line. The pads manifest test reads VERSION instead of a hard-coded number.
+
 ## [0.4.1] - 2026-09-27
 
 ### Fixed
