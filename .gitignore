@@ -13,7 +13,8 @@ backups/
 *.tmp
 *.partial
 *.db
-output/
+# Only the feedback sync's files: a plain "output/" also hid every new file of the output package and tests/output
+output/feedback-daily-summary.md
 
 # Real (non-synthetic) fixtures stay local
 tests/fixtures-local/
