@@ -12,6 +12,8 @@ backups/
 *.bak_*
 *.tmp
 *.partial
+*.db
+output/
 
 # Real (non-synthetic) fixtures stay local
 tests/fixtures-local/
