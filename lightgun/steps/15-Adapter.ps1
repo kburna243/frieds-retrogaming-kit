@@ -1,7 +1,8 @@
 ﻿<#
 .SYNOPSIS
-    Lightgun step 15: USB lightgun adapters (Gun4IR, OpenFIRE, AimTrak, Retro Shooter) as a route beside
-    the Wiimote/DolphinBar path. Detect reads the PnP list only; configure writes mame.ini, retrobat.ini
+    Lightgun step 15: USB lightgun adapters (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, Sinden) as a route
+    beside the Wiimote/DolphinBar path. Detect reads the PnP list only; configure writes mame.ini,
+    retrobat.ini
     [Guns], the detected gun into DemulShooter [Player1] and the gun VIDs into Steam's controller_blacklist
     - always with backup and -WhatIf support. With -Install the kit unpacks a user-supplied adapter
     package (-PackagePath) into tools\<ToolDir>, but only with -Approved; without a package it only names

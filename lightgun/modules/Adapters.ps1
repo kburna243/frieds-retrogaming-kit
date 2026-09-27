@@ -1,6 +1,6 @@
 ﻿# Adapters (step 15): USB lightgun systems as a second route beside the Wiimote/DolphinBar path
-# (Gun4IR, OpenFIRE, AimTrak, Retro Shooter). A community adapter is one file in lightgun\adapters\<Name>.ps1
-# following the contract of _Template.ps1:
+# (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, Sinden). A community adapter is one file in
+# lightgun\adapters\<Name>.ps1 following the contract of _Template.ps1:
 #   Test-<Name>Hardware -RetroBatRoot <string> [-Devices <object[]>]   read-only detection, must work standalone
 #   Get-<Name>AdapterInfo                                            data table (VIDs, ini values, links)
 #   Install-<Name>Software / Configure-<Name>Profile / Set-<Name>InterferenceShield   use this module's helpers

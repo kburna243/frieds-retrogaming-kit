@@ -16,10 +16,14 @@ Describe 'Adapter catalog and discovery' {
     $aimtrak  = [pscustomobject]@{ InstanceId = 'USB\VID_D209&PID_1602\6&1&0&4' }
     $rsHub    = [pscustomobject]@{ InstanceId = 'USB\VID_0079&PID_187C\9&1' }
     $rsAlt    = [pscustomobject]@{ InstanceId = 'USB\VID_16C0&PID_05E1\3&1' }
+    $sinden   = [pscustomobject]@{ InstanceId = 'HID\VID_16C0&PID_0F38&REV_0100\7&1' }
+    $sindenP2 = [pscustomobject]@{ InstanceId = 'USB\VID_16C0&PID_0F02\4&2&0&1' }
+    $sindenCam = [pscustomobject]@{ InstanceId = 'USB\VID_16C0&PID_0F37&MI_00\6&3' }
+    $sindenName = [pscustomobject]@{ InstanceId = 'HID\VID_16C0&PID_0F99\5&1'; FriendlyName = 'Sinden Lightgun' }
 
-    It 'ships the four adapters completely; the underscore template is never listed' {
+    It 'ships the five adapters completely; the underscore template is never listed' {
         $cat = @(Get-LightgunAdapterCatalog)
-        ($cat | ForEach-Object Name) -join ',' | Should Be 'AimTrak,Gun4IR,OpenFIRE,RetroShooter'
+        ($cat | ForEach-Object Name) -join ',' | Should Be 'AimTrak,Gun4IR,OpenFIRE,RetroShooter,Sinden'
         foreach ($a in $cat) {
             $a.HasParseErrors | Should Be $false
             $a.HasTest | Should Be $true
@@ -42,6 +46,20 @@ Describe 'Adapter catalog and discovery' {
         (Get-LightgunDetectedAdapter -Devices @($aimtrak) -Quiet).DetectedAdapter | Should Be 'AimTrak'
         (Get-LightgunDetectedAdapter -Devices @($rsHub) -Quiet).DetectedAdapter | Should Be 'RetroShooter'
         (Get-LightgunDetectedAdapter -Devices @($rsAlt) -Quiet).DetectedAdapter | Should Be 'RetroShooter'
+        $s = Get-LightgunDetectedAdapter -Devices @($sinden) -Quiet
+        $s.DetectedAdapter | Should Be 'Sinden'
+        $s.DetectedDeviceId | Should Be 'HID\VID_16C0&PID_0F38&REV_0100\7&1'
+        (Get-LightgunDetectedAdapter -Devices @($sindenP2) -Quiet).DetectedAdapter | Should Be 'Sinden'
+        (Get-LightgunDetectedAdapter -Devices @($sindenName) -Quiet).DetectedAdapter | Should Be 'Sinden'
+    }
+
+    It 'never mistakes the Retro Shooter hub for a Sinden and vice versa (both live on VID_16C0)' {
+        (Get-LightgunDetectedAdapter -Devices @($rsAlt) -Quiet).DetectedAdapter | Should Not Be 'Sinden'
+        (Get-LightgunDetectedAdapter -Devices @($sinden) -Quiet).DetectedAdapter | Should Not Be 'RetroShooter'
+        # The UVC camera alone identifies the gun but is no [Player1] Device candidate: id stays empty.
+        $cam = Get-LightgunDetectedAdapter -Devices @($sindenCam) -Quiet
+        $cam.DetectedAdapter | Should Be 'Sinden'
+        $cam.DetectedDeviceId | Should BeNullOrEmpty
     }
 
     It 'never mistakes the DolphinBar for a Retro Shooter hub (both share VID_0079)' {
@@ -150,6 +168,18 @@ Describe 'Adapter configuration end to end' {
         Test-Path (Join-Path $rb 'tools\Gun4IR') | Should Be $false
         Install-LightgunAdapter -Name 'Gun4IR' -RetroBatRoot $rb -PackagePath $zip -Approved -Confirm:$false | Should Be $true
         Join-Path $rb 'tools\Gun4IR\Gun4IR-Calibration.exe' | Should Exist
+    }
+
+    It 'switches the same cabinet to Sinden: border keys in [Guns], gun (not camera) into DemulShooter' {
+        $id = 'HID\VID_16C0&PID_0F38&REV_0100\7&1'
+        $n = Set-LightgunAdapterConfiguration -Name 'Sinden' -RetroBatRoot $rb -DetectedDeviceId $id -SteamConfigVdf '' -Confirm:$false
+        $n | Should BeGreaterThan 0
+        $rbIni = [IO.File]::ReadAllText((Join-Path $rb 'retrobat.ini'))
+        $rbIni | Should Match 'Gun1Device\s*=\s*Sinden'
+        $rbIni | Should Match 'SindenBorder\s*=\s*1'
+        [IO.File]::ReadAllText((Join-Path $rb 'system\demulshooter\DemulShooter.ini')) | Should Match ([regex]::Escape("Device = $id"))
+        Set-LightgunAdapterConfiguration -Name 'Sinden' -RetroBatRoot $rb -DetectedDeviceId $id -SteamConfigVdf '' -Confirm:$false | Should Be 0
+        Test-LightgunAdapterConfiguration -Name 'Sinden' -RetroBatRoot $rb -DetectedDeviceId $id -SteamConfigVdf '' | Should Be $true
     }
 }
 

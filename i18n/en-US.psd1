@@ -501,7 +501,7 @@
     'Lightgun.Ui.Page.Model2Supermodel' = '13  Model 2 / Model 3'
     'Lightgun.Ui.Page.DuckStationPcsx2' = '14  DuckStation / PCSX2'
     'Lightgun.Ui.Page.Adapter'       = '15  Adapters'
-    'Lightgun.Ui.Adapter.Desc'       = 'USB lightguns as a second route beside Wiimote: Gun4IR, OpenFIRE, AimTrak and Retro Shooter are detected by their USB signature (VID/PID) and set up mame.ini, retrobat.ini [Guns] and the Steam controller blacklist. The Wiimote pages stay untouched.'
+    'Lightgun.Ui.Adapter.Desc'       = 'USB lightguns as a second route beside Wiimote: Gun4IR, OpenFIRE, AimTrak, Retro Shooter and Sinden are detected by their USB signature (VID/PID) and set up mame.ini, retrobat.ini [Guns] (Sinden included: its tracking needs the white border RetroBat draws) and the Steam controller blacklist. The Wiimote pages stay untouched.'
     'Lightgun.Ui.Adapter.Install'    = 'Place adapter software from a local ZIP into tools\ (-Approved)'
     'Lightgun.Ui.Adapter.Package'    = 'Adapter package (ZIP, optional)'
     'Lightgun.Ui.TeknoParrot.Desc'   = 'TeknoParrot profiles: repairs build creator paths and binds gun games to XInput (trigger shoots, reload, right stick aims). TeknoParrot must be closed.'

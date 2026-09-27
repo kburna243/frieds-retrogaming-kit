@@ -12,6 +12,7 @@ device list and changes nothing on the machine.
 | `OpenFIRE.ps1` | OpenFIRE firmware (RP2040 / ESP32-S3 guns) | `VID_2E8A&PID_000A`, `VID_303A&PID_1001` |
 | `AimTrak.ps1` | Ultimarc AimTrak modules, gun 1-8 | `VID_D209&PID_1601` .. `VID_D209&PID_1608` |
 | `RetroShooter.ps1` | Retro Shooter RS3 Reaper hub | `VID_16C0&PID_05E1/0x187C`, `VID_0079&PID_187C` (never a bare `VID_0079` - that is also the DolphinBar) |
+| `Sinden.ps1` | Sinden Lightgun P1/P2, base & recoil models, camera stream | `VID_16C0&PID_0F01/0F02/0F38/0F39`, camera `VID_16C0&PID_0F37` (exact VID&PID pairs only - `VID_16C0` is shared with the Retro Shooter hub and the Reaper board) |
 
 ## Contributing one
 
