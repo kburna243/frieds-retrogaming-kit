@@ -392,7 +392,7 @@
     'Lightgun.Supermodel.Download'   = 'Official Supermodel releases: {0}'
     'Lightgun.Supermodel.Found'      = 'Supermodel found: {0}'
     'Lightgun.Supermodel.ConfigPreview' = 'Supermodel.ini configuration ([ Global ]): {0} change(s) planned:'
-    'Lightgun.Supermodel.ConfigSaved'   = 'Supermodel.ini saved: {0} ({1} setting(s) updated).'
+    'Lightgun.Supermodel.ConfigSaved'   = 'Saved: {0} ({1} setting(s) updated).'
     'Lightgun.Model2.EsPreview'      = 'RetroBat es_settings.cfg (Model 2 & 3): {0} change(s) planned:'
 
     # DuckStation & PCSX2 (Step 14)

@@ -80,10 +80,11 @@ All steps adhere to the **Test → Invoke → Verify** lifecycle. Each step supp
 - **Action**: Deploys optimized input profiles to Gunmote's `Keymaps` directory and updates `Keymaps.json`.
 - **Profiles Deployed**:
   - `Default (Menu Pad)`: Virtual Xbox 360 D-Pad without mouse cursor, enabling stable D-Pad navigation in RetroBat without wild cursor drifting.
-  - `Pad 4:3`: Tailored for MAME, PSX, Model 2, and Model 3 with analog trigger mapping.
+  - `Pad 4:3`: pointer on the left Xbox stick, for MAME and PSX.
+  - `Mouse 4:3`: lightgun mouse (RawInput) for everything that needs DemulShooter or a real mouse pointer: Naomi, Atomiswave, Model 2, Model 3 (Supermodel), Singe/Daphne (Hypseus). A pad layout gives these systems no pointer at all. Plus = Xbox Start, Minus = Xbox Back (coin) — Demul and Model 2 ignore a keyboard start.
   - `TeknoParrot`: Configured with right analog stick support for modern arcade titles.
-  - `Naomi / Atomiswave`: Custom bindings for Demul and Flycast.
-  - `Mouse`: Direct mouse emulation for RetroArch lightgun cores and PCSX2.
+  - `Naomi / Atomiswave`: own task (starts DemulShooter), aims through `Mouse 4:3`.
+  - `Mouse`: Direct mouse emulation for RetroArch lightgun cores (Dreamcast included) and PCSX2.
   - Off-screen reload triggers are explicitly enabled; the Wiimote Home button is disabled to avoid accidental pauses.
 
 ### Step 7: RetroBat Configuration Harmonization (`07-RetroBatSettings.ps1`)
@@ -97,7 +98,7 @@ All steps adhere to the **Test → Invoke → Verify** lifecycle. Each step supp
 - **Action**: Installs background watchers and RetroBat game launch hooks.
 - **Implementation**:
   - Copies `profile.ps1` into protected `%ProgramData%\RetroCabinetKit\lightgun\`.
-  - Registers scheduled tasks `RetroCabinetKit Gunmote Profile <Menu|TP|Pad43|Naomi|Mouse>` with highest rights for the active user account.
+  - Registers scheduled tasks `RetroCabinetKit Gunmote Profile <Menu|TP|Pad43|Naomi|Mouse|Mouse43>` with highest rights for the active user account.
   - Deploys batch dispatchers in RetroBat:
     - `scripts\game-start\rck-gunmote-profile.bat`: Reads the launching system name and switches Gunmote to the appropriate layout.
     - `scripts\game-end\rck-gunmote-profile.bat`: Automatically restores the `Menu` pad profile when a game exits.

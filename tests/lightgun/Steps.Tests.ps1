@@ -133,7 +133,7 @@ Describe 'Lightgun steps 8-9 as stand-alone scripts' {
     }
 
     It '8 automation: dry run with titles writes nothing (no administrator rights in tests: needs the user)' {
-        Set-KitStateValue -Path $state -Key 'LayoutTitles' -Value ([pscustomobject]@{ Menu = 'RCK Menu (no pointer)'; Pad43 = 'RCK Pad 4:3'; TP = 'RCK TeknoParrot'; Mouse = 'RCK Mouse' })
+        Set-KitStateValue -Path $state -Key 'LayoutTitles' -Value ([pscustomobject]@{ Menu = 'RCK Menu (no pointer)'; Pad43 = 'RCK Pad 4:3'; TP = 'RCK TeknoParrot'; Mouse = 'RCK Mouse'; Mouse43 = 'RCK Mouse 4:3' })
         $r = & "$steps\08-ProfileAutomation.ps1" @common -AutomationDir $auto -TaskPrefix 'RCK-TEST Profile' -Tasks @() -WhatIf
         @('Skipped', 'NeedsUser') -contains $r.Status | Should Be $true
         $auto | Should Not Exist
@@ -171,7 +171,7 @@ Describe 'Lightgun steps 4 and 8: user lock and plan before tasks with highest r
     $state = Join-Path $TestDrive 'install-state.json'
     $common = @{ StatePath = $state; Culture = 'en-US' }
     Set-KitStateValue -Path $state -Key 'RetroBatRoot' -Value $rb
-    Set-KitStateValue -Path $state -Key 'LayoutTitles' -Value ([pscustomobject]@{ Menu = 'RCK Menu (no pointer)'; Pad43 = 'RCK Pad 4:3'; TP = 'RCK TeknoParrot'; Mouse = 'RCK Mouse' })
+    Set-KitStateValue -Path $state -Key 'LayoutTitles' -Value ([pscustomobject]@{ Menu = 'RCK Menu (no pointer)'; Pad43 = 'RCK Pad 4:3'; TP = 'RCK TeknoParrot'; Mouse = 'RCK Mouse'; Mouse43 = 'RCK Mouse 4:3' })
     $auto = Join-Path $TestDrive 'Sim\lightgun'
     $g = Join-Path $TestDrive 'Gunmote'
     New-Item -ItemType Directory -Path $g -Force | Out-Null

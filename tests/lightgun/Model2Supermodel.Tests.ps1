@@ -100,6 +100,22 @@ Describe 'Model 2 & Supermodel (Step 13)' {
         $content | Should Match 'Crosshairs = 1'
     }
 
+    It 'turns the Model 2 crosshair on in [Renderer] (inline comment ignored, other keys kept, idempotent)' {
+        $ini = Join-Path $TestDrive 'EMULATOR.INI'
+        [IO.File]::WriteAllText($ini, "[RomDirs]`r`nDir1=roms`r`n[Renderer]`r`nFullScreen=1`r`nDrawCross=0`t`t`t;Show Crosshair in gun games`r`n[Input]`r`nXInput=1`r`n")
+        $a = @{ ConfigPath = $ini; Section = 'Renderer'; Target = (Get-LightgunModel2Target) }
+        $plan = @(Get-LightgunSupermodelConfigPlan @a)
+        $plan.Count | Should Be 1
+        $plan[0].Old | Should Be '0'
+        Set-LightgunSupermodelConfig @a -Plan $plan -Confirm:$false | Should Be 1
+        @(Get-LightgunSupermodelConfigPlan @a).Count | Should Be 0
+        $text = [IO.File]::ReadAllText($ini)
+        $text | Should Match '\[Renderer\]\r\nFullScreen=1\r\nDrawCross = 1\r\n\[Input\]\r\nXInput=1'
+        $text | Should Not Match 'Global'
+        [IO.File]::WriteAllText($ini, "[Renderer]`r`nDrawCross=1`t`t;on`r`n")
+        @(Get-LightgunSupermodelConfigPlan @a).Count | Should Be 0
+    }
+
     It 'executes step 13 as stand-alone script with -WhatIf and real execution' {
         $state = Join-Path $TestDrive 'state-model2.json'
         $stepScript = Join-Path $kitRoot 'lightgun\steps\13-Model2Supermodel.ps1'

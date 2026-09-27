@@ -9,15 +9,19 @@
 $script:LightgunTaskPrefix = 'RetroCabinetKit Gunmote Profile'
 $script:LightgunHookName = 'rck-gunmote-profile.bat'
 
-# RetroBat system -> profile. Naomi/Atomiswave get their own task (DemulShooter joins in P3b), aiming like Pad43.
+# RetroBat system -> profile. Naomi/Atomiswave get their own task (DemulShooter joins in P3b), aiming like Mouse43.
+# Everything whose emulator or DemulShooter reads RawInput needs the mouse, not a pad (cabinet 27.09.).
 $script:LightgunSystemProfiles = [ordered]@{
     teknoparrot  = 'TP'
     naomi        = 'Naomi'
     atomiswave   = 'Naomi'
     mame         = 'Pad43'
     psx          = 'Pad43'
-    model2       = 'Pad43'
-    model3       = 'Pad43'
+    model2       = 'Mouse43'
+    model3       = 'Mouse43'
+    singe        = 'Mouse43'
+    daphne       = 'Mouse43'
+    dreamcast    = 'Mouse'
     nes          = 'Mouse'
     snes         = 'Mouse'
     megadrive    = 'Mouse'
@@ -26,7 +30,7 @@ $script:LightgunSystemProfiles = [ordered]@{
 }
 
 # Profile -> layout kind (step 6 recorded one title per kind).
-$script:LightgunProfileKinds = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Pad43'; Mouse = 'Mouse' }
+$script:LightgunProfileKinds = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Mouse43'; Mouse = 'Mouse'; Mouse43 = 'Mouse43' }
 
 function Get-LightgunSystemProfile {
     [CmdletBinding()]

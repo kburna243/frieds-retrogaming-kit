@@ -80,10 +80,11 @@ Alle Schritte folgen dem Schema **Test → Invoke → Verify**. Jeder Schritt un
 - **Aktion**: Hinterlegt optimierte Profile im `Keymaps`-Ordner von Gunmote und aktualisiert `Keymaps.json`.
 - **Eingespielte Profile**:
   - `Default (Menu Pad)`: Virtuelles Xbox 360 D-Pad ohne Mauszeiger für ruhige Menüführung in RetroBat ohne wild umherirrenden Cursor.
-  - `Pad 4:3`: Konfiguriert für MAME, PSX, Model 2 und Model 3 mit analoger Trigger-Zuordnung.
+  - `Pad 4:3`: Zeiger auf dem linken Xbox-Stick, für MAME und PSX.
+  - `Mouse 4:3`: Lightgun-Maus (RawInput) für alles, was DemulShooter oder einen echten Mauszeiger braucht: Naomi, Atomiswave, Model 2, Model 3 (Supermodel), Singe/Daphne (Hypseus). Ein Pad-Layout liefert diesen Systemen gar keinen Zeiger. Plus = Xbox Start, Minus = Xbox Back (Coin) — Demul und Model 2 reagieren nicht auf einen Start per Tastatur.
   - `TeknoParrot`: Belegung mit Unterstützung des rechten Sticks für moderne Arcade-Titel.
-  - `Naomi / Atomiswave`: Angepasste Bindings für Demul und Flycast.
-  - `Mouse`: Direkte Mausemulation für RetroArch-Lightgun-Cores und PCSX2.
+  - `Naomi / Atomiswave`: eigene Aufgabe (startet DemulShooter), zielt über `Mouse 4:3`.
+  - `Mouse`: Direkte Mausemulation für RetroArch-Lightgun-Cores (auch Dreamcast) und PCSX2.
   - Off-Screen-Reload (Nachladen außerhalb des Bildschirms) ist explizit aktiviert; die Home-Taste der Wiimote ist deaktiviert, um versehentliche Menü-Pausen zu vermeiden.
 
 ### Schritt 7: RetroBat-Einstellungen harmonisieren (`07-RetroBatSettings.ps1`)
@@ -97,7 +98,7 @@ Alle Schritte folgen dem Schema **Test → Invoke → Verify**. Jeder Schritt un
 - **Aktion**: Richtet Hintergrund-Überwachung und RetroBat-Startskripte ein.
 - **Umsetzung**:
   - Kopiert `profile.ps1` in den geschützten Systemordner `%ProgramData%\RetroCabinetKit\lightgun\`.
-  - Registriert geplante Aufgaben: `RetroCabinetKit Gunmote Profile <Menu|TP|Pad43|Naomi|Mouse>` mit höchsten Rechten für das angemeldete Benutzerkonto.
+  - Registriert geplante Aufgaben: `RetroCabinetKit Gunmote Profile <Menu|TP|Pad43|Naomi|Mouse|Mouse43>` mit höchsten Rechten für das angemeldete Benutzerkonto.
   - Hinterlegt Batch-Hooks in RetroBat:
     - `scripts\game-start\rck-gunmote-profile.bat`: Liest das startende System aus und wechselt das Gunmote-Layout automatisch.
     - `scripts\game-end\rck-gunmote-profile.bat`: Setzt beim Verlassen des Spiels automatisch wieder das `Menu`-Pad-Profil aktiv.

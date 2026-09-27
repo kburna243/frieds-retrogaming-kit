@@ -129,19 +129,29 @@ Describe 'Gunmote layouts' {
         (New-LightgunLayout -Kind Pad43).All.OnScreen['Pointer'] | Should Be '360.stickl-light-4:3'
         (New-LightgunLayout -Kind TP).All.OnScreen['Pointer'] | Should Be '360.stickr-light'
         (New-LightgunLayout -Kind Mouse).All.OnScreen['Pointer'] | Should Be 'lightgunmouse'
+        $m43 = (New-LightgunLayout -Kind Mouse43).All
+        $m43.OnScreen['Pointer'] | Should Be 'lightgunmouse-4:3'
+        $m43.OnScreen['B'] | Should Be 'mouseleft'
+        $m43.OnScreen['Plus'] | Should Be '360.start'
+        $m43.OnScreen['Minus'] | Should Be '360.back'
+        $m43.OffScreen['B'] | Should Be 'mouseright'
     }
 
-    It 'fresh Gunmote: writes the four layouts, sets Default and the programs; second run changes nothing' {
+    It 'fresh Gunmote: writes the five layouts, sets Default and the programs; second run changes nothing' {
         $g = Join-Path $TestDrive 'G1'
         & $newGunmote -Gunmote $g
         $plan = Get-LightgunLayoutPlan -KeymapsDir "$g\Keymaps" -RetroBatRoot $rb
-        $plan.Files.Count | Should Be 4
+        $plan.Files.Count | Should Be 5
         $plan.Titles['Menu'] | Should Be 'RCK Menu (no pointer)'
         Invoke-LightgunLayoutPlan -Plan $plan -Confirm:$false | Should Be $plan.Count
         $km = [IO.File]::ReadAllText("$g\Keymaps\Keymaps.json") | ConvertFrom-Json
         $km.Default | Should Be 'rck_menu.json'
         ($km.Applications | Where-Object { $_.Search -eq 'X:\RetroBat\emulators\teknoparrot\TeknoParrotUi.exe' }).Keymap | Should Be 'rck_tp.json'
         ($km.Applications | Where-Object { $_.Search -eq 'X:\RetroBat\emulators\retroarch\retroarch.exe' }).Keymap | Should Be 'rck_mouse.json'
+        foreach ($exe in 'supermodel\supermodel.exe', 'm2emulator\emulator_multicpu.exe', 'demul\demul.exe', 'hypseus\hypseus.exe') {
+            ($km.Applications | Where-Object { $_.Search -eq "X:\RetroBat\emulators\$exe" }).Keymap | Should Be 'rck_mouse43.json'
+        }
+        ($km.Applications | Where-Object { $_.Search -eq 'X:\RetroBat\emulators\mame\mame.exe' }).Keymap | Should Be 'rck_pad43.json'
         @($km.Applications | Where-Object { $_.Search -match 'duckstation' }).Count | Should Be 0
         $km.Calibration | Should Be 'Calibration.json'
         (Get-LightgunLayoutPlan -KeymapsDir "$g\Keymaps" -RetroBatRoot $rb).Count | Should Be 0
@@ -166,6 +176,20 @@ Describe 'Gunmote layouts' {
         @($plan.Changes | Where-Object { $_ -match '^Default' }).Count | Should Be 0
         @($plan.Changes | Where-Object { $_ -match 'TeknoParrotUi.exe: my_tp.json -> rck_tp.json' }).Count | Should Be 1
         (Get-LightgunLayoutPlan -KeymapsDir "$g\Keymaps" -RetroBatRoot $rb -Mode Replace).Titles['Menu'] | Should Be 'RCK Menu (no pointer)'
+    }
+
+    It 'Mouse43: Gunmote''s stock mouse43.json (Plus on the keyboard) is wrong, the patched one counts' {
+        $g = Join-Path $TestDrive 'G43'
+        & $newGunmote -Gunmote $g
+        $l = New-LightgunLayout -Kind Mouse43
+        $l.All.OnScreen['Plus'] = 'vk_1'
+        [IO.File]::WriteAllText("$g\Keymaps\mouse43.json", (ConvertTo-Json $l -Depth 5))
+        $info = Get-LightgunLayoutInfo -KeymapsDir "$g\Keymaps" -File 'mouse43.json'
+        $info.Kind | Should Be 'Mouse43'
+        $info.Correct | Should Be $false
+        [IO.File]::WriteAllText("$g\Keymaps\mouse43.json", (ConvertTo-Json (New-LightgunLayout -Kind Mouse43) -Depth 5))
+        (Get-LightgunLayoutInfo -KeymapsDir "$g\Keymaps" -File 'mouse43.json').Correct | Should Be $true
+        (Get-LightgunLayoutInfo -KeymapsDir "$g\Keymaps" -File 'default.json').Kind | Should Be 'Mouse'
     }
 
     It 'writes nothing while Gunmote runs' {

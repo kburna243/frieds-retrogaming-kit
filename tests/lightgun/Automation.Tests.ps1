@@ -27,9 +27,10 @@ function Reset-TestAcl([string] $Path) {
 Describe 'System to profile' {
     It 'maps the systems as specified' {
         Get-LightgunProfileFor 'teknoparrot' | Should Be 'TP'
-        foreach ($s in 'mame', 'psx', 'model2', 'model3') { Get-LightgunProfileFor $s | Should Be 'Pad43' }
+        foreach ($s in 'mame', 'psx') { Get-LightgunProfileFor $s | Should Be 'Pad43' }
+        foreach ($s in 'model2', 'model3', 'singe', 'daphne') { Get-LightgunProfileFor $s | Should Be 'Mouse43' }
         foreach ($s in 'naomi', 'atomiswave') { Get-LightgunProfileFor $s | Should Be 'Naomi' }
-        foreach ($s in 'nes', 'snes', 'megadrive', 'mastersystem', 'ps2') { Get-LightgunProfileFor $s | Should Be 'Mouse' }
+        foreach ($s in 'dreamcast', 'nes', 'snes', 'megadrive', 'mastersystem', 'ps2') { Get-LightgunProfileFor $s | Should Be 'Mouse' }
         Get-LightgunProfileFor 'MAME' | Should Be 'Pad43'
         Get-LightgunProfileFor 'wii' | Should BeNullOrEmpty
     }
@@ -57,6 +58,9 @@ Describe 'RetroBat hooks' {
             'X:\RetroBat\roms\mame\alien3.zip'                     = 'TASK="RCK-TEST Profile Pad43"'
             'X:\RetroBat\ROMS\PSX\A & B ^C 100% (USA).chd'         = 'TASK="RCK-TEST Profile Pad43"'
             'X:\RetroBat\roms\atomiswave\x.zip'                    = 'TASK="RCK-TEST Profile Naomi"'
+            'X:\RetroBat\roms\model3\lostwsga.zip'                 = 'TASK="RCK-TEST Profile Mouse43"'
+            'X:\RetroBat\roms\singe\crimepatrol.singe'             = 'TASK="RCK-TEST Profile Mouse43"'
+            'X:\RetroBat\roms\dreamcast\confmiss.chd'              = 'TASK="RCK-TEST Profile Mouse"'
             'X:\RetroBat\roms\nes\duck hunt & calc.nes'            = 'TASK="RCK-TEST Profile Mouse"'
             'X:\RetroBat\roms\snes\game.sfc'                       = 'TASK="RCK-TEST Profile Mouse"'
             'X:\RetroBat\roms\n64\game.z64'                        = ''
@@ -140,18 +144,18 @@ Describe 'Admin-only automation folder (simulated in TEMP)' {
 
 Describe 'Profile tasks (mocked, no real task)' {
     Set-KitCulture -Culture 'en-US'
-    $titles = [pscustomobject]@{ Menu = 'RCK Menu (no pointer)'; Pad43 = 'RCK Pad 4:3'; TP = 'RCK TeknoParrot'; Mouse = 'RCK Mouse' }
+    $titles = [pscustomobject]@{ Menu = 'RCK Menu (no pointer)'; Pad43 = 'RCK Pad 4:3'; TP = 'RCK TeknoParrot'; Mouse = 'RCK Mouse'; Mouse43 = 'RCK Mouse 4:3' }
     $dir = 'C:\ProgramDataSim\RetroCabinetKit\lightgun'
 
-    It 'plans five tasks that start the admin-only script with the recorded, quoted layout title' {
+    It 'plans six tasks that start the admin-only script with the recorded, quoted layout title' {
         $plan = @(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir $dir -TaskPrefix 'RCK-TEST Profile')
-        ($plan | ForEach-Object { $_.TaskName }) -join '|' | Should Be 'RCK-TEST Profile Menu|RCK-TEST Profile TP|RCK-TEST Profile Pad43|RCK-TEST Profile Naomi|RCK-TEST Profile Mouse'
+        ($plan | ForEach-Object { $_.TaskName }) -join '|' | Should Be 'RCK-TEST Profile Menu|RCK-TEST Profile TP|RCK-TEST Profile Pad43|RCK-TEST Profile Naomi|RCK-TEST Profile Mouse|RCK-TEST Profile Mouse43'
         $plan[0].Argument | Should BeExactly '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\ProgramDataSim\RetroCabinetKit\lightgun\profile.ps1" -Layout "RCK Menu (no pointer)" -Once'
-        ($plan | Where-Object { $_.Name -eq 'Naomi' }).Argument | Should Match '-Layout "RCK Pad 4:3"$'
+        ($plan | Where-Object { $_.Name -eq 'Naomi' }).Argument | Should Match '-Layout "RCK Mouse 4:3"$'
     }
 
     It 'refuses a layout title that could break out of the task arguments' {
-        $bad = [pscustomobject]@{ Menu = 'x" -Command "calc'; Pad43 = 'a'; TP = 'b'; Mouse = 'c' }
+        $bad = [pscustomobject]@{ Menu = 'x" -Command "calc'; Pad43 = 'a'; TP = 'b'; Mouse = 'c'; Mouse43 = 'd' }
         { Get-LightgunProfileTaskPlan -Titles $bad -AutomationDir $dir } | Should Throw
     }
 
@@ -159,7 +163,7 @@ Describe 'Profile tasks (mocked, no real task)' {
         Mock -ModuleName 'RetroCabinetKit.Lightgun' Register-ScheduledTask { }
         $plan = @(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir $dir -TaskPrefix 'RCK-TEST Profile')
         Register-LightgunProfileTask -Plan $plan -UserSid $me -Confirm:$false
-        Assert-MockCalled -ModuleName 'RetroCabinetKit.Lightgun' Register-ScheduledTask -Times 5 -Exactly -ParameterFilter {
+        Assert-MockCalled -ModuleName 'RetroCabinetKit.Lightgun' Register-ScheduledTask -Times 6 -Exactly -ParameterFilter {
             $Principal.RunLevel -eq 'Highest' -and $Action[0].Execute -eq (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') -and $TaskName -like 'RCK-TEST Profile *'
         }
     }

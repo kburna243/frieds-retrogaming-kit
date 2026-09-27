@@ -41,13 +41,25 @@ if (-not $m2Info.Installed) {
     Write-KitLog (Get-KitText 'Lightgun.Model2.DsHint')
 }
 
+# DrawCross=1 in EMULATOR.INI [Renderer]: without it Model 2 shows no crosshair.
+function Get-M2Plan { @(Get-LightgunSupermodelConfigPlan -ConfigPath $paths.Model2Ini -Section 'Renderer' -Target (Get-LightgunModel2Target)) }
+
+if ($m2Info.HasIni) {
+    foreach ($p in Get-M2Plan) {
+        Write-KitLog ('  [{0}] {1}: {2} -> {3}' -f $p.Section, $p.Key, $(if ($null -eq $p.Old) { '-' } else { $p.Old }), $p.New)
+    }
+}
+
 $m2Step = New-KitStep -Name 'lightgun-13-model2' `
     -Test { $m2Info.Installed } `
     -Invoke {
+        if ($m2Info.HasIni) {
+            $null = Set-LightgunSupermodelConfig -ConfigPath $paths.Model2Ini -Plan (Get-M2Plan) -Section 'Renderer' -Target (Get-LightgunModel2Target) -Confirm:$false
+        }
         Set-KitStateValue -Path $StatePath -Key 'Model2Dir' -Value $paths.Model2Dir
     } `
     -Verify {
-        (Test-LightgunModel2Installed -RetroBatRoot $rb.Root).Installed
+        (Test-LightgunModel2Installed -RetroBatRoot $rb.Root).Installed -and -not ($m2Info.HasIni -and @(Get-M2Plan).Count)
     }
 Invoke-KitStep -Step $m2Step -StatePath $StatePath -WhatIf:$WhatIfPreference
 

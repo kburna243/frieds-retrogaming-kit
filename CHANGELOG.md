@@ -7,6 +7,18 @@ that matches it.
 
 ## [Unreleased]
 
+### Fixed
+- Lightgun: no pointer in Model 2, Model 3, Naomi, Atomiswave and Dreamcast started from RetroBat
+  (found on the cabinet 27.09.). Their emulators and DemulShooter read RawInput, but the kit sent a pad
+  layout (pointer on the Xbox stick), which gives them no mouse data at all. New Gunmote layout
+  `Mouse 4:3` (`rck_mouse43.json`, pointer `lightgunmouse-4:3`, Plus/Minus on Xbox Start/Back because Demul
+  and Model 2 ignore a keyboard start) for Model 2/3, Naomi/Atomiswave, Singe and Daphne, also bound in
+  `Keymaps.json` to `supermodel.exe`, `emulator_multicpu.exe`, `demul.exe` and `hypseus.exe`, so a window
+  change keeps the mouse. Dreamcast now uses the `Mouse` profile; MAME and PSX stay on `Pad 4:3`. Gunmote's
+  stock `mouse43.json` (Plus on the keyboard) no longer counts as correct in mode Keep. Existing installs:
+  run step 6 again before step 8, it records the new layout title.
+- Lightgun step 13: Model 2 `EMULATOR.INI [Renderer] DrawCross=1`; the emulator drew no crosshair.
+
 ### Added
 - `handoff\PLAN-WIIMOTE-KOPPELN.md`: pairing the Wiimotes where that route still works — TeknoParrot
   XInput bindings (steps 10–11, remembering the native two-RawInput-gun limit), DemulShooter

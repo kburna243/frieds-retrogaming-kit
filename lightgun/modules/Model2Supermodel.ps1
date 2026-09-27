@@ -127,22 +127,37 @@ $script:LightgunSupermodelTarget = [ordered]@{
     'InputAutoTrigger2'  = '1'
 }
 
-# Plans Supermodel.ini settings under [ Global ].
+# Model 2 EMULATOR.INI [Renderer]: the emulator draws the crosshair itself (it was off on the cabinet, 27.09.).
+$script:LightgunModel2Target = [ordered]@{ 'DrawCross' = '1' }
+
+function Get-LightgunModel2Target {
+    [CmdletBinding()]
+    param()
+    $script:LightgunModel2Target
+}
+
+# Plans ini settings in one section; default Supermodel.ini [ Global ]. Also used for Model 2 EMULATOR.INI
+# (-Section Renderer -Target (Get-LightgunModel2Target)). Inline ";" comments do not count as part of a value.
 function Get-LightgunSupermodelConfigPlan {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $ConfigPath)
+    param(
+        [Parameter(Mandatory)] [string] $ConfigPath,
+        [string] $Section = 'Global',
+        [Collections.IDictionary] $Target = $script:LightgunSupermodelTarget
+    )
     $current = @{}
     $inGlobal = $false
+    $sectionPattern = '^\[\s*' + [regex]::Escape($Section) + '\s*\]'
     if (Test-Path -LiteralPath $ConfigPath -PathType Leaf) {
         foreach ($line in [IO.File]::ReadAllLines($ConfigPath)) {
             $trimmed = $line.Trim()
-            if ($trimmed -match '^\[\s*Global\s*\]') { $inGlobal = $true; continue }
+            if ($trimmed -match $sectionPattern) { $inGlobal = $true; continue }
             if ($trimmed -match '^\[') { $inGlobal = $false; continue }
             if ($inGlobal -and $trimmed -and -not $trimmed.StartsWith(';') -and -not $trimmed.StartsWith('#')) {
                 $eq = $trimmed.IndexOf('=')
                 if ($eq -gt 0) {
                     $k = $trimmed.Substring(0, $eq).Trim()
-                    $v = $trimmed.Substring($eq + 1).Trim()
+                    $v = ($trimmed.Substring($eq + 1) -replace '\s;.*$', '').Trim()
                     $current[$k] = $v
                 }
             }
@@ -150,26 +165,31 @@ function Get-LightgunSupermodelConfigPlan {
     }
 
     $changes = New-Object Collections.Generic.List[object]
-    foreach ($k in $script:LightgunSupermodelTarget.Keys) {
-        $want = $script:LightgunSupermodelTarget[$k]
+    foreach ($k in $Target.Keys) {
+        $want = $Target[$k]
         if (-not $current.ContainsKey($k)) {
-            $changes.Add([pscustomobject]@{ Section = 'Global'; Key = $k; Old = $null; New = $want; Action = 'Add' })
+            $changes.Add([pscustomobject]@{ Section = $Section; Key = $k; Old = $null; New = $want; Action = 'Add' })
         } elseif ($current[$k] -ne $want) {
-            $changes.Add([pscustomobject]@{ Section = 'Global'; Key = $k; Old = $current[$k]; New = $want; Action = 'Change' })
+            $changes.Add([pscustomobject]@{ Section = $Section; Key = $k; Old = $current[$k]; New = $want; Action = 'Change' })
         }
     }
     $changes.ToArray()
 }
 
-# Writes Supermodel.ini settings under [ Global ], preserving other sections and comments.
+# Writes the planned settings into their section (default Supermodel.ini [ Global ]), preserving other sections
+# and comments.
 function Set-LightgunSupermodelConfig {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string] $ConfigPath,
-        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $Plan
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $Plan,
+        [string] $Section = 'Global',
+        [Collections.IDictionary] $Target = $script:LightgunSupermodelTarget
     )
     if (-not $Plan -or $Plan.Count -eq 0) { return 0 }
-    if (-not $PSCmdlet.ShouldProcess($ConfigPath, "Set $($Plan.Count) Supermodel setting(s)")) { return 0 }
+    if (-not $PSCmdlet.ShouldProcess($ConfigPath, "Set $($Plan.Count) setting(s) in [$Section]")) { return 0 }
+    $sectionPattern = '^\[\s*' + [regex]::Escape($Section) + '\s*\]'
+    $header = if ($Section -eq 'Global') { '[ Global ]' } else { "[$Section]" }
 
     $lines = New-Object Collections.Generic.List[string]
     $seen = New-Object Collections.Generic.HashSet[string] ([StringComparer]::OrdinalIgnoreCase)
@@ -183,7 +203,7 @@ function Set-LightgunSupermodelConfig {
         $null = Backup-LightgunFile -Path $ConfigPath
         foreach ($line in [IO.File]::ReadAllLines($ConfigPath)) {
             $trimmed = $line.Trim()
-            if ($trimmed -match '^\[\s*Global\s*\]') {
+            if ($trimmed -match $sectionPattern) {
                 $hasGlobalSection = $true
                 $inGlobal = $true
                 $lines.Add($line)
@@ -192,9 +212,9 @@ function Set-LightgunSupermodelConfig {
             if ($trimmed -match '^\[') {
                 if ($inGlobal) {
                     # Add any unwritten target keys before leaving [ Global ]
-                    foreach ($k in $script:LightgunSupermodelTarget.Keys) {
+                    foreach ($k in $Target.Keys) {
                         if (-not $seen.Contains($k)) {
-                            $lines.Add("$k = $($script:LightgunSupermodelTarget[$k])")
+                            $lines.Add("$k = $($Target[$k])")
                             $null = $seen.Add($k)
                         }
                     }
@@ -223,16 +243,16 @@ function Set-LightgunSupermodelConfig {
     }
 
     if ($inGlobal) {
-        foreach ($k in $script:LightgunSupermodelTarget.Keys) {
+        foreach ($k in $Target.Keys) {
             if (-not $seen.Contains($k)) {
-                $lines.Add("$k = $($script:LightgunSupermodelTarget[$k])")
+                $lines.Add("$k = $($Target[$k])")
                 $null = $seen.Add($k)
             }
         }
     } elseif (-not $hasGlobalSection) {
-        $lines.Add('[ Global ]')
-        foreach ($k in $script:LightgunSupermodelTarget.Keys) {
-            $lines.Add("$k = $($script:LightgunSupermodelTarget[$k])")
+        $lines.Add($header)
+        foreach ($k in $Target.Keys) {
+            $lines.Add("$k = $($Target[$k])")
         }
     }
 

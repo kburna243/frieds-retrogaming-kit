@@ -1,6 +1,10 @@
 ﻿# Layouts (step 6): the kit's own Gunmote layouts and the profile selection in Keymaps.json.
 #   Menu  (Default)   no pointer: RetroBat reads a deflected stick as a held direction. Trigger (B) -> Xbox A.
-#   Pad43             pointer on the left stick, 4:3 (MAME, Model 2/3, Supermodel)
+#   Pad43             pointer on the left stick, 4:3 (MAME)
+#   Mouse43           lightgun mouse, 4:3, for everything that reads RawInput: DemulShooter (Naomi, Atomiswave,
+#                     Model 2), Supermodel (Model 3), Hypseus (Singe, Daphne). A pad layout gives these no
+#                     pointer at all (cabinet 27.09.). Plus/Minus -> Xbox Start/Back: Demul and Model 2 ignore
+#                     keyboard keys for coin and start.
 #   TP                pointer on the RIGHT stick (TeknoParrot profiles aim with the right stick)
 #   Mouse             lightgun mouse, only for RetroArch and PCSX2 (they only know a pointer)
 # Every layout sets ALL keys and the OffScreen state explicitly: Gunmote fills missing entries from the Default
@@ -31,24 +35,28 @@ $script:LightgunLayouts = [ordered]@{
     Pad43 = @{ File = 'rck_pad43.json'; Title = 'RCK Pad 4:3' }
     TP    = @{ File = 'rck_tp.json';    Title = 'RCK TeknoParrot' }
     Mouse = @{ File = 'rck_mouse.json'; Title = 'RCK Mouse' }
+    Mouse43 = @{ File = 'rck_mouse43.json'; Title = 'RCK Mouse 4:3' }
 }
 
-# Gunmote's own layouts that the kit recognizes by name without reading them.
-$script:LightgunBuiltinLayouts = @{ 'default.json' = 'Mouse'; 'mouse43.json' = 'Mouse' }
+# Gunmote's own layouts that the kit recognizes by name without reading them. mouse43.json is read and checked:
+# Gunmote ships it with Plus on the keyboard (no start button in Demul/Model 2).
+$script:LightgunBuiltinLayouts = @{ 'default.json' = 'Mouse' }
 
 # Program (below the RetroBat folder) -> layout kind. DuckStation stays out on purpose: [W6] it is guided only.
 $script:LightgunApplications = @(
     @{ Path = 'emulationstation\emulationstation.exe'; Kind = 'Menu' }
     @{ Path = 'emulators\mame\mame.exe'; Kind = 'Pad43' }
-    @{ Path = 'emulators\supermodel\supermodel.exe'; Kind = 'Pad43' }
-    @{ Path = 'emulators\m2emulator\emulator_multicpu.exe'; Kind = 'Pad43' }
+    @{ Path = 'emulators\supermodel\supermodel.exe'; Kind = 'Mouse43' }
+    @{ Path = 'emulators\m2emulator\emulator_multicpu.exe'; Kind = 'Mouse43' }
+    @{ Path = 'emulators\demul\demul.exe'; Kind = 'Mouse43' }
+    @{ Path = 'emulators\hypseus\hypseus.exe'; Kind = 'Mouse43' }
     @{ Path = 'emulators\teknoparrot\TeknoParrotUi.exe'; Kind = 'TP' }
     @{ Path = 'emulators\retroarch\retroarch.exe'; Kind = 'Mouse' }
     @{ Path = 'emulators\pcsx2\pcsx2-qt.exe'; Kind = 'Mouse' }
 )
 
 # The program whose entry decides which existing layout counts for a kind (mode Keep).
-$script:LightgunKindAnchor = @{ Pad43 = 'emulators\mame\mame.exe'; TP = 'emulators\teknoparrot\TeknoParrotUi.exe'; Mouse = 'emulators\retroarch\retroarch.exe' }
+$script:LightgunKindAnchor = @{ Pad43 = 'emulators\mame\mame.exe'; TP = 'emulators\teknoparrot\TeknoParrotUi.exe'; Mouse = 'emulators\retroarch\retroarch.exe'; Mouse43 = 'emulators\supermodel\supermodel.exe' }
 
 function Get-LightgunLayoutKind {
     [CmdletBinding()]
@@ -59,7 +67,7 @@ function Get-LightgunLayoutKind {
 # The kit's layout as an ordered dictionary (Title, All.OnScreen, All.OffScreen).
 function New-LightgunLayout {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [ValidateSet('Menu', 'Pad43', 'TP', 'Mouse')] [string] $Kind)
+    param([Parameter(Mandatory)] [ValidateSet('Menu', 'Pad43', 'TP', 'Mouse', 'Mouse43')] [string] $Kind)
     $on = [ordered]@{}
     foreach ($k in $script:LightgunKeyNames) { $on[$k] = 'disable' }
     $pad = [ordered]@{
@@ -88,6 +96,11 @@ function New-LightgunLayout {
             $on['Plus'] = 'vk_1'; $on['Minus'] = 'vk_5'; $on['One'] = 'mousemiddle'
             $off = [ordered]@{ 'A' = 'mouseright'; 'B' = 'mouseright'; 'Pointer' = 'lightgunmouse'; 'Home' = 'disable' }
         }
+        'Mouse43' {
+            foreach ($k in 'Left', 'Right', 'Up', 'Down', 'Minus', 'Plus', 'One', 'Two') { $on[$k] = $pad[$k] }
+            $on['Pointer'] = 'lightgunmouse-4:3'; $on['A'] = 'mouseright'; $on['B'] = 'mouseleft'
+            $off = [ordered]@{ 'A' = 'mouseright'; 'B' = 'mouseright'; 'Pointer' = 'lightgunmouse-4:3'; 'Home' = 'disable' }
+        }
     }
     [ordered]@{ Title = $script:LightgunLayouts[$Kind].Title; All = [ordered]@{ OnScreen = $on; OffScreen = $off } }
 }
@@ -103,8 +116,9 @@ function Get-JsonProperty($Object, [string] $Name) {
     if ($p) { $p.Value }
 }
 
-# Kind of an existing layout file by what it does: 'Menu', 'Pad43', 'Pad', 'TP', 'Mouse' or '' (unknown).
-# Correct = the OffScreen pointer and B are set explicitly and Home is off (Mouse: pointer only).
+# Kind of an existing layout file by what it does: 'Menu', 'Pad43', 'Pad', 'TP', 'Mouse', 'Mouse43' or '' (unknown).
+# Correct = the OffScreen pointer and B are set explicitly and Home is off (Mouse: pointer only;
+# Mouse43: OffScreen pointer, Plus/Minus on Xbox Start/Back).
 function Get-LightgunLayoutInfo {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $KeymapsDir, [Parameter(Mandatory)] [string] $File)
@@ -118,6 +132,7 @@ function Get-LightgunLayoutInfo {
     $off = Get-JsonProperty $all 'OffScreen'
     $pointer = [string](Get-JsonProperty $on 'Pointer')
     $kind = if ($pointer -eq 'disable') { 'Menu' }
+            elseif ($pointer -eq 'lightgunmouse-4:3') { 'Mouse43' }
             elseif ($pointer -like 'lightgunmouse*') { 'Mouse' }
             elseif ($pointer -like '360.stickr-light*') { 'TP' }
             elseif ($pointer -eq '360.stickl-light-4:3') { 'Pad43' }
@@ -126,7 +141,9 @@ function Get-LightgunLayoutInfo {
     $offPointer = [string](Get-JsonProperty $off 'Pointer')
     $b = [string](Get-JsonProperty $on 'B')
     $wantB = if ($kind -eq 'Menu') { '360.a' } else { '360.b' }
-    $correct = if ($kind -eq 'Mouse') { $true } else {
+    $correct = if ($kind -eq 'Mouse') { $true }
+        elseif ($kind -eq 'Mouse43') { $offPointer -eq $pointer -and [string](Get-JsonProperty $on 'Plus') -eq '360.start' -and [string](Get-JsonProperty $on 'Minus') -eq '360.back' }
+        else {
         $kind -and $offPointer -eq $pointer -and $b -eq $wantB -and [string](Get-JsonProperty $off 'B') -eq $wantB -and [string](Get-JsonProperty $on 'Home') -eq 'disable'
     }
     [pscustomobject]@{ Kind = $kind; Correct = [bool]$correct }
