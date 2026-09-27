@@ -7,6 +7,12 @@ that matches it.
 
 ## [Unreleased]
 
+### Added
+- `handoff\PLAN-WIIMOTE-KOPPELN.md`: pairing the Wiimotes where that route still works — TeknoParrot
+  XInput bindings (steps 10–11), DemulShooter's DSWiio plugin as the only real-pointer path, the
+  output package with MAMEHooker EmuOutput as first rumble test, every write gated dry run first.
+  Draft for the cabinet session, nothing executed.
+
 ## [0.4.0] - 2026-09-27
 
 ### Added
