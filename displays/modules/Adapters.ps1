@@ -87,8 +87,8 @@ function Get-DisplaysDetectedAdapters {
             $info = Invoke-DisplaysAdapterFunction -Name $a.Name -Function "Get-$($a.Name)AdapterInfo"
             $detected.Add([pscustomobject]@{
                 Name       = $a.Name
-                AdapterType = [string](Get-DisplaysAdapterValue $info 'AdapterType'))  # e.g., Monitor, DMD, Backglass, Topper
-                EdidSignature = [string](Get-DisplaysAdapterValue $info 'EdidSignature'))  # Manufacturer+ProductCode+SerialNumber hash
+                AdapterType = [string](Get-DisplaysAdapterValue $info 'AdapterType')  # e.g., Monitor, DMD, Backglass, Topper
+                EdidSignature = [string](Get-DisplaysAdapterValue $info 'EdidSignature')  # Manufacturer+ProductCode+SerialNumber hash
                 Ports      = @(Get-DisplaysAdapterValue $info 'DetectPorts')
             })
         } catch {
@@ -100,7 +100,7 @@ function Get-DisplaysDetectedAdapters {
     $signatures = @($detected | ForEach-Object { $_.EdidSignature } | Where-Object { $_ } | Group-Object)
     foreach ($group in $signatures) {
         if ($group.Count -gt 1) {
-            $conflicts.Add([pscustomobject]@{ Kind = 'EdidConflict'; Detail = (Get-KitText 'Displays.Conflict.Edid' -f ($group.Group | ForEach-Object { $_.Name }) -join '+', $group.Name) })
+            $conflicts.Add([pscustomobject]@{ Kind = 'EdidConflict'; Detail = (Get-KitText 'Displays.Conflict.Edid' -f ($group.Group.Name -join '+'), $group.Name) })
         }
     }
     foreach ($p in @($detected | ForEach-Object { $_.Ports } | Where-Object { $_ } | Select-Object -Unique)) {
