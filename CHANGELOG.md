@@ -7,6 +7,17 @@ that matches it.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-30
+
+### Added
+- `docs/CONCEPT_v0.5.0.md`: Abschnitt 8 „Validierte Wiimote/FFBBlaster/Gunmote-Integration" (Praxistest
+  29.–30.09.2026 am Cabinet mit 2 Wiimotes, Mayflash DolphinBar und Rambo/TeknoParrot). Dokumentiert die
+  validierte FFBBlaster→TCP→Gunmote-Architektur, zwei getestete Rumble-Wege (Output-Hook für Treffer,
+  GunEffect/ViGEm für Schüsse), den Recoil-Stretcher (16 ms→150 ms), Konfigurationsmuster für
+  FFBBlaster.ini, Gunmote ArcadeOutputs-INI und patch-once.ps1, 7 dokumentierte Fallen mit Symptom+Lösung
+  sowie die daraus abgeleiteten Adapter-Spezifikationen für v0.5.0. Klärt die offene Frage
+  „Rumble-Weg für TeknoParrot": beide Wege ergänzen sich, `outputs.verify_safety` verhindert Doppel-Rumble.
+
 ### Changed
 - CI: the Pester suite runs in two parallel shards (~75 s each instead of ~150 s in one job) and no longer waits
   for the static checks; a static step fails when a test folder belongs to no shard. The website is built once in
@@ -271,7 +282,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.0...v0.3.1

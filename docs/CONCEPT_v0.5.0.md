@@ -1,9 +1,10 @@
 # Konzept & Roadmap: Fried's Retrogaming Kit v0.5.0+
 
-**Status:** Beschlussreif · 28.09.2026
+**Status:** In Umsetzung · 30.09.2026 (Wiimote-Integration validiert)
 **Basis:** Kit v0.4.1 (Pakete core, pinball, lightgun, arcade, output, pads, gui, api; 653 Pester-Fälle, CI grün)
 + Agent v0.3.0
-**Kontext:** Architektur-Audit & Persona-Workshop, gegen den Repo-Stand geprüft
+**Kontext:** Architektur-Audit & Persona-Workshop, gegen den Repo-Stand geprüft; Wiimote/FFBBlaster/Gunmote-Integration
+am Cabinet getestet und dokumentiert (Abschnitt 8)
 
 ---
 
@@ -208,6 +209,169 @@ Context-Header, den der Agent bei jedem Aufruf mitgibt:
 
 ---
 
-*Erstellt: 28.09.2026 · Autor: Friedrich Börner + KI-Assistent · Status: Beschlussreif*
+## 8. Validierte Wiimote/FFBBlaster/Gunmote-Integration (Praxis-Test 29.–30.09.2026)
+
+Die im Konzept als „Neu" gelisteten Output-Adapter **FFBBlaster** und **Gunmote-Output-Hook** wurden am
+Produktiv-Cabinet mit 2 Nintendo Wiimotes, Mayflash DolphinBar (Mode 4) und dem Spiel **Rambo** (TeknoParrot)
+getestet. Der Test validiert die Architektur und liefert konkrete Konfigurationsmuster für die Implementierung.
+
+### 8.1 Hardware-Baseline
+
+| Komponente | Status | Anmerkung |
+|:--|:--|:--|
+| Mayflash DolphinBar (Firmware v09+, Mode 4) | ✅ Validiert | Primäre Verbindung, kein Windows-Bluetooth-PIN-Prompt |
+| Bluetooth-Dongle mit IR-Leiste | ✅ Validiert | Alternative Verbindung getestet, funktioniert ebenfalls |
+| 2× Nintendo Wiimote (MotionPlus) + Gun Shells | ✅ Validiert | Spieler 1 + 2 parallel |
+| ViGEmBus (signiert, Nefarius) | ✅ Validiert | Virtuelle Xbox-360-Pads für XInput-Kompatibilität |
+
+### 8.2 Architektur: FFBBlaster → TCP → Gunmote (Rumble ohne MAMEHooker)
+
+```
+[TeknoParrot / BudgieLoader]
+        │ FFBBlaster.dll: OutputsSystem=1, NetOutputsTCPPort=8002
+        ▼
+[recoil-stretch.py]        ← optional: verlängert Rückstoß-Pulse (16 ms → 150 ms)
+        │ TCP 8000 (Gunmote-kompatibler Port)
+        ▼
+[Gunmote ArcadeHook]       ← TCP-Client in Gunmote.dll, verbindet auf localhost
+        │ liest/schreibt ArcadeOutputs\<System>\<rom>.ini
+        ▼
+[Wiimote Rumble-Motor]     ← wii <spieler> <ausgang> <wert>
+```
+
+**Schlüsselerkenntnisse:**
+
+1. **FFBBlaster braucht `OutputsSystem=1`** (TCP-Mode). Der Default `0` sendet nur Windows-Nachrichten
+   (`output windows`), die Gunmote nicht empfängt. Port 8000 ist der Standard von Hook of the Reaper und wird
+   von Gunmotes ArcadeHook als Client-Port erwartet.
+
+2. **Gunmote hat einen eingebauten TCP-Client** („ArcadeHook") in `Gunmote.dll`. Er verbindet sich auf
+   `localhost` und legt spielspezifische INIs unter `C:\Program Files\Gunmote\ArcadeOutputs\` an — die
+   INI entsteht automatisch beim ersten Empfang von Output-Signalen.
+
+3. **Zwei Rumble-Wege existieren parallel:**
+
+   | Weg | Auslöser | Transport | Konfiguration | Geeignet für |
+   |:--|:--|:--|:--|:--|
+   | **Output → INI** | Spiel-Output (z. B. `P1_Damage`) | TCP → Gunmote INI → Wiimote-Motor | `P1_Damage=wii 1 5 %s%` | Treffer, langanhaltende Events (>100 ms) |
+   | **GunEffect → ViGEm** | FFBBlaster-interner Schuss-Effekt | FFBBlaster → ViGEm Xbox-Pad → Wiimote | `HowtoRumbleGunEffect=1`, `FeedbackLength=100`, Stärke 50 % | Schüsse (FFBBlaster routed selbst an die Wiimote-GUID) |
+
+4. **Rückstoß-Pulse sind zu kurz für den Wiimote-Motor:** TeknoParrot-Spiele senden Rückstoß-Outputs oft nur
+   ~16 ms lang. Der Wiimote-Motor braucht mindestens ~50–80 ms für eine spürbare Vibration. Lösung:
+   **`recoil-stretch.py`** — ein Python-TCP-Proxy, der das Aus-Signal um `HOLD_MS` (konfigurierbar, Default
+   150 ms) verzögert:
+   ```
+   FFBBlaster (Port 8002) → recoil-stretch.py (Port 8000) → Gunmote
+   ```
+   Das Skript lässt alle Nicht-Rückstoß-Outputs unverändert durch. Der Selbsttest ist grün.
+
+5. **Device-GUID-Stabilität ist kritisch:** FFBBlaster adressiert Geräte über ihre Windows-GUID. Eine
+   Neuinstallation der Bluetooth-Treiber (z. B. durch Gunmote-Update mit angekreuztem „reinstall drivers")
+   setzt die GUIDs zurück → FFBBlaster verliert die Wiimote-Zuordnung. Die GUIDs werden in
+   `FFBBlaster.ini` (`DeviceGUID` für P1/P2) und als Backup (`FFBBlaster.ini.bak-wiimote-guids`) vorgehalten.
+
+### 8.3 Konfigurationsmuster
+
+#### 8.3.1 FFBBlaster.ini (Spielverzeichnis, z. B. `Rambo.teknoparrot\elf\`)
+
+```ini
+[Outputs]
+OutputsSystem=1              ; 0=Windows-Nachrichten, 1=TCP-Netzwerk
+NetOutputsTCPPort=8002       ; Ausgangsport (8000 wird vom Recoil-Stretcher belegt)
+
+[Guns]
+DeviceGUID = <Wiimote-P1-GUID>
+Gun1pStrength = 100          ; 0-100 %, über Gunmote-Rumble-Schwelle (50)
+Gun2pStrength = 100
+FeedbackLength = 100         ; ms, GunEffect-Dauer
+HowtoRumbleGunEffect = 1     ; 1 oder 2 (verschiedene Rumble-Muster)
+```
+
+#### 8.3.2 Gunmote ArcadeOutputs\<rom>.ini (automatisch angelegt, dann via patch-once.ps1 befüllt)
+
+```ini
+; Angelegt von Gunmote beim ersten TCP-Empfang. patch-once.ps1 trägt die Werte ein.
+1pRecoil=wii 1 5 %s%         ; Spieler 1 Rückstoß → Motor (Ausgang 5)
+2pRecoil=wii 2 5 %s%         ; Spieler 2 Rückstoß → Motor
+P1_Damage=wii 1 5 %s%        ; Spieler 1 Treffer → Motor
+P2_Damage=wii 2 5 %s%        ; Spieler 2 Treffer → Motor
+; Achtung: wii x 0 1 = LED (Ausgang 0), nicht Motor!
+```
+
+#### 8.3.3 patch-once.ps1-Muster (elevated Admin-Task)
+
+Änderungen an Dateien unter `C:\Program Files\Gunmote\` erfordern Admin-Rechte. Das Kit nutzt das
+`patch-once.ps1`-Muster: Ein PowerShell-Skript wird einmalig über einen scheduled task mit höchsten
+Rechten ausgeführt (`Gunmote Profil Menue`) und danach als `.done` markiert. Gunmote wird nach dem
+Patch neu gestartet.
+
+#### 8.3.4 Gunmote settings.json — Rumble-Schwellwert
+
+```json
+{
+  "xinput_rumbleThreshold_low": 50,
+  "xinput_rumbleThreshold_high": 50
+}
+```
+
+Der Default (200) ist für Wiimotes zu hoch — Werte unter 50 werden nicht zuverlässig erkannt.
+**Empfehlung: 50** (am Cabinet bestätigt).
+
+### 8.4 Bekannte Fallen & Sicherheitsnetze
+
+| Falle | Symptom | Lösung |
+|:--|:--|:--|
+| **FFBBlaster OutputsSystem=0** | Gunmote empfängt nichts, keine INI entsteht | Auf `1` setzen, Port prüfen |
+| **Schuss-Impuls zu kurz (16 ms)** | LED blinkt, aber kein Rumble | `recoil-stretch.py` vorschalten (150 ms) |
+| **Falscher Ausgang in INI** (0 statt 5) | LED leuchtet statt Motor | `wii x 5 %s%` für Motor, `wii x 0 1` ist LED |
+| **Bluetooth-Treiber neu installiert** | FFBBlaster verliert Geräte | GUIDs aus Backup wiederherstellen (`FFBBlaster.ini.bak-wiimote-guids`) |
+| **ViGEmBus + echtes Xbox-Pad** | FFB-GUI zeigt falsche Geräteanzahl | Reihenfolge der Geräte-Enumeration prüfen; nur ein Pad-Typ pro Test |
+| **Gunmote nach Patch nicht verbunden** | Wiimote-LEDs aus | Warten bis LEDs leuchten, ggf. Sync-Knopf drücken |
+| **Gunmote-Menü-Layout nach Neustart verloren** | Pipe-Timeout im Log | Watcher setzt Layout bei Spielstart über RetroBat neu |
+
+### 8.5 Auswirkungen auf v0.5.0-Implementierung
+
+1. **FFBBlaster-Adapter** (`output/adapters/FFBBlaster.ps1`):
+   - Erkennt FFBBlaster über Prozess `BudgieLoader` + Port 8000/8002 + spielspezifische `FFBBlaster.ini`
+   - `Test-` prüft `OutputsSystem=1` und warnt bei `0`
+   - `Configure-` setzt `OutputsSystem=1`, `NetOutputsTCPPort=8002` und trägt Wiimote-GUIDs ein
+   - Backup der GUIDs als `.bak-wiimote-guids`
+
+2. **Gunmote-Output-Hook-Adapter** (`output/adapters/GunmoteOutput.ps1`):
+   - Erkennt Gunmote ArcadeOutputs-Ordner + laufenden Gunmote-Prozess
+   - `Test-` prüft TCP-Verbindung auf Port 8000
+   - `Configure-` schreibt spielspezifische INI über `patch-once.ps1`-Muster
+   - `Verify-` prüft INI-Einträge gegen erwartete Output-Namen
+
+3. **Recoil-Stretcher** (`output/tools/recoil-stretch.py`):
+   - Wird mit dem TeknoParrot-Profil gestartet (`tp.ps1`) und beendet (`menue.ps1`)
+   - Konfigurierbare `HOLD_MS` (Default 150 ms)
+   - Selbsttest im Adapter integriert
+
+4. **`outputs.verify_safety`**:
+   - Port-Konflikt-Prüfung: TCP 8000 (Recoil-Stretcher vs. Hook of the Reaper vs. MAMEHooker-EmuOutput)
+   - Doppelte Output-Empfänger: Gunmote-Hook UND MAMEHooker auf dieselben Outputs → Warning
+   - Device-GUID-Validierung: GUID in FFBBlaster.ini muss mit aktueller PnP-Enumeration übereinstimmen
+
+### 8.6 Offene Frage geklärt
+
+> **Rumble-Weg für TeknoParrot:** ViGEm-Weiterleitung (Schwellwert) oder Gunmote-Output-Hook?
+
+**Antwort aus dem Praxistest: Beide.** Sie bedienen unterschiedliche Ereignistypen und ergänzen sich:
+
+- **Gunmote-Output-Hook** für langanhaltende Spiel-Events (Treffer, Schild, Health-Change) — der Spiel-Output
+  bleibt lange genug an (>100 ms), der Wiimote-Motor spricht direkt an.
+- **FFBBlaster GunEffect (ViGEm)** für kurze Impulse (Schüsse) — FFBBlaster erzeugt selbst einen
+  konfigurierbaren Rumble-Effekt (100 ms, 50 % Stärke) und schickt ihn über das ViGEm-Pad an die Wiimote.
+  Alternativ kann der Recoil-Stretcher den kurzen Spiel-Impuls verlängern und über den Output-Hook an die
+  Wiimote leiten.
+
+Die `outputs.verify_safety`-Prüfung stellt sicher, dass nicht beide Wege gleichzeitig auf denselben
+Output-Namen hören (Doppel-Rumble).
+
+---
+
+*Erstellt: 28.09.2026 · Autor: Friedrich Börner + KI-Assistent · Status: In Umsetzung*
+*Letzte Aktualisierung: 30.09.2026 — Abschnitt 8: Validierte Wiimote/FFBBlaster/Gunmote-Integration*
 *Audit-Integration: DOF bei outputs, EDID-Standard, Lighting-Grenze, Frame-Pacing, Modus-Wechsel.*
 *Repo-Abgleich: echte Pakete und Adapter, Module als Namensräume, FFBBlaster und Gunmote-Output-Hook.*

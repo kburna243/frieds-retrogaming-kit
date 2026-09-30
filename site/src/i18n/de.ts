@@ -2,7 +2,7 @@ const de = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v0.4.1.",
+      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v0.4.2.",
   },
   nav: {
     home: "Start",
