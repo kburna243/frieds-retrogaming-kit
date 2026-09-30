@@ -11,7 +11,7 @@ Describe 'Output adapter catalog and multi detection' {
 
     It 'ships seven complete adapters; the underscore template is never listed' {
         $cat = @(Get-OutputAdapterCatalog)
-        ($cat | ForEach-Object Name) -join ',' | Should Be 'DirectOutputFramework,DmdExtensions,FFBBlaster,GunmoteOutput,HookOfTheReaper,MameHooker,QMamehook'
+        ($cat | ForEach-Object Name) -join ',' | Should Be 'DirectOutputFramework,FFBBlaster,GunmoteOutput,HookOfTheReaper,MameHooker,QMamehook'
         foreach ($a in $cat) {
             $a.HasParseErrors | Should Be $false
             $a.HasTest | Should Be $true
@@ -28,7 +28,7 @@ Describe 'Output adapter catalog and multi detection' {
         @($r.DetectedOutputs).Count | Should Be 0
         @($r.Conflicts).Count | Should Be 0
         @($r.Errors).Count | Should Be 0
-        $r.ScannedAdapters | Should Be 'DirectOutputFramework,DmdExtensions,FFBBlaster,GunmoteOutput,HookOfTheReaper,MameHooker,QMamehook'
+        $r.ScannedAdapters | Should Be 'DirectOutputFramework,FFBBlaster,GunmoteOutput,HookOfTheReaper,MameHooker,QMamehook'
     }
 
     It 'detects each middleware by process, port and tools folder' {

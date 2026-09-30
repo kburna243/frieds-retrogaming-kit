@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Freezy's DMD Extensions (dmdext) output-middleware adapter for Fried's Retrogaming Kit.
 .DESCRIPTION
@@ -22,8 +22,8 @@
             evidence.
           - 1A86:7523 (CH340), 0403:6014 (FTDI), 0483:5740 (STM32 CDC) are bare serial-cable chip
             IDs - they match every USB-serial adapter in the house, not a DMD.
-        Board evidence must name the device, not the wire, so dmdext is identified by process and
-        by its tools\dmdext folder only.
+          Board evidence must name the device, not the wire, so dmdext is identified by process and
+          by its tools\dmdext folder only.
       * SettingsTargets is EMPTY with full intent: DmdDevice.ini belongs to the PINBALL package -
         step 08-Screens and pinball\modules\Screens.ps1 own [VPinMAME.DMD] / [FP.DMD] with golden
         tests. A second writer for the same file is forbidden; v1 writes nothing here.

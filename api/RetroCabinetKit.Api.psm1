@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 # Kit API v1 (see API.md): one facade for every client. Operations return RetroCabinetKit.OperationResult;
 # change operations run as dry run unless -Apply; approvals are declined unless -Approved; only plain parameters
 # are accepted. No kit logic lives here: every handler calls the engine modules.
@@ -14,6 +14,7 @@ Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 Import-Module (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
 Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
 Import-Module (Join-Path $script:KitRoot 'pads\RetroCabinetKit.Pads.psd1')
+Import-Module (Join-Path $script:KitRoot 'displays\RetroCabinetKit.Displays.psd1')
 
 # Parameters a client may never set (security bindings, test injection, values the API controls itself).
 # Apply and Approved are the API's own switches (and the MCP flags apply / approved): a step parameter with that
@@ -137,6 +138,7 @@ function Get-KitOperation {
         @{ Name = 'backup.export'; Kind = 'Change'; Description = 'Copies a backup to a folder and records its SHA-256.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }); Module = 'core' }
         @{ Name = 'support.bundle'; Kind = 'Change'; Description = 'Writes an anonymized support bundle (doctor, environment, step states, logs).'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $false }); Module = 'core' }
         @{ Name = 'controllers.detect'; Kind = 'Read'; Description = 'Detect all controllers: lightguns, arcade sticks, pads. One result across three packages.'; Parameters = @(); Module = 'controllers' }
+        @{ Name = 'displays.detect'; Kind = 'Read'; Description = 'Detect all displays: monitors (EDID), virtual DMD, backglass, topper.'; Parameters = @(); Module = 'displays' }
     )
     foreach ($o in $fixed) {
         [pscustomobject]@{ Name = $o.Name; Kind = $o.Kind; Suite = ''; Interactive = $false; Available = $true; Description = $o.Description; Parameters = $o.Parameters; Module = $o.Module }
@@ -719,6 +721,38 @@ function Invoke-KitOperation {
                     $data = $null
                 }
                 return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Warnings $warnings -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'displays.detect' {
+                try {
+                    $displayResults = @()
+                    $catalog = Get-DisplaysAdapterCatalog
+                    foreach ($adapter in $catalog) {
+                        try {
+                            $info = Invoke-DisplaysAdapterFunction -Name $adapter.Name -Function "Get-$($adapter.Name)AdapterInfo"
+                            $present = Invoke-DisplaysAdapterFunction -Name $adapter.Name -Function "Test-$($adapter.Name)Hardware"
+                            $displayResults += [pscustomobject]@{
+                                Name = $adapter.Name
+                                Present = [bool]$present
+                                Info = @{ Links = if ($info.Contains('Links')) { $info.Links } else { @{} }; Notes = if ($info.Contains('Notes')) { $info.Notes } else { '' } }
+                                Category = 'display'
+                            }
+                        } catch { }
+                    }
+                    $monitors = @()
+                    try {
+                        $monitors = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorID -ErrorAction SilentlyContinue |
+                            ForEach-Object {
+                                $mfr = if ($_.ManufacturerName) { [string]::Join('', ($_.ManufacturerName | ForEach-Object { [char]$_ })) } else { '' }
+                                $prod = if ($_.ProductCodeID) { [string]::Join('', ($_.ProductCodeID | ForEach-Object { [char]$_ })) } else { '' }
+                                [pscustomobject]@{ Manufacturer = $mfr; ProductCode = $prod; InstanceName = $_.InstanceName }
+                            })
+                    } catch { }
+                    $data = [pscustomobject]@{ Displays = $displayResults; Monitors = $monitors }
+                    $status = 'Ok'; $msg = "Found $($monitors.Count) monitor(s) and $($displayResults.Count) display adapter(s)"
+                } catch {
+                    $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
             }
         }
         New-KitOperationResult -Operation $Name -Kind $kind -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
