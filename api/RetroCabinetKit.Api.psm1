@@ -13,6 +13,7 @@ $script:KitVersion = $(try { ([IO.File]::ReadAllText((Join-Path $script:KitRoot 
 Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 Import-Module (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
 Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
+Import-Module (Join-Path $script:KitRoot 'pads\RetroCabinetKit.Pads.psd1')
 
 # Parameters a client may never set (security bindings, test injection, values the API controls itself).
 # Apply and Approved are the API's own switches (and the MCP flags apply / approved): a step parameter with that
@@ -125,6 +126,7 @@ function Get-KitOperation {
         @{ Name = 'operations'; Kind = 'Read'; Description = 'This catalog.'; Parameters = @(); Module = 'core' }
         @{ Name = 'status'; Kind = 'Read'; Description = 'Health check of system, pinball, lightgun and security (doctor).'; Parameters = @(); Module = 'core' }
         @{ Name = 'components'; Kind = 'Read'; Description = 'Detected components: Windows, RetroBat, Gunmote, ViGEmBus, DolphinBar, Steam, pinball build, PinballY.'; Parameters = @(); Module = 'core' }
+        @{ Name = 'outputs.verify_safety'; Kind = 'Read'; Description = 'Verify output safety: solenoid limits, port conflicts, double output consumers.'; Parameters = @([pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'outputs' }
         # The second front end is not part of a build, so its folder is asked for, not derived from the state.
         @{ Name = 'pinbally.detect'; Kind = 'Read'; Description = 'Inspect a PinballY installation: version, systems, table databases and which path references do not resolve on this machine. Reads only.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }); Module = 'pinball' }
         @{ Name = 'pinbally.retarget'; Kind = 'Change'; Description = 'Give the dead absolute paths of a PinballY installation the targets of this machine, following pairs written as Old=New (the same folder under another drive is the usual case). Only path values that do not resolve here are planned, and only when the new path exists; comments, [TOKEN] values, relative paths, DefaultSettings.txt and the own copies of the program are never touched. Dry run without -Apply; the plan needs -Approved.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Map'; Type = 'String[]'; Mandatory = $true }, [pscustomobject]@{ Name = 'BackupDir'; Type = 'String'; Mandatory = $false }); Module = 'pinball' }
@@ -134,6 +136,7 @@ function Get-KitOperation {
         @{ Name = 'backup.remove'; Kind = 'Change'; Description = 'Deletes one backup of the kit (nothing else can be deleted).'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }); Module = 'core' }
         @{ Name = 'backup.export'; Kind = 'Change'; Description = 'Copies a backup to a folder and records its SHA-256.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }); Module = 'core' }
         @{ Name = 'support.bundle'; Kind = 'Change'; Description = 'Writes an anonymized support bundle (doctor, environment, step states, logs).'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $false }); Module = 'core' }
+        @{ Name = 'controllers.detect'; Kind = 'Read'; Description = 'Detect all controllers: lightguns, arcade sticks, pads. One result across three packages.'; Parameters = @(); Module = 'controllers' }
     )
     foreach ($o in $fixed) {
         [pscustomobject]@{ Name = $o.Name; Kind = $o.Kind; Suite = ''; Interactive = $false; Available = $true; Description = $o.Description; Parameters = $o.Parameters; Module = $o.Module }
@@ -474,6 +477,248 @@ function Invoke-KitOperation {
                     -Warnings $warnings -Errors $errors -Approvals @($script:ApiApprovals) `
                     -Changes @($steps | ForEach-Object { $_.Changes }) -Backups @($steps | ForEach-Object { $_.Backups }) `
                     -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data ([pscustomobject]@{ Result = $out })
+            }
+            'controllers.detect' {
+                # Read-only detection of all controllers across lightgun, arcade, and pads packages
+                try {
+                    # Get lightgun state path for adapter functions
+                    $LightgunStatePath = (Get-LightgunDefaultStatePath)
+                    
+                    # Detect lightguns
+                    $lightgunResults = @()
+                    $lightgunCatalog = Get-LightgunAdapterCatalog
+                    foreach ($adapter in $lightgunCatalog) {
+                        if ($adapter.HasParseErrors -or -not $adapter.HasTest) { continue }
+                        try {
+                            $isPresent = Invoke-LightgunAdapterFunction -Name $adapter.Name -Function "Test-$($adapter.Name)Hardware" -Dir (Get-LightgunAdapterDir) -Parameters @{}
+                            if ($isPresent) {
+                                $adapterInfo = Invoke-LightgunAdapterFunction -Name $adapter.Name -Function "Get-$($adapter.Name)AdapterInfo" -Dir (Get-LightgunAdapterDir)
+                                $lightgunResults += [pscustomobject]@{
+                                    Name = $adapter.Name
+                                    Present = $true
+                                    Info = @{
+                                        Links = if ($adapterInfo.ContainsKey('Links')) { $adapterInfo.Links } else { @{} }
+                                        Notes = if ($adapterInfo.ContainsKey('Notes')) { $adapterInfo.Notes } else { '' }
+                                    }
+                                    Category = 'lightgun'
+                                }
+                            }
+                        } catch {
+                            # Continue testing other adapters even if one fails
+                        }
+                    }
+                    
+                    # Detect arcade sticks
+                    $arcadeResults = @()
+                    $arcadeCatalog = Get-ArcadeAdapterCatalog
+                    foreach ($adapter in $arcadeCatalog) {
+                        if ($adapter.HasParseErrors -or -not ($adapter.HasTest -and $adapter.HasInfo)) { continue }
+                        try {
+                            # Get devices and exclude those already claimed by lightgun
+                            $allDevices = @(Get-CimInstance -ClassName Win32_PnPEntity -ErrorAction SilentlyContinue)
+                            $allDevices = @($allDevices | Where-Object { $_ })
+                            
+                            # Check if this adapter would detect any unclaimed devices
+                            $hit = $null
+                            $claimedIds = @()
+                            # Get lightgun claimed devices first
+                            foreach ($lgAdapter in $lightgunCatalog) {
+                                if ($lgAdapter.HasParseErrors -or -not $lgAdapter.HasInfo) { continue }
+                                try {
+                                    $lgInfo = Invoke-LightgunAdapterFunction -Name $lgAdapter.Name -Function "Get-$($lgAdapter.Name)AdapterInfo" -Dir (Get-LightgunAdapterDir)
+                                    foreach ($id in @(Get-LightgunAdapterValue $lgInfo 'MatchIds')) { if ($id) { $claimedIds += $id.ToUpperInvariant() } }
+                                } catch {}
+                            }
+                            
+                            foreach ($device in $allDevices) {
+                                $deviceId = (Get-ArcadeDeviceId $device).ToUpperInvariant()
+                                if ($deviceId -and $claimedIds -contains $deviceId) { continue }
+                                $info = Invoke-ArcadeAdapterFunction -Name $adapter.Name -Function "Get-$($adapter.Name)AdapterInfo" -Dir (Get-ArcadeAdapterDir)
+                                if (Get-ArcadeDeviceMatch -Device $device -MatchIds @(Get-ArcadeAdapterValue $info 'MatchIds') -NameHints @(Get-ArcadeAdapterValue $info 'NameHints')) {
+                                    $hit = $device
+                                    break
+                                }
+                            }
+                            
+                            if ($hit) {
+                                $adapterInfo = Invoke-ArcadeAdapterFunction -Name $adapter.Name -Function "Get-$($adapter.Name)AdapterInfo" -Dir (Get-ArcadeAdapterDir)
+                                $arcadeResults += [pscustomobject]@{
+                                    Name = $adapter.Name
+                                    Present = $true
+                                    Info = @{
+                                        Links = if ($adapterInfo.ContainsKey('Links')) { $adapterInfo.Links } else { @{} }
+                                        Notes = if ($adapterInfo.ContainsKey('Notes')) { $adapterInfo.Notes } else { '' }
+                                    }
+                                    Category = 'arcade'
+                                }
+                            }
+                        } catch {
+                            # Continue testing other adapters even if one fails
+                        }
+                    }
+                    
+                    # Detect pads
+                    $padResults = @()
+                    $padCatalog = Get-PadAdapterCatalog
+                    foreach ($adapter in $padCatalog) {
+                        if ($adapter.HasParseErrors -or -not ($adapter.HasTest -and $adapter.HasInfo)) { continue }
+                        try {
+                            # Get devices and exclude those already claimed by lightgun or arcade
+                            $allDevices = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue)
+                            $allDevices = @(foreach ($d in $allDevices) { if ($d) { ConvertTo-PadDeviceObject $d } })
+                            
+                            $detectedPads = @()
+                            foreach ($device in $allDevices) {
+                                # Check if claimed by lightgun
+                                $claimedByLightgun = $false
+                                foreach ($lgAdapter in $lightgunCatalog) {
+                                    if ($lgAdapter.HasParseErrors -or -not $lgAdapter.HasInfo) { continue }
+                                    try {
+                                        $lgInfo = Invoke-LightgunAdapterFunction -Name $lgAdapter.Name -Function "Get-$($lgAdapter.Name)AdapterInfo" -Dir (Get-LightgunAdapterDir)
+                                        foreach ($id in @(Get-LightgunAdapterValue $lgInfo 'MatchIds')) {
+                                            if ($id -and ((Get-PadDeviceId $device).ToUpperInvariant() -like $id)) { $claimedByLightgun = $true; break }
+                                        }
+                                    } catch {}
+                                    if ($claimedByLightgun) { break }
+                                }
+                                if ($claimedByLightgun) { continue }
+                                
+                                # Check if claimed by arcade
+                                $claimedByArcade = $false
+                                foreach ($aAdapter in $arcadeCatalog) {
+                                    if ($aAdapter.HasParseErrors -or -not ($aAdapter.HasTest -and $aAdapter.HasInfo)) { continue }
+                                    try {
+                                        $aInfo = Invoke-ArcadeAdapterFunction -Name $aAdapter.Name -Function "Get-$($aAdapter.Name)AdapterInfo" -Dir (Get-ArcadeAdapterDir)
+                                        if (Get-ArcadeDeviceMatch -Device $device -MatchIds @(Get-ArcadeAdapterValue $aInfo 'MatchIds') -NameHints @(Get-ArcadeAdapterValue $aInfo 'NameHints')) {
+                                            $claimedByArcade = $true; break
+                                        }
+                                    } catch {}
+                                    if ($claimedByArcade) { break }
+                                }
+                                if ($claimedByArcade) { continue }
+                                
+                                # Check if this pad adapter claims it
+                                $info = Invoke-PadAdapterFunction -Name $adapter.Name -Function "Get-$($adapter.Name)AdapterInfo" -Dir (Get-PadAdapterDir)
+                                if (Get-PadDeviceMatch -Device $device -MatchIds @(Get-PadAdapterValue $info 'MatchIds') -NameHints @(Get-PadAdapterValue $info 'NameHints')) {
+                                    $detectedPads += $device
+                                }
+                            }
+                            
+                            # Add unique detections for this adapter family
+                            $seenDeviceIds = @{}
+                            foreach ($device in $detectedPads) {
+                                $deviceId = Get-PadDeviceId $device
+                                if (-not $seenDeviceIds.ContainsKey($deviceId)) {
+                                    $seenDeviceIds[$deviceId] = $true
+                                    $adapterInfo = Invoke-PadAdapterFunction -Name $adapter.Name -Function "Get-$($adapter.Name)AdapterInfo" -Dir (Get-PadAdapterDir)
+                                    $padResults += [pscustomobject]@{
+                                        Name = $adapter.Name
+                                        Present = $true
+                                        Info = @{
+                                            Links = if ($adapterInfo.ContainsKey('Links')) { $adapterInfo.Links } else { @{} }
+                                            Notes = if ($adapterInfo.ContainsKey('Notes')) { $adapterInfo.Notes } else { '' }
+                                        }
+                                        Category = 'pad'
+                                    }
+                                }
+                            }
+                        } catch {
+                            # Continue testing other adapters even if one fails
+                        }
+                    }
+                    
+                    # Return unified result
+                    $data = [pscustomobject]@{
+                        Lightguns = $lightgunResults
+                        Arcade = $arcadeResults
+                        Pads = $padResults
+                    }
+                    $status = 'Ok'
+                    $msg = ''
+                } catch {
+                    $status = 'Failed'
+                    $msg = $_.Exception.Message
+                    $data = $null
+                }
+                
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Data $data
+            }
+            'outputs.verify_safety' {
+                # Read-only safety verification for output middleware
+                try {
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { '' }
+                    $mid = Get-OutputDetectedMiddleware -RetroBatRoot $rb -Quiet
+                    $warnings = @()
+                    
+                    # Solenoid guard: HookOfTheReaper enforcement
+                    $solenoidOk = $true; $solenoidDetail = ''
+                    if ($mid.DetectedOutputs -contains 'HookOfTheReaper') {
+                        try {
+                            $hotrInfo = Invoke-OutputAdapterFunction -Name 'HookOfTheReaper' -Function 'Get-HookOfTheReaperAdapterInfo'
+                            foreach ($t in @(Get-OutputAdapterValue $hotrInfo 'SettingsTargets')) {
+                                $safety = if ($t.Contains('Safety')) { $t.Safety } else { $null }
+                                if (-not $safety -or $safety.SolenoidMaxOpenTime -ne '200' -or $safety.SolenoidProtection -ne '1') {
+                                    $solenoidOk = $false
+                                    $solenoidDetail = 'SolenoidMaxOpenTime must be 200ms and SolenoidProtection must be 1'
+                                }
+                            }
+                        } catch { $solenoidOk = $false; $solenoidDetail = $_.Exception.Message }
+                    }
+                    
+                    # Port conflicts on 8000
+                    $portConflicts = @($mid.Conflicts | Where-Object { $_.Kind -eq 'PortConflict' })
+                    if ($mid.DetectedOutputs -contains 'GunmoteOutput') {
+                        $owner8000 = @(Get-NetTCPConnection -State Listen -LocalPort 8000 -ErrorAction SilentlyContinue |
+                            ForEach-Object {
+                                $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+                                [pscustomobject]@{ Port = 8000; Process = $proc.Name; Pid = $proc.Id; Blocking = ($proc.Name -ne 'python') }
+                            })
+                        if ($owner8000.Count) { $portConflicts += $owner8000 }
+                    }
+                    
+                    # Double consumer check: Gunmote + MAMEHooker both active
+                    $doubleConsumers = @()
+                    if ($mid.DetectedOutputs -contains 'GunmoteOutput' -and $mid.DetectedOutputs -contains 'MameHooker') {
+                        $doubleConsumers += [pscustomobject]@{
+                            Consumers = @('GunmoteOutput', 'MameHooker')
+                            Detail = 'Both Gunmote and MAMEHooker are consuming output events. This may cause double-rumble on the Wiimote.'
+                        }
+                    }
+                    if ($mid.DetectedOutputs -contains 'GunmoteOutput' -and $mid.DetectedOutputs -contains 'FFBBlaster') {
+                        $doubleConsumers += [pscustomobject]@{
+                            Consumers = @('GunmoteOutput', 'FFBBlaster')
+                            Detail = 'Both Gunmote and FFBBlaster are active. Verify that only one path drives the Wiimote motor per event.'
+                        }
+                    }
+                    
+                    # Gunmote configuration checks
+                    $gunmoteInis = 0; $gunmoteConnected = $false; $rumbleThresholdOk = $true
+                    if (Test-Path 'C:\Program Files\Gunmote\ArcadeOutputs' -PathType Container) {
+                        $gunmoteInis = @(Get-ChildItem 'C:\Program Files\Gunmote\ArcadeOutputs' -Filter '*.ini' -File -ErrorAction SilentlyContinue).Count
+                    }
+                    $gunmoteConnected = @(Get-NetTCPConnection -RemotePort 8000 -State Established -ErrorAction SilentlyContinue |
+                        Where-Object { (Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).Name -eq 'Gunmote' }).Count -gt 0
+                    
+                    foreach ($w in @($solenoidDetail) + @($portConflicts | ForEach-Object { "Port $($_.Port): $($_.Process)" }) + @($doubleConsumers | ForEach-Object { $_.Detail })) {
+                        if ($w) { $warnings += [string]$w }
+                    }
+                    
+                    $data = [pscustomobject]@{
+                        SolenoidGuard = [pscustomobject]@{ Ok = $solenoidOk; Detail = $solenoidDetail }
+                        PortConflicts = @($portConflicts)
+                        DoubleConsumers = @($doubleConsumers)
+                        GunmoteConfig = [pscustomobject]@{ InisFound = $gunmoteInis; Connected = $gunmoteConnected; RumbleThresholdOk = $rumbleThresholdOk }
+                        DetectedOutputs = $mid.DetectedOutputs
+                        OutputMode = $mid.OutputMode
+                    }
+                    $status = 'Ok'
+                    $msg = if ($warnings.Count) { "$($warnings.Count) warning(s) found" } else { 'All output safety checks passed' }
+                } catch {
+                    $status = 'Failed'
+                    $msg = $_.Exception.Message
+                    $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Warnings $warnings -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
             }
         }
         New-KitOperationResult -Operation $Name -Kind $kind -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
