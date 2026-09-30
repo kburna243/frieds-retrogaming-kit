@@ -17,6 +17,9 @@ missing, please open an issue: credits are never left out on purpose.
 |---|---|---|
 | **Light Gun Lunatics** | Light gun community (games database, emulator guides, Discord); a lot of the lightgun know-how behind this kit comes from there | <https://lightgun.retrolunatics.com/> |
 | **Pinball Lunatics** | Sister community for real and virtual pinball (guides, cabinet building) | <https://pinball.retrolunatics.com/> |
+| **ArcadeControls.com (BYOAC)** | The long-running forum for arcade cabinets, light guns and force feedback; the FFB Arcade Plugin was developed in public there | <https://forum.arcadecontrols.com/> |
+| **LaunchBox Community Forums** | Front-end community with many light gun and force feedback guides | <https://forums.launchbox-app.com/> |
+| **All the tinkerers** | Everyone in forums, Discords and comment sections who tests, reverse-engineers games, writes guides and shares configs, mostly unnamed. Without that fiddling none of these tools would exist. | – |
 
 ### Lightgun / RetroBat
 
@@ -88,6 +91,9 @@ jemand, bitte ein Issue aufmachen: Danksagungen werden nie absichtlich weggelass
 |---|---|---|
 | **Light Gun Lunatics** | Lightgun-Community (Spieledatenbank, Emulator-Anleitungen, Discord); viel Lightgun-Wissen hinter diesem Kit stammt von dort | <https://lightgun.retrolunatics.com/> |
 | **Pinball Lunatics** | Schwester-Community für echte und virtuelle Flipper (Anleitungen, Cabinet-Bau) | <https://pinball.retrolunatics.com/> |
+| **ArcadeControls.com (BYOAC)** | Das große, langjährige Forum für Arcade-Cabinets, Lightguns und Force Feedback; dort wurde das FFB Arcade Plugin öffentlich entwickelt | <https://forum.arcadecontrols.com/> |
+| **LaunchBox-Community-Forum** | Frontend-Community mit vielen Anleitungen zu Lightguns und Force Feedback | <https://forums.launchbox-app.com/> |
+| **Alle, die fummeln** | Alle in Foren, Discords und Kommentarspalten, die testen, Spiele zurückentwickeln, Anleitungen schreiben und Konfigurationen teilen, meist ohne Namen. Ohne dieses Fummeln gäbe es keines dieser Werkzeuge. | – |
 
 ### Lightgun / RetroBat
 

@@ -156,6 +156,11 @@ Hook of the Wiimote steht auf der Arbeit anderer:
 - **MAMEHooker:** Howard Casto. Das MAME-Output-Protokoll, auf dem alles aufbaut.
 - **TeknoParrot** (Teknogods), **MAME** (MAMEdev), **Demul** und **ElSemi** (Model 2).
 - Die **Light Gun Lunatics** und **Pinball Lunatics** für das gesammelte Wissen der Community.
+- **Alle, die fummeln:** Die Leute auf ArcadeControls (BYOAC), im LaunchBox-Forum, in den Discords von
+  TeknoParrot und Light Gun Lunatics, auf Reddit und in unzähligen Kommentarspalten testen, zerlegen Spiele,
+  finden Speicheradressen für Outputs, schreiben Anleitungen und teilen ihre Konfigurationen, meist ohne dass
+  ihr Name irgendwo steht. Ohne dieses Fummeln gäbe es weder Hook of the Reaper noch FFBBlaster noch
+  DemulShooter, und damit auch kein Hook of the Wiimote. **Danke!**
 
 Vollständige Liste mit Lizenzen: [CREDITS.md](../CREDITS.md). Im Standalone-Installer erscheint die Danksagung
 auf einer eigenen Seite.
