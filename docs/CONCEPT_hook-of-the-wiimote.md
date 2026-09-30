@@ -6,6 +6,27 @@
 
 ---
 
+## 0. Leitbild
+
+**Wiimote-Nutzer sollen bekommen, was die „großen“ Lightguns haben.** Wer eine Sinden, Gun4IR oder Blamcon
+hat, bekommt über Hook of the Reaper Rückstoß, Treffer-Feedback und Lampen für hunderte Spiele. Wer mit
+Wiimotes spielt, bekommt bisher wenig davon. Dabei liegt das Wissen offen: in den Spieldateien von Hook of the
+Reaper, in FFBBlaster und dem FFB Arcade Plugin, in DemulShooter und in Gunmote selbst. Hook of the Wiimote
+setzt nichts davon neu auf. Es **verbindet dieses Wissen** und übersetzt es auf das, was eine Wiimote kann:
+einen Motor und vier LEDs.
+
+Daraus folgen drei Grundsätze:
+1. **Auf den Schultern der anderen:** Was es schon gibt, wird genutzt und sichtbar gedankt (Abschn. 8,
+   [CREDITS.md](../CREDITS.md)), nicht nachgebaut. Fremde Software und Daten werden nie mitgeliefert.
+2. **Einfach für Einsteiger, ehrlich für Bastler:** Die Oberfläche zeigt Häkchen und Test-Knöpfe. Darunter bleibt
+   alles nachvollziehbar: Mitschnitt, Klartext-INIs, Backups.
+3. **Messen statt raten:** Jede Aussage in diesem Konzept ist am Cabinet gemessen oder als offen markiert.
+
+**Entstehung:** Hook of the Wiimote ist auch ein Experiment, was eine Zusammenarbeit von Mensch und KI leisten
+kann. Fried testet am Gerät und entscheidet. Claude analysiert Binärdateien, Protokolle und Logs, baut und
+dokumentiert. Die Irrwege stehen mit in der Doku, zum Beispiel „Ausgang 0 ist eine LED“ oder „GunEffect kam nie
+an“. Sie gehören zur Methode.
+
 ## 1. Was es ist
 
 Hook of the Reaper (HotR) setzt Spiel-Outputs in Rückstoß, Rumble und Lampen für Lightguns um. Laut HotR-Wiki unterstützt es nur **serielle Lightguns** (RS3 Reaper, MX24, Gun4IR, Fusion, Blamcon, OpenFIRE, Alien, XGunner, AimTrak, Sinden, beliebige serielle Guns). Wiimotes, XInput und Controller-Rumble kommen dort nicht vor.
@@ -121,3 +142,20 @@ HotR pflegt für über 222 Spiele **geräteunabhängige** Spieldateien (`default
 - Chihiro/Hikaru: DemulShooter-Start ist nicht verdrahtet, die ROMs fehlen am Cabinet.
 - Mehrere Wiimotes > 2: Gunmote kann 4, getestet sind 2.
 - Standalone ohne Admin-Rechte: Gunmote liegt in Program Files. Alternative wäre eine portable Gunmote-Installation.
+
+## 8. Danksagung
+
+Hook of the Wiimote steht auf der Arbeit anderer:
+- **Hook of the Reaper:** 6Bolt, Fusion Lightguns (<https://github.com/Fusion-Lightguns/Hook-Of-The-Reaper>).
+  Idee, Protokoll und Spieldateien.
+- **FFBBlaster:** das TeknoParrot-Team und Boomslangnz. Dazu sein Vorgänger **FFB Arcade Plugin** von Boomslangnz,
+  Ducon2016 und Spazzy (<https://github.com/Boomslangnz/FFBArcadePlugin>).
+- **DemulShooter:** argonlefou (<https://github.com/argonlefou/DemulShooter>). Outputs für Demul, Model 2 und viele mehr.
+- **Gunmote:** gunmotelabs (<https://github.com/gunmotelabs/Gunmote>), dazu **Touchmote/WiiTUIO** (simphax),
+  Ryochan und Suegrini. Ohne den ArcadeHook gäbe es keinen Weg zur Wiimote.
+- **MAMEHooker:** Howard Casto. Das MAME-Output-Protokoll, auf dem alles aufbaut.
+- **TeknoParrot** (Teknogods), **MAME** (MAMEdev), **Demul** und **ElSemi** (Model 2).
+- Die **Light Gun Lunatics** und **Pinball Lunatics** für das gesammelte Wissen der Community.
+
+Vollständige Liste mit Lizenzen: [CREDITS.md](../CREDITS.md). Im Standalone-Installer erscheint die Danksagung
+auf einer eigenen Seite.

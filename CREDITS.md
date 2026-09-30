@@ -32,6 +32,9 @@ missing, please open an issue: credits are never left out on purpose.
 | **MAMEHooker** (Howard Casto) | The original output/force-feedback tool for MAME and light guns | <https://dragonking.arcadecontrols.com/static.php?page=aboutmamehooker> | "Open-source for personal use" (author's page) |
 | **OutputHooker** (PolybiusExtreme) | Open successor of MAMEHooker for current Windows; rumble support is in progress, the choice of tool is still open | <https://github.com/PolybiusExtreme/OutputHooker> | GPL-3.0 |
 | **QMamehook** (SeongGino) | Cross-platform, MAMEHooker-compatible output client | <https://github.com/SeongGino/QMamehook> | LGPL-2.1 |
+| **Hook of the Reaper** (6Bolt, Fusion Lightguns) | Output middleware for serial light guns. Its game files and its idea (outputs to generic recoil, damage, life and ammo actions) are the model for Hook of the Wiimote | <https://github.com/Fusion-Lightguns/Hook-Of-The-Reaper> (wiki: <https://hotr.6bolt.com/>) | GPL-3.0 |
+| **FFBBlaster** (TeknoParrot, FFB work by Boomslangnz) | Force feedback and outputs for TeknoParrot games; its TCP outputs feed Hook of the Wiimote. Ships with TeknoParrot | <https://teknoparrot.com/> | Part of TeknoParrot (see there) |
+| **FFB Arcade Plugin** (Boomslangnz, Ducon2016, Spazzy) | Predecessor of FFBBlaster; the settings of the old cabinet were carried over from it | <https://github.com/Boomslangnz/FFBArcadePlugin> | GPL-3.0 |
 
 ### Emulators and their maintainers
 
@@ -100,6 +103,9 @@ jemand, bitte ein Issue aufmachen: Danksagungen werden nie absichtlich weggelass
 | **MAMEHooker** (Howard Casto) | Das ursprüngliche Ausgabe-/Force-Feedback-Werkzeug für MAME und Lightguns | <https://dragonking.arcadecontrols.com/static.php?page=aboutmamehooker> | „Open-source for personal use“ (Seite des Autors) |
 | **OutputHooker** (PolybiusExtreme) | Offener Nachfolger von MAMEHooker für aktuelles Windows; Rumble ist in Arbeit, die Werkzeugwahl ist noch offen | <https://github.com/PolybiusExtreme/OutputHooker> | GPL-3.0 |
 | **QMamehook** (SeongGino) | Plattformübergreifender, MAMEHooker-kompatibler Ausgabe-Client | <https://github.com/SeongGino/QMamehook> | LGPL-2.1 |
+| **Hook of the Reaper** (6Bolt, Fusion Lightguns) | Ausgabe-Middleware für serielle Lightguns. Seine Spieldateien und seine Idee (Outputs auf allgemeine Aktionen wie Rückstoß, Treffer, Leben, Munition) sind das Vorbild für Hook of the Wiimote | <https://github.com/Fusion-Lightguns/Hook-Of-The-Reaper> (Wiki: <https://hotr.6bolt.com/>) | GPL-3.0 |
+| **FFBBlaster** (TeknoParrot, FFB-Arbeit von Boomslangnz) | Force Feedback und Outputs für TeknoParrot-Spiele; seine TCP-Outputs speisen Hook of the Wiimote. Wird mit TeknoParrot ausgeliefert | <https://teknoparrot.com/> | Teil von TeknoParrot (siehe dort) |
+| **FFB Arcade Plugin** (Boomslangnz, Ducon2016, Spazzy) | Vorgänger von FFBBlaster; die Einstellungen des alten Cabinets stammen daraus | <https://github.com/Boomslangnz/FFBArcadePlugin> | GPL-3.0 |
 
 ### Emulatoren und ihre Maintainer
 
