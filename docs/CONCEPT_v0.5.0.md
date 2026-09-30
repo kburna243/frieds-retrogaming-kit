@@ -211,6 +211,12 @@ Context-Header, den der Agent bei jedem Aufruf mitgibt:
 
 ## 8. Validierte Wiimote/FFBBlaster/Gunmote-Integration (Praxis-Test 29.–30.09.2026)
 
+> **Stand 01.10.2026 — Berichtigungen, Details in [CONCEPT_hook-of-the-wiimote](CONCEPT_hook-of-the-wiimote.md) Abschn. 6:**
+> - Der Weg „GunEffect → ViGEm“ hat am Cabinet **nie** gerumpelt. Der Schuss läuft über den Output-Weg plus Pulsverlängerung (und `P<n>_Shot` aus dem Munitionszähler).
+> - Gunmote benennt die INI nach `mame_start` (`ArcadeOutputs\<Name>.ini`), nicht nach `<System>\<rom>`. Ausgang `0` ist eine LED, `5` der Motor.
+> - Gunmote liest **nur TCP**. DemulShooter und MAME kommen über das Relay, das Windows-Nachrichten in TCP übersetzt.
+> - Die Device-GUID ist für den Output-Weg unerheblich.
+
 Die im Konzept als „Neu" gelisteten Output-Adapter **FFBBlaster** und **Gunmote-Output-Hook** wurden am
 Produktiv-Cabinet mit 2 Nintendo Wiimotes, Mayflash DolphinBar (Mode 4) und dem Spiel **Rambo** (TeknoParrot)
 getestet. Der Test validiert die Architektur und liefert konkrete Konfigurationsmuster für die Implementierung.
@@ -246,7 +252,7 @@ getestet. Der Test validiert die Architektur und liefert konkrete Konfigurations
    von Gunmotes ArcadeHook als Client-Port erwartet.
 
 2. **Gunmote hat einen eingebauten TCP-Client** („ArcadeHook") in `Gunmote.dll`. Er verbindet sich auf
-   `localhost` und legt spielspezifische INIs unter `C:\Program Files\Gunmote\ArcadeOutputs\` an — die
+   `localhost` und legt INIs unter `C:\Program Files\Gunmote\ArcadeOutputs\<mame_start-Name>.ini` an — die
    INI entsteht automatisch beim ersten Empfang von Output-Signalen.
 
 3. **Zwei Rumble-Wege existieren parallel:**
@@ -254,7 +260,7 @@ getestet. Der Test validiert die Architektur und liefert konkrete Konfigurations
    | Weg | Auslöser | Transport | Konfiguration | Geeignet für |
    |:--|:--|:--|:--|:--|
    | **Output → INI** | Spiel-Output (z. B. `P1_Damage`) | TCP → Gunmote INI → Wiimote-Motor | `P1_Damage=wii 1 5 %s%` | Treffer, langanhaltende Events (>100 ms) |
-   | **GunEffect → ViGEm** | FFBBlaster-interner Schuss-Effekt | FFBBlaster → ViGEm Xbox-Pad → Wiimote | `HowtoRumbleGunEffect=1`, `FeedbackLength=100`, Stärke 50 % | Schüsse (FFBBlaster routed selbst an die Wiimote-GUID) |
+   | ~~**GunEffect → ViGEm**~~ | FFBBlaster-interner Schuss-Effekt | FFBBlaster → ViGEm Xbox-Pad → Wiimote | `HowtoRumbleGunEffect=1`, `FeedbackLength=100`, Stärke 50 % | **am Cabinet widerlegt (30.09.)**: kein Rumble, auch mit Wiimote-GUID |
 
 4. **Rückstoß-Pulse sind zu kurz für den Wiimote-Motor:** TeknoParrot-Spiele senden Rückstoß-Outputs oft nur
    ~16 ms lang. Der Wiimote-Motor braucht mindestens ~50–80 ms für eine spürbare Vibration. Lösung:
@@ -361,10 +367,9 @@ Der Default (200) ist für Wiimotes zu hoch — Werte unter 50 werden nicht zuve
 
 - **Gunmote-Output-Hook** für langanhaltende Spiel-Events (Treffer, Schild, Health-Change) — der Spiel-Output
   bleibt lange genug an (>100 ms), der Wiimote-Motor spricht direkt an.
-- **FFBBlaster GunEffect (ViGEm)** für kurze Impulse (Schüsse) — FFBBlaster erzeugt selbst einen
-  konfigurierbaren Rumble-Effekt (100 ms, 50 % Stärke) und schickt ihn über das ViGEm-Pad an die Wiimote.
-  Alternativ kann der Recoil-Stretcher den kurzen Spiel-Impuls verlängern und über den Output-Hook an die
-  Wiimote leiten.
+- ~~**FFBBlaster GunEffect (ViGEm)**~~ für Schüsse — **widerlegt am Cabinet (30.09.)**, kam nie an. Stattdessen:
+  der Recoil-Stretcher verlängert den kurzen Spiel-Impuls und leitet ihn über den Output-Hook an die Wiimote;
+  meldet ein Spiel keinen Schuss-Recoil (Walking Dead), erzeugt er `P<n>_Shot` aus dem Munitionszähler.
 
 Die `outputs.verify_safety`-Prüfung stellt sicher, dass nicht beide Wege gleichzeitig auf denselben
 Output-Namen hören (Doppel-Rumble).
