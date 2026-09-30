@@ -7,6 +7,8 @@ that matches it.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-01
+
 ## [0.4.2] - 2026-09-30
 
 ### Added
@@ -282,7 +284,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.3.1...v0.4.0

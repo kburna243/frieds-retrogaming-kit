@@ -4,7 +4,7 @@ const en: Dict = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v0.4.2.",
+      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v0.5.0.",
   },
   nav: {
     home: "Home",
