@@ -1,4 +1,4 @@
-# Latency Enhancement Adapter
+﻿# Latency Enhancement Adapter
 # DESCRIPTION: Detects and manages input latency reduction via RetroArch run-ahead, preemptive frames,
 # and GPU hardware sync. Run-ahead computes future frames to eliminate internal emulator lag.
 # SAFETY: Aggressive run-ahead (>2 frames) may cause audio crackling or visual glitches. Always

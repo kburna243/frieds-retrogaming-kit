@@ -11,3 +11,4 @@
     AliasesToExport   = @()
     PrivateData       = @{ PSData = @{ Tags = @('retrobat', 'display', 'monitor', 'dmd', 'edid') } }
 }
+

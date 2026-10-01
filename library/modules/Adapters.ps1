@@ -1,4 +1,4 @@
-# Library adapter plugins: one <Name>.ps1 per tool in library\adapters\, same five-function shape as
+﻿# Library adapter plugins: one <Name>.ps1 per tool in library\adapters\, same five-function shape as
 # the lightgun/arcade adapters (Test / Get-Info / Install / Configure / Shield), but library adapters
 # are detected by frontend installations and supported systems.
 

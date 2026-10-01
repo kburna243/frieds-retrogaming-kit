@@ -1,4 +1,4 @@
-$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+﻿$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1') -Force
 Import-Module (Join-Path $kitRoot 'pinball\RetroCabinetKit.Pinball.psd1') -Force
 Import-Module (Join-Path $kitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1') -Force

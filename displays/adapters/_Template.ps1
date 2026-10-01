@@ -1,4 +1,4 @@
-function Test-<Name>Hardware {
+﻿function Test-<Name>Hardware {
     [CmdletBinding()]
     param(
         [string] $RetroBatRoot,

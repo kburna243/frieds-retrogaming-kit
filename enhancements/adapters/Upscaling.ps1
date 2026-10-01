@@ -1,4 +1,4 @@
-# Upscaling Enhancement Adapter
+﻿# Upscaling Enhancement Adapter
 # DESCRIPTION: Detects and manages resolution upscaling via Lossless Scaling (Steam app), NV TrueHDR,
 # and integer scaling. Uses GPU VRAM and EDID data to recommend safe upscaling multipliers.
 # SAFETY: 4K upscaling on <4GB VRAM GPUs may cause frame drops or texture streaming issues.

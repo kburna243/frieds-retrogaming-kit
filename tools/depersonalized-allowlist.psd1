@@ -1,4 +1,4 @@
-# Allowlist for tools/Test-Depersonalized.ps1: legitimate examples, never real machines or people.
+﻿# Allowlist for tools/Test-Depersonalized.ps1: legitimate examples, never real machines or people.
 # Every entry: Path (wildcard on the repo-relative path with /), optional Kind (PrivateIp, HostName, DrivePath,
 # Email, Secret), optional Match (regex the found text must match) and a Reason. Keep entries as narrow as
 # possible; a new entry needs a reason a reviewer can check.

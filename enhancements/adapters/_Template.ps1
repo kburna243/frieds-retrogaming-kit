@@ -1,4 +1,4 @@
-# Template for enhancement adapters. Copy to <Name>.ps1 and replace <Name> with the adapter name.
+﻿# Template for enhancement adapters. Copy to <Name>.ps1 and replace <Name> with the adapter name.
 # This template follows the five-function shape: Test-<Name>Hardware, Get-<Name>AdapterInfo,
 # Install-<Name>Software, Configure-<Name>Profile, Set-<Name>InterferenceShield.
 

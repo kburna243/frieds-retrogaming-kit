@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Freezy's DMD Extensions (dmdext) output-middleware adapter for Fried's Retrogaming Kit.
 .DESCRIPTION

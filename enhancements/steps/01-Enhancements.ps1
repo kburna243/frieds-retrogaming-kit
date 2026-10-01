@@ -1,4 +1,4 @@
-# Enhancements step: detect, recommend, configure
+﻿# Enhancements step: detect, recommend, configure
 # This step file is called by the main kit workflow.
 
 # Sub-step 1: Detect GPU and active adapters

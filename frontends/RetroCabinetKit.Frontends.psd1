@@ -11,3 +11,4 @@
     AliasesToExport   = @()
     PrivateData       = @{ PSData = @{ Tags = @('retrobat', 'frontend', 'pinbally', 'playnite', 'launchbox', 'pinup', 'emulationstation') } }
 }
+

@@ -1,4 +1,4 @@
-# Step: Library Management
+﻿# Step: Library Management
 # Sub-step 1 (detect): find installed frontends
 # Sub-step 2 (scan): scan all frontends for ROMs, generate unified catalog
 # Sub-step 3 (validate): check ROM integrity with SHA-256

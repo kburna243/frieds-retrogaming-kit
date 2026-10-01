@@ -1,4 +1,4 @@
-function Get-DisplaysAdapterDir {
+﻿function Get-DisplaysAdapterDir {
     Join-Path $script:DisplaysDir 'adapters'
 }
 

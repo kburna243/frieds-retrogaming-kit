@@ -1,4 +1,4 @@
-$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+﻿$kitRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Import-Module (Join-Path $kitRoot 'core\RetroCabinetKit.Core.psd1') -Force
 Import-Module (Join-Path $kitRoot 'output\RetroCabinetKit.Output.psd1') -Force
 $newRetroBat = Join-Path $kitRoot 'tests\lightgun\New-LightgunTestRetroBat.ps1'
@@ -9,7 +9,7 @@ $steps = Join-Path $kitRoot 'output\steps'
 Describe 'Output adapter catalog and multi detection' {
     Set-KitCulture -Culture 'en-US'
 
-    It 'ships seven complete adapters; the underscore template is never listed' {
+    It 'ships six complete adapters; the underscore template is never listed' {
         $cat = @(Get-OutputAdapterCatalog)
         ($cat | ForEach-Object Name) -join ',' | Should Be 'DirectOutputFramework,FFBBlaster,GunmoteOutput,HookOfTheReaper,MameHooker,QMamehook'
         foreach ($a in $cat) {
@@ -53,18 +53,6 @@ Describe 'Output adapter catalog and multi detection' {
         # DOF claims no BoardMatchIds: a lone LED-Wiz board stays MameHooker's evidence, never DOF's.
         $r = Get-OutputDetectedMiddleware -Snapshot @{ Processes = @(); Ports = @(); Devices = @('USB\VID_0DFA&PID_0001&0') } -Quiet
         ($r.DetectedOutputs -join ',') | Should Be 'MameHooker'
-    }
-
-    It 'dmdext is detected but adds no output mode (DMD is not the mame output key)' {
-        $r = Get-OutputDetectedMiddleware -Snapshot @{ Processes = @('dmdext'); Ports = @(); Devices = @() } -Quiet
-        ($r.DetectedOutputs -join ',') | Should Be 'DmdExtensions'
-        $r.OutputMode | Should BeNullOrEmpty
-        @($r.Conflicts).Count | Should Be 0
-        $rb = Join-Path $TestDrive 'DmdBat'
-        New-Item -ItemType Directory -Path (Join-Path $rb 'tools\dmdext') -Force | Out-Null
-        $r = Get-OutputDetectedMiddleware -RetroBatRoot $rb -Snapshot @{ Processes = @(); Ports = @(); Devices = @() } -Quiet
-        ($r.DetectedOutputs -join ',') | Should Be 'DmdExtensions'
-        @($r.Errors).Count | Should Be 0
     }
 
     It 'two windows consumers (DOF + MameHooker) coexist; only windows-vs-network conflicts' {
@@ -166,12 +154,6 @@ Describe 'Output middleware configuration' {
         Test-OutputMiddlewareConfiguration -Names @('DirectOutputFramework', 'QMamehook') -RetroBatRoot $rb | Should Be $false
     }
 
-    It 'dmdext alone writes nothing: no output key, no settings file, verify stays green' {
-        $before = [IO.File]::ReadAllText((Join-Path $mameDir 'mame.ini'))
-        Set-OutputMiddlewareConfiguration -Names @('DmdExtensions') -RetroBatRoot $rb -Confirm:$false | Should Be 0
-        [IO.File]::ReadAllText((Join-Path $mameDir 'mame.ini')) | Should BeExactly $before
-        Test-OutputMiddlewareConfiguration -Names @('DmdExtensions') -RetroBatRoot $rb | Should Be $true
-    }
 }
 
 Describe 'Output step 01 as stand-alone script' {

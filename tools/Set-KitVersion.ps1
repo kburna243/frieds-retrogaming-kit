@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Sets the kit version everywhere it is written down, in one go, and checks the result.
 .DESCRIPTION

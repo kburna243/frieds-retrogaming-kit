@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Emulators step 01: detect and configure all installed emulators.
     - emulators-01-detect:     Scan all emulator adapters, report installed/not-installed.

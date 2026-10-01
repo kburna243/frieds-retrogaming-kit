@@ -1,4 +1,4 @@
-# Template for frontend adapters. Copy to <Name>.ps1 and replace <Name> with the frontend moniker
+﻿# Template for frontend adapters. Copy to <Name>.ps1 and replace <Name> with the frontend moniker
 # (e.g., RetroBat, PinballY, Playnite, LaunchBox, PinUP). Five-function contract: Test, Get-Info,
 # Install, Configure, Shield. Designed for extensibility: drop-in adapters are auto-discovered.
 # All adapters detect presence (exe, folder, process), provide info (paths, config targets, links,

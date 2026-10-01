@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 # Display package: monitors, DMD, backglass, topper detection and configuration via EDID and adapter plugins.
 # Sub-modules in modules\<Name>.ps1 are dot-sourced into one module scope. Public functions follow Verb-Displays*; helpers stay private.
 # Core is imported without -Force so every suite shares one instance (culture, log, and the audited INI writers).

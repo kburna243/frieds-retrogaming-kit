@@ -1,4 +1,4 @@
-﻿@{
+@{
     RootModule        = 'RetroCabinetKit.Lightgun.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = '8f0a3c55-2b61-4f7e-9a0d-6c1e4b7d2a93'
@@ -10,3 +10,5 @@
     VariablesToExport = @()
     AliasesToExport   = @()
 }
+
+

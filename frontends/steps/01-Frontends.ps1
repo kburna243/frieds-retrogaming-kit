@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Frontends step 01: detect, configure, and theme all installed frontends.
     - frontends-01-detect:     Scan all frontend adapters, report installed/not-installed.

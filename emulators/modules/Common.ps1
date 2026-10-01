@@ -1,4 +1,4 @@
-function Get-EmulatorsAdapterDir {
+﻿function Get-EmulatorsAdapterDir {
     Join-Path $script:EmulatorsDir 'adapters'
 }
 

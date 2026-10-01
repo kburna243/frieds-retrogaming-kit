@@ -11,3 +11,4 @@
     AliasesToExport   = @()
     PrivateData       = @{ PSData = @{ Tags = @('retrobat', 'emulator', 'mame', 'retroarch', 'teknoparrot', 'supermodel', 'model2', 'cemu', 'dolphin', 'rpcs3', 'xemu', 'duckstation', 'pcsx2') } }
 }
+

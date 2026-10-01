@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     PinUP Popper pinball frontend adapter for Fried's Retrogaming Kit.
 .DESCRIPTION

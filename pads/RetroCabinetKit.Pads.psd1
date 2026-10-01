@@ -1,4 +1,4 @@
-﻿@{
+@{
     RootModule        = 'RetroCabinetKit.Pads.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = '36d324e0-9d4b-4060-b1dc-76971b7e490f'
@@ -11,3 +11,5 @@
     AliasesToExport   = @()
     PrivateData       = @{ PSData = @{ Tags = @('retrobat', 'gamepad', '8bitdo', 'xbox', 'playstation', 'switch') } }
 }
+
+

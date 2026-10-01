@@ -11,3 +11,4 @@
     AliasesToExport   = @()
     PrivateData       = @{ PSData = @{ Tags = @('retrobat', 'enhancement', 'gpu', 'audio', 'shader', 'upscaling', 'latency', 'framepacing', 'ambient', 'mpo') } }
 }
+

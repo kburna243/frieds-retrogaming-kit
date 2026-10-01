@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Playnite universal game launcher frontend adapter for Fried's Retrogaming Kit.
 .DESCRIPTION

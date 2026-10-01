@@ -1,4 +1,4 @@
-﻿@{
+@{
     RootModule        = 'RetroCabinetKit.Output.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = 'e58b1f04-9d27-4c6a-8b35-70f2ad49e1c6'
@@ -11,3 +11,5 @@
     AliasesToExport   = @()
     PrivateData       = @{ PSData = @{ Tags = @('retrobat', 'output', 'rumble', 'mamehooker', 'solenoid') } }
 }
+
+

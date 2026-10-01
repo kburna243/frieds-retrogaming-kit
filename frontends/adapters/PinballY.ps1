@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     PinballY pinball frontend adapter for Fried's Retrogaming Kit.
 .DESCRIPTION

@@ -1,4 +1,4 @@
-function Get-FrontendsAdapterDir {
+﻿function Get-FrontendsAdapterDir {
     Join-Path $script:FrontendsDir 'adapters'
 }
 

@@ -1,4 +1,4 @@
-# Emulator adapter plugins: one <Name>.ps1 per emulator in emulators\adapters\, same five-function shape as
+﻿# Emulator adapter plugins: one <Name>.ps1 per emulator in emulators\adapters\, same five-function shape as
 # the other packages (Test / Get-Info / Install / Configure / Shield), but emulator adapters are
 # detected by executable presence, process checks, and RetroBat emulator folders -- and it is explicitly
 # MULTI: a cabinet can run multiple emulators simultaneously for different systems.

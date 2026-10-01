@@ -1,4 +1,4 @@
-﻿@{
+@{
     RootModule        = 'RetroCabinetKit.Api.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = '9a3e6c41-7b2d-4f88-a5c0-3d1e8f6b2a77'
@@ -11,3 +11,5 @@
     VariablesToExport = @()
     AliasesToExport   = @()
 }
+
+

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Adds the UTF-8 BOM to PowerShell files that contain non-ASCII characters and have none.
 .DESCRIPTION

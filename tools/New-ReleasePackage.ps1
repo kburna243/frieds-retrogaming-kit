@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Builds the release zip of Fried's Retrogaming Kit and writes SHA256SUMS.txt next to it.
 .DESCRIPTION

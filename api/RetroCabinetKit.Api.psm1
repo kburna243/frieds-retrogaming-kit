@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 # Kit API v1 (see API.md): one facade for every client. Operations return RetroCabinetKit.OperationResult;
 # change operations run as dry run unless -Apply; approvals are declined unless -Approved; only plain parameters
 # are accepted. No kit logic lives here: every handler calls the engine modules.

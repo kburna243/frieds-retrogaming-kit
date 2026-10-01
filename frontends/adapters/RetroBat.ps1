@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     RetroBat (EmulationStation-based) frontend adapter for Fried's Retrogaming Kit.
 .DESCRIPTION

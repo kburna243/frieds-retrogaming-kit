@@ -1,4 +1,4 @@
-# Library Common Helpers
+﻿# Library Common Helpers
 # Unified JSON catalog format: neutral intermediate representation for all frontend databases.
 
 function Get-LibraryAdapterDir { Join-Path $script:LibraryDir 'adapters' }
