@@ -7,6 +7,21 @@ that matches it.
 
 ## [Unreleased]
 
+### Added
+
+- Dashboard: fourth card **Controls & rumble**. The devices the kit recognizes, the Wiimote output chain (Wiimote,
+  Gunmote, ViGEmBus, recoil relay, MAME outputs) with a hint for every missing link, and the input profiles: pick one,
+  see its mapping, run it as a dry run, write it after a yes. The button says what it will do (dry run or write).
+  Uses `controllers.detect`, `outputs.wiimote_hook`, `controllers.input_profiles`, `controllers.input_apply`.
+
+### Fixed
+
+- `outputs.wiimote_hook` reported three false negatives on a Bluetooth cabinet: Wiimotes were only looked for among USB
+  devices (Bluetooth ones sit under BTHENUM/HID as `VID&0002057E`), the relay only as the kit's own copy (now also the
+  `Gunmote Recoil Stretch` task), and the MAME output mode in `emulators\mame\mame.ini`, which RetroBat does not use
+  (now `mame.mame_output` in `es_settings.cfg`, then the ini files).
+- Column headers of the dashboard's lists (backups, input profile) were the system's white bar; they follow the theme now.
+
 ## [1.3.2] - 2026-10-01
 
 ### Fixed

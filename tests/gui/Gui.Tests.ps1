@@ -272,3 +272,57 @@ Describe 'Migrate view' {
         } finally { $ui.Window.Close() }
     }
 }
+
+Describe 'Controls view' {
+    $newRetroBat = Join-Path $kitRoot 'tests\lightgun\New-LightgunTestRetroBat.ps1'
+
+    It 'shows the mapping the same whether the API hands over a dictionary or an object' {
+        $map = [ordered]@{ P1_BUTTON1 = @('JOY1_BUTTON2', 'KEY_LCONTROL'); START1 = @('KEY_1') }
+        $a = Get-KitGuiMappingRows ([pscustomobject]@{ Name = 'x'; Mapping = $map })
+        $b = Get-KitGuiMappingRows ([pscustomobject]@{ Name = 'x'; Mapping = [pscustomobject]$map })
+        ($a | ForEach-Object { "$($_.Intent)=$($_.Sources)" }) -join ';' | Should Be 'P1_BUTTON1=JOY1_BUTTON2  |  KEY_LCONTROL;START1=KEY_1'
+        ($b | ForEach-Object { "$($_.Intent)=$($_.Sources)" }) -join ';' | Should Be (($a | ForEach-Object { "$($_.Intent)=$($_.Sources)" }) -join ';')
+    }
+
+    It 'marks what is missing in the rumble chain and says what to do; a conflict is an error' {
+        $hook = [pscustomobject]@{ Success = $true; Message = ''; Data = [pscustomobject]@{
+            WiimoteDetected = $true; GunmoteInstalled = $true; GunmoteRunning = $true; ViGEmBusInstalled = $true
+            RelayInstalled = $true; MameOutputWindows = $false; PortConflicts = @('TCP 8000: in use by X'); DoubleConsumers = @() } }
+        $rows = Get-KitGuiChainRows $hook
+        ($rows | ForEach-Object { $_.Level }) -join ',' | Should Be 'Ok,Ok,Ok,Ok,Warn,Error'
+        $rows[4].Text | Should Be (Get-KitText 'Gui.Chain.MameOutputHint')
+        $rows[0].TextVisibility | Should Be 'Collapsed'
+        $rows[5].Text | Should Be 'TCP 8000: in use by X'
+    }
+
+    It 'the button follows the dry-run box; a dry run writes nothing and asks nothing, writing only after a yes' {
+        $rb = Join-Path $TestDrive 'RetroBat'
+        & $newRetroBat -Root $rb
+        $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult @() -RetroBatRoot $rb
+        try {
+            $c = $ui.Controls
+            $c.ProfileList.ItemsSource = @([pscustomobject]@{ Name = 'ipac2-default'; Description = 'test'; Builtin = $true; Intents = 26 })
+            $c.ProfileList.SelectedIndex = 0
+            Update-KitGuiApplyButton -Ui $ui
+            $c.ApplyInputButton.Content | Should Be (Get-KitText 'Gui.Controls.DryRunButton')
+            $target = Join-Path $rb 'saves\mame\ctrlr\kit-ipac2-default.cfg'
+
+            $asked = 0
+            $r = Invoke-KitGuiApplyInput -Ui $ui -Confirm { $script:asked++; $true }
+            $r.Status | Should Be 'WhatIf'
+            $asked | Should Be 0
+            Test-Path -LiteralPath $target | Should Be $false
+            $c.ControlsLog.Text | Should Match 'kit-ipac2-default\.cfg'
+
+            $c.InputDryRunBox.IsChecked = $false
+            Update-KitGuiApplyButton -Ui $ui
+            $c.ApplyInputButton.Content | Should Be (Get-KitText 'Gui.Controls.WriteButton')
+            $r = Invoke-KitGuiApplyInput -Ui $ui -Confirm { $false }
+            $r | Should BeNullOrEmpty
+            Test-Path -LiteralPath $target | Should Be $false
+            $r = Invoke-KitGuiApplyInput -Ui $ui -Confirm { $true }
+            $r.Status | Should Be 'Done'
+            Test-Path -LiteralPath $target | Should Be $true
+        } finally { $ui.Window.Close() }
+    }
+}

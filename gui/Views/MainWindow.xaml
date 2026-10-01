@@ -1,5 +1,5 @@
 <!--
-  Main window: dashboard (three modes + system status), the migrate view and the recover view. No text lives here: every element
+  Main window: dashboard (four modes + system status), the migrate, recover and controls views. No text lives here: every element
   with Tag="i18n:<key>" gets its Text/Content/Header from i18n\<culture>.psd1 (Update-KitGuiText), so German
   and English stay in one place and a missing key shows up as [[Key]] in the tests.
   Logic lives in the engine modules; gui\RetroCabinetKit.Gui.psm1 only maps results to this view.
@@ -48,7 +48,7 @@
         </StackPanel>
       </DockPanel>
 
-      <UniformGrid Grid.Row="1" Columns="3" Margin="-8,0,-8,20">
+      <UniformGrid Grid.Row="1" Columns="4" Margin="-8,0,-8,20">
         <Border Style="{StaticResource Card}" Margin="8,0">
           <DockPanel>
             <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
@@ -83,6 +83,18 @@
               <TextBlock Text="03" Style="{StaticResource Kicker}"/>
               <TextBlock Tag="i18n:Gui.Recover.Title" Style="{StaticResource Headline}" Margin="0,4,0,8"/>
               <TextBlock Tag="i18n:Gui.Recover.Text" Style="{StaticResource Body}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="8,0">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+              <Button x:Name="ControlsButton" Tag="i18n:Gui.Controls.Button" Style="{StaticResource SecondaryButton}"/>
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="04" Style="{StaticResource Kicker}"/>
+              <TextBlock Tag="i18n:Gui.Controls.Title" Style="{StaticResource Headline}" Margin="0,4,0,8"/>
+              <TextBlock Tag="i18n:Gui.Controls.Text" Style="{StaticResource Body}"/>
             </StackPanel>
           </DockPanel>
         </Border>
@@ -216,6 +228,115 @@
           <TextBlock x:Name="MigrateLog" Style="{StaticResource Terminal}"/>
         </ScrollViewer>
       </Border>
+    </Grid>
+
+    <!-- controls & rumble: devices, the Wiimote output chain, input profiles (API: controllers.detect,
+         outputs.wiimote_hook, controllers.input_profiles, controllers.input_apply) -->
+    <Grid x:Name="ControlsView" Grid.Row="1" Visibility="Collapsed">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <DockPanel Grid.Row="0" Margin="0,0,0,14">
+        <StackPanel DockPanel.Dock="Right" VerticalAlignment="Bottom" Margin="24,0,0,0">
+          <TextBlock Tag="i18n:Gui.Controls.RetroBat" Style="{StaticResource Kicker}" Margin="0,0,0,4"/>
+          <DockPanel>
+            <Button DockPanel.Dock="Right" x:Name="ChooseRetroBatButton" Tag="i18n:Gui.Controls.ChooseRetroBat" Style="{StaticResource SecondaryButton}" Padding="12,6" Margin="10,0,0,0"/>
+            <TextBlock x:Name="RetroBatText" Style="{StaticResource Terminal}" VerticalAlignment="Center" MaxWidth="240" TextTrimming="CharacterEllipsis"/>
+          </DockPanel>
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Tag="i18n:Gui.Controls.Kicker" Style="{StaticResource Kicker}" Margin="0,0,0,6"/>
+          <TextBlock Tag="i18n:Gui.Controls.Title" Style="{StaticResource Headline}" FontSize="28"/>
+          <TextBlock Tag="i18n:Gui.Controls.Steps" Style="{StaticResource Body}" Margin="0,6,0,0"/>
+        </StackPanel>
+      </DockPanel>
+
+      <UniformGrid Grid.Row="1" Columns="2" Margin="-8,0,-8,14">
+        <Border Style="{StaticResource Card}" Margin="8,0" Padding="18,14">
+          <StackPanel>
+            <TextBlock Tag="i18n:Gui.Controls.Devices" Style="{StaticResource Headline}" FontSize="18" Margin="0,0,0,8"/>
+            <ItemsControl x:Name="DeviceRows">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal" Margin="0,2">
+                    <TextBlock Text="{Binding Symbol}" Foreground="{Binding Brush}" FontFamily="{StaticResource MonoFont}" FontSize="12" Width="22"/>
+                    <TextBlock Text="{Binding Label}" Foreground="{StaticResource CreamBrush}" FontFamily="{StaticResource MonoFont}" FontSize="12" Width="150"/>
+                    <TextBlock Text="{Binding Text}" Style="{StaticResource Terminal}" TextWrapping="Wrap" MaxWidth="260"/>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Margin="8,0" Padding="18,14">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,8">
+              <Button DockPanel.Dock="Right" x:Name="RefreshControlsButton" Tag="i18n:Gui.Controls.Refresh" Style="{StaticResource SecondaryButton}" Padding="12,4"/>
+              <TextBlock Tag="i18n:Gui.Controls.Chain" Style="{StaticResource Headline}" FontSize="18" VerticalAlignment="Center"/>
+            </DockPanel>
+            <ItemsControl x:Name="ChainRows">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="0,2">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="{Binding Symbol}" Foreground="{Binding Brush}" FontFamily="{StaticResource MonoFont}" FontSize="12" Width="22"/>
+                      <TextBlock Text="{Binding Label}" Foreground="{StaticResource CreamBrush}" FontFamily="{StaticResource MonoFont}" FontSize="12"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Text}" Visibility="{Binding TextVisibility}" Foreground="{Binding Brush}" Style="{StaticResource Terminal}" TextWrapping="Wrap" Margin="22,0,0,2"/>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </UniformGrid>
+
+      <Grid Grid.Row="2">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="3*"/>
+          <ColumnDefinition Width="16"/>
+          <ColumnDefinition Width="2*"/>
+        </Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Style="{StaticResource Card}" Padding="18,14">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Tag="i18n:Gui.Controls.Profile" Style="{StaticResource Headline}" FontSize="18" Margin="0,0,0,8"/>
+            <ListBox DockPanel.Dock="Top" x:Name="ProfileList" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource ChoiceItem}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Name}" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="{StaticResource CreamBrush}"/>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBlock DockPanel.Dock="Top" Text="{Binding SelectedItem.Description, ElementName=ProfileList}" Style="{StaticResource Terminal}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <ListView x:Name="MappingList" Background="Transparent" BorderThickness="0" Foreground="{StaticResource CreamBrush}"
+                      FontFamily="{StaticResource MonoFont}" FontSize="12">
+              <ListView.View>
+                <GridView>
+                  <GridViewColumn Width="170" DisplayMemberBinding="{Binding Intent}"/>
+                  <GridViewColumn Width="360" DisplayMemberBinding="{Binding Sources}"/>
+                </GridView>
+              </ListView.View>
+            </ListView>
+          </DockPanel>
+        </Border>
+        <DockPanel Grid.Column="2">
+          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <CheckBox x:Name="InputDryRunBox" Tag="i18n:Ui.DryRun" IsChecked="True" Foreground="{StaticResource CreamBrush}" Margin="0,0,0,10"/>
+            <Button x:Name="ApplyInputButton" Tag="i18n:Gui.Controls.DryRunButton" Style="{StaticResource SecondaryButton}"/>
+          </StackPanel>
+          <Border Style="{StaticResource Card}" Background="{StaticResource ScreenBrush}" Padding="16,12">
+            <ScrollViewer x:Name="ControlsLogScroll" VerticalScrollBarVisibility="Auto">
+              <TextBlock x:Name="ControlsLog" Style="{StaticResource Terminal}" TextWrapping="Wrap"/>
+            </ScrollViewer>
+          </Border>
+        </DockPanel>
+      </Grid>
     </Grid>
 
     <!-- footer -->

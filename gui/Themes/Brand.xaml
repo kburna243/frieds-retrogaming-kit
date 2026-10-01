@@ -200,4 +200,44 @@
       </Trigger>
     </Style.Triggers>
   </Style>
+
+  <!-- Column headers of every ListView (backups, input profile): the system look is a white bar on the dark card. -->
+  <Style TargetType="GridViewColumnHeader">
+    <Setter Property="Foreground" Value="{StaticResource CreamMutedBrush}"/>
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="GridViewColumnHeader">
+          <Border Background="{StaticResource NightRaisedBrush}" BorderBrush="{StaticResource NightLineBrush}" BorderThickness="0,0,0,1" Padding="8,6">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Choice lists (input profiles): a row per item, the chosen one outlined in Pixel Green. -->
+  <Style x:Key="ChoiceItem" TargetType="ListBoxItem">
+    <Setter Property="Foreground" Value="{StaticResource CreamBrush}"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border x:Name="Box" Background="Transparent" BorderBrush="{StaticResource NightLineBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,8,6">
+            <ContentPresenter/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource PixelGreenBrush}"/>
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource NightRaisedBrush}"/>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource NightRaisedBrush}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
 </ResourceDictionary>
