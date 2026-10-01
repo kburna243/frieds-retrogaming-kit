@@ -295,6 +295,16 @@ Describe 'Controls view' {
         $rows[5].Text | Should Be 'TCP 8000: in use by X'
     }
 
+    It 'lists the used XInput slots with the MAME joystick number; empty slots are left out' {
+        Set-KitCulture -Culture 'en-US'
+        $slots = [pscustomobject]@{ Success = $true; Data = [pscustomobject]@{ Slots = @(
+            [pscustomobject]@{ Slot = 0; Connected = $false; MameJoy = $null; Kind = $null; TriggersAsButtons = $false }
+            [pscustomobject]@{ Slot = 1; Connected = $true; MameJoy = 'JOY1'; Kind = 'Gamepad'; TriggersAsButtons = $false }
+            [pscustomobject]@{ Slot = 2; Connected = $true; MameJoy = 'JOY2'; Kind = 'ArcadeStick'; TriggersAsButtons = $true }) } }
+        $rows = Get-KitGuiSlotRows $slots
+        ($rows | ForEach-Object { "$($_.Label)|$($_.Text)" }) -join ';' | Should Be 'JOY1 = XInput 1|Gamepad;JOY2 = XInput 2|ArcadeStick, LT/RT = buttons 5/6'
+    }
+
     It 'the button follows the dry-run box; a dry run writes nothing and asks nothing, writing only after a yes' {
         $rb = Join-Path $TestDrive 'RetroBat'
         & $newRetroBat -Root $rb

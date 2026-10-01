@@ -9,6 +9,12 @@ that matches it.
 
 ### Added
 
+- API 1.6: operation `controllers.xinput_slots` (reads only). The four XInput slots: in use or not, the device kind
+  (gamepad, arcade stick, wheel, ...), the MAME joystick number and the source names of the buttons as MAME numbers
+  them, ready for an input profile. MAME counts connected slots only (slot 0 empty, slot 1 used -> `JOY1`) and on
+  arcade sticks and arcade pads counts LT/RT as buttons 5/6, LB/RB as 7/8; buttons a device does not report get no
+  number (`input_xinput.cpp`).
+- Controls & rumble view: the used XInput slots with their `JOY<n>` under the devices.
 - Dashboard: fourth card **Controls & rumble**. The devices the kit recognizes, the Wiimote output chain (Wiimote,
   Gunmote, ViGEmBus, recoil relay, MAME outputs) with a hint for every missing link, and the input profiles: pick one,
   see its mapping, run it as a dry run, write it after a yes. The button says what it will do (dry run or write).

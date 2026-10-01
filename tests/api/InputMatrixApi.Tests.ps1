@@ -29,3 +29,14 @@ Describe 'API 1.5 -- input matrix' {
         @($list.Data.Profiles | Where-Object { $_.Name -eq 'ipac2-default' }).Count | Should Be 1
     }
 }
+
+Describe 'API 1.6 -- XInput slots' {
+    It 'API: reads the four slots and says how many are in use' {
+        $r = Invoke-KitOperation -Name 'controllers.xinput_slots'
+        $r.Status | Should Be 'Ok'
+        $r.Kind | Should Be 'Read'
+        @($r.Data.Slots).Count | Should Be 4
+        (@($r.Data.Slots) | ForEach-Object { $_.Slot }) -join ',' | Should Be '0,1,2,3'
+        $r.Message | Should Match '^\d of 4 XInput slot'
+    }
+}
