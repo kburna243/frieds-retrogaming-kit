@@ -5,7 +5,7 @@
 
 Set-StrictMode -Version 2.0
 
-$script:ApiVersion = '1.4'
+$script:ApiVersion = '1.5'
 $script:ApiDir     = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 # The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
@@ -111,6 +111,8 @@ function Get-KitOperation {
         @{ Name = 'backup.export'; Kind = 'Change'; Description = 'Copies a backup to a folder and records its SHA-256.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }); Module = 'core' }
         @{ Name = 'support.bundle'; Kind = 'Change'; Description = 'Writes an anonymized support bundle (doctor, environment, step states, logs).'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $false }); Module = 'core' }
         @{ Name = 'controllers.detect'; Kind = 'Read'; Description = 'Detect all controllers: lightguns, arcade sticks, pads. One result across three packages.'; Parameters = @(); Module = 'controllers' }
+        @{ Name = 'controllers.input_profiles'; Kind = 'Read'; Description = 'List the input profiles (one button layout for the whole cabinet), or one profile with its mapping.'; Parameters = @([pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
+        @{ Name = 'controllers.input_apply'; Kind = 'Change'; Description = 'Write an input profile as a MAME ctrlr file of its own (never a hand-made one); the plan names the RetroBat settings that load it.'; Parameters = @([pscustomobject]@{ Name = 'Profile'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'CtrlrName'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
         @{ Name = 'displays.detect'; Kind = 'Read'; Description = 'Detect all displays: monitors (EDID), virtual DMD, backglass, topper.'; Parameters = @(); Module = 'displays' }
         @{ Name = 'enhancements.detect'; Kind = 'Read'; Description = 'Detect all enhancements: GPU, shader presets, latency, upscaling, frame pacing, pinball visuals, ambient lighting, audio.'; Parameters = @(); Module = 'enhancements' }
         @{ Name = 'library.scan'; Kind = 'Read'; Description = 'Scan all frontend libraries for ROMs, media, and metadata. Returns unified JSON catalog.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $false }); Module = 'library' }
@@ -488,6 +490,40 @@ function Invoke-KitOperation {
                     -Warnings $warnings -Errors $errors -Approvals @($script:ApiApprovals) `
                     -Changes @($steps | ForEach-Object { $_.Changes }) -Backups @($steps | ForEach-Object { $_.Backups }) `
                     -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data ([pscustomobject]@{ Result = $out })
+            }
+            'controllers.input_profiles' {
+                try {
+                    $one = $p.ContainsKey('Name') -and $p.Name
+                    $profiles = @(if ($one) { Get-ArcadeInputProfile -Name $p.Name } else { Get-ArcadeInputProfile })
+                    $rows = @($profiles | ForEach-Object {
+                        $row = [ordered]@{ Name = $_.Name; Description = $_.Description; Builtin = $_.Builtin; Intents = $_.Mapping.Count }
+                        if ($one) { $row.Mapping = $_.Mapping }
+                        [pscustomobject]$row
+                    })
+                    $data = [pscustomobject]@{ Profiles = $rows }; $status = 'Ok'; $msg = "$($rows.Count) input profile(s)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'controllers.input_apply' {
+                # Rule 1: without -Apply the answer is the plan and nothing is written.
+                try {
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-ArcadeRetroBatRoot }
+                    $ctrlr = if ($p.ContainsKey('CtrlrName') -and $p.CtrlrName) { $p.CtrlrName } else { '' }
+                    $res = if ($apply) { Set-ArcadeInputMatrix -ProfileName $p.Profile -CtrlrName $ctrlr -RetroBatRoot $rb -Confirm:$false }
+                           else { Get-ArcadeInputMatrixPlan -ProfileName $p.Profile -CtrlrName $ctrlr -RetroBatRoot $rb }
+                    $changes = @($res.Changes)
+                    $status = if (-not $changes.Count) { 'Skipped' } elseif ($apply) { 'Done' } else { 'WhatIf' }
+                    $msg = if (-not $changes.Count) { "$($res.Target) already matches profile $($res.Profile)" }
+                           elseif ($apply) { "$($res.Target) written from profile $($res.Profile) ($($changes.Count) port(s))" }
+                           else { "Plan: $($changes.Count) port(s) for $($res.Target). Apply with -Apply." }
+                    $backups = @(if ($apply -and $res.Backup) { $res.Backup })
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied ($apply -and $res.Written) -Message $msg `
+                        -Warnings @($res.Warnings) -Changes $changes -Backups $backups -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                        -Data ([pscustomobject]@{ Profile = $res.Profile; Target = $res.Target; Exists = $res.Exists })
+                } catch {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status Failed -Message $_.Exception.Message -Errors @($_.Exception.Message) `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started
+                }
             }
             'controllers.detect' {
                 # Read-only detection of all controllers across lightgun, arcade, and pads packages

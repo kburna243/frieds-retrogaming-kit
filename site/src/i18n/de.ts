@@ -2,7 +2,7 @@ const de = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v1.2.0.",
+      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v1.3.0.",
   },
   nav: {
     home: "Start",
@@ -92,18 +92,18 @@ const de = {
     ],
   },
   release: {
-    kicker: "NEU IN v0.3",
-    title: "Ein Fenster für alles — und ein Umzug ohne Kopfschmerzen",
-    intro: "Seit v0.3 kommt das Kit als Desktop-App: einrichten, umziehen, retten. Alles bleibt lokal auf deinem PC.",
+    kicker: "NEU IN v{v}",
+    title: "Ein Button-Layout für das ganze Kabinett",
+    intro: "v1.1 bis v{v}: einmal festlegen, welche Taste was tut, Setup-Stufen für jeden Geschmack, ein Schnell-Check und Rücksprungpunkte. Alles bleibt lokal auf deinem PC.",
     download: "DOWNLOAD v{v}",
     changelog: "WAS IST NEU",
     features: [
-      { title: "Desktop-Dashboard", text: "Start-Kit.cmd öffnet ein Fenster mit drei Modi — Neues Kabinett, Umziehen, Retten — und dem aktuellen Systemstatus. Nichts zu installieren." },
-      { title: "Hardware- & Controller-Adapter", text: "Plug-and-Play-Profile für Gamepads (Xbox, PlayStation, Switch Pro, 8BitDo), Arcade-Encoder (Brook, GP2040-CE, I-PAC) und Racing Wheels (Logitech, Thrustmaster, Fanatec)." },
-      { title: "Pinball Force Feedback & DMD", text: "Volle Unterstützung für DirectOutputFramework (DOF für Schütze, Shaker, Flasher) und DmdExtensions (DMDext für Real/Virtual DMDs) sowie PinballY-Erkennung." },
-      { title: "Kabinett-Umzug A > B", text: "Einstellungen des alten Kabinetts als Zip exportieren, auf dem neuen im Probelauf prüfen, dann importieren — mit Backup vor jedem Schreiben. Nie ROMs, BIOS oder Tische." },
-      { title: "Wartung eingebaut", text: "Gesundheitscheck, alle Backups in einer Liste zum Prüfen und Zurückspielen und ein anonymisiertes Support-Paket für Fehlermeldungen." },
-      { title: "Lokale API & MCP", text: "Skripte und KI-Agenten nutzen dieselben Operationen: standardmäßig Probelauf, Installer nur nach Freigabe durch dich, Ergebnisse anonymisiert, kein Netzwerkport." },
+      { title: "Universelles Button-Setup", text: "Ein Profil sagt, welche Taste am Panel Start, Münze oder Feuer ist — das Kit schreibt daraus die MAME-Belegung. Panel getauscht? Ein Profil ändern. Deine Gun-Belegung wird nie überschrieben." },
+      { title: "Setup-Stufen & Presets", text: "Easy, Custom oder NerdExtreme: so viel Autopilot oder Detail, wie du willst. Vier fertige Presets, eigene dazu." },
+      { title: "Deine Einstellungen bleiben", text: "Neben jede config.ini darf eine config.override.ini: deine Werte gewinnen immer, Kit-Updates überschreiben sie nie." },
+      { title: "Schnell-Check in 2 Sekunden", text: "USB-Hardware, erreichbare ROM-Ordner (auch NAS), störende Programme und Systemwerte auf einen Blick — ohne Log-Lesen." },
+      { title: "Rücksprungpunkte", text: "Vor größeren Änderungen einen benannten Punkt setzen und bei Bedarf dorthin zurück." },
+      { title: "Wiimote-Ausgabekette", text: "DolphinBar, Gunmote, Rückstoß-Relais und Rumble-Grenzen auf einen Blick — die Basis für Hook of the Wiimote." },
     ],
   },
   creditsTeaser: {

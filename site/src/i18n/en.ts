@@ -4,7 +4,7 @@ const en: Dict = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v1.2.0.",
+      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v1.3.0.",
   },
   nav: {
     home: "Home",
@@ -94,18 +94,18 @@ const en: Dict = {
     ],
   },
   release: {
-    kicker: "NEW IN v0.3",
-    title: "One window for everything — and a move without headaches",
-    intro: "Since v0.3 the kit is a desktop app: set up, migrate, recover. Everything stays local on your PC.",
+    kicker: "NEW IN v{v}",
+    title: "One button layout for the whole cabinet",
+    intro: "v1.1 to v{v}: decide once which button does what, setup levels for every taste, a fast health check and rollback points. Everything stays local on your PC.",
     download: "DOWNLOAD v{v}",
     changelog: "WHAT'S NEW",
     features: [
-      { title: "Desktop dashboard", text: "Start-Kit.cmd opens one window with three modes — new cabinet, migrate, recover — and the live system status. Nothing to install." },
-      { title: "Hardware & Controller Adapters", text: "Plug-and-play profiles for gamepads (Xbox, PlayStation, Switch Pro, 8BitDo), arcade encoders (Brook, GP2040-CE, I-PAC), and racing wheels (Logitech, Thrustmaster, Fanatec)." },
-      { title: "Pinball Force Feedback & DMD", text: "Full support for DirectOutputFramework (DOF for contactors, shakers, flashers) and DmdExtensions (DMDext for real/virtual DMDs) plus PinballY discovery." },
-      { title: "Cabinet migration A > B", text: "Export the old cabinet's settings as a zip, check it on the new one with a dry run, then import — with a backup before every write. Never ROMs, BIOS or tables." },
-      { title: "Maintenance built in", text: "Health check, every backup in one list to check and restore, and an anonymized support bundle for bug reports." },
-      { title: "Local API & MCP", text: "Scripts and AI agents use the same operations: dry run by default, installers only after your approval, results anonymized, no network port." },
+      { title: "Universal button setup", text: "One profile says which panel button is start, coin or fire — the kit writes the MAME layout from it. New panel? Change one profile. Your gun layout is never overwritten." },
+      { title: "Setup levels & presets", text: "Easy, Custom or NerdExtreme: as much autopilot or detail as you like. Four ready presets, plus your own." },
+      { title: "Your settings stay yours", text: "Next to any config.ini you may put a config.override.ini: your values always win, kit updates never overwrite them." },
+      { title: "Health check in 2 seconds", text: "USB hardware, reachable ROM folders (NAS too), interfering programs and vitals at a glance — no log reading." },
+      { title: "Rollback points", text: "Set a named point before bigger changes and go back to it when needed." },
+      { title: "Wiimote output chain", text: "DolphinBar, Gunmote, recoil relay and rumble limits at a glance — the base for Hook of the Wiimote." },
     ],
   },
   creditsTeaser: {

@@ -33,20 +33,22 @@
 ---
 
 > [!NOTE]
-> **Status: v1.2.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–15 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel, geführter DuckStation-/PCSX2-Prüfung und USB-Adaptern für Gun4IR, OpenFIRE, AimTrak, Retro Shooter und **Sinden**) sind einsatzbereit, dazu die Pakete Arcade, Output und Pads. Neu in v0.4.0: genau diese vier Suiten, die PinballY-Prüf- und Retarget-Operationen (API 1.3) und das Desktop-Dashboard über die API. v0.4.1 behebt den fehlenden Zeiger bei Model 2/3, Naomi, Atomiswave und Dreamcast (neues Layout `Mouse 4:3`). Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
+> **Status: v1.3.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–15 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel, geführter DuckStation-/PCSX2-Prüfung und USB-Adaptern für Gun4IR, OpenFIRE, AimTrak, Retro Shooter und **Sinden**) sind einsatzbereit, dazu die Pakete Arcade, Output und Pads. Neu in v0.4.0: genau diese vier Suiten, die PinballY-Prüf- und Retarget-Operationen (API 1.3) und das Desktop-Dashboard über die API. v0.4.1 behebt den fehlenden Zeiger bei Model 2/3, Naomi, Atomiswave und Dreamcast (neues Layout `Mouse 4:3`). Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
 
 ---
 
-## ✨ Neu in v0.4.0
+## ✨ Neu in v1.3.0
+
+Seit v1.0.0 (Details im [CHANGELOG](CHANGELOG.md)):
 
 | | Was du bekommst |
 | :--- | :--- |
-| 🎯 **Sinden Lightgun-Adapter** | Kamera-Tracking (`16C0/0F01-0F02`), automatische Rand-Konfiguration in RetroBat (`retrobat.ini [Guns]`), DemulShooter-Zuordnung, Rawinput für MAME und COM-Port-Schnittstelle für Recoil-Modelle. |
-| 🔫 **USB-Lightgun-Adapter** | Modulare Drop-In-Adapter für **Gun4IR, OpenFIRE, AimTrak, Retro Shooter und Sinden** mit PnP-Erkennung, Kollisionsschutz und Prüfung offizieller Bezugsquellen. |
-| 🕹️ **Arcade- & Fightstick-Paket** | Plug-and-Play-Unterstützung für 12 Encoder und Lenkräder (**GP2040-CE, Brook UFB, I-PAC, Zero Delay, Hori, Mad Catz, Logitech, Thrustmaster**) mit kollisionsfreier Tastenbindung. |
-| 📳 **Output- & Haptik-Middleware** | Koordinierte Haptik-Signale für Guns und Lenkräder (**MameHooker, QMamehook, Hook of the Reaper**) mit fest verdrahtetem 200-ms-Schutz für Magnetspulen. |
-| 📍 **PinballY Inspektion & Retarget** | API 1.3 Operationen `pinbally.detect` und `pinbally.retarget`: Automatische Laufwerks- und Pfadanpassung für kopierte Flipper-Installationen, ohne Datenbanken zu beschädigen. |
-| 💬 **Community Blitz-Feedback** | 60-Sekunden-Feedback-Formular im Web mit 6 Most-Wanted-Profilen, automatischer Browser-Anonymisierung und 1-Klick-Issue-Export. |
+| 🎮 **Universelles Button-Setup** (1.3) | Ein Eingabeprofil für das ganze Kabinett ordnet Aktionen (`START1`, `COIN1`, `P1_BUTTON1` …) dem zu, was das Panel sendet — Tasten, Pad-Knöpfe, Maustasten, mehrere pro Knopf. Geschrieben als eigene MAME-ctrlr-Datei des Kits; eine selbst gebaute Datei wie die Gun-Belegung `custom1.cfg` wird nie überschrieben. API `controllers.input_profiles`, `controllers.input_apply`. |
+| 🎚️ **Setup-Stufen & Presets** (1.1) | Easy / Custom / NerdExtreme und vier fertige Presets plus eigene (`setup.set_mode`, `presets.list`, `presets.apply`). |
+| 🛡️ **Deine Einstellungen bleiben** (1.1) | Neben jede `config.ini` darf eine `config.override.ini`: deine Werte gewinnen immer, Kit-Updates überschreiben sie nie. |
+| 🩺 **Schnell-Check in ca. 2 s** (1.2) | `status.health`: USB-Hardware, erreichbare ROM-Ordner (NAS-Freigaben mit 1 s Timeout), störende Programme, Systemwerte. |
+| ⏪ **Rücksprungpunkte** (1.2) | `backups.snapshot` / `backups.rollback`: benannte Punkte vor größeren Änderungen. |
+| 🔫 **Wiimote-Ausgabekette** (1.2) | `outputs.wiimote_hook`: DolphinBar, Gunmote, Rückstoß-Relais und Rumble-Grenzen auf einen Blick — die Basis für Hook of the Wiimote. |
 
 ---
 
@@ -116,6 +118,7 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 | **DuckStation / PCSX2** | 🔎 Geführte Prüfung | Prüft Einstellungen und erklärt die Zuordnung, Schritt 14 |
 | **USB-Lightgun-Adapter** (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, **Sinden**) | ✅ Automatisiert · Hardware-Bank: Community-Call | Schritt 15: Erkennung nur lesend per exakter VID&PID, RetroBat-`[Guns]`-Einstellungen, DemulShooter-Routing, Steam-Blacklist, nur Links auf die offiziellen Pakete — niemals Auto-Download |
 | **Arcade-Paket** (Fightsticks, Encoder, Lenkräder — Brook, GP2040CE, Hori, IPAC, ZeroDelay, Fanatec, Logitech …) | ✅ Automatisiert · Hardware-Bank: Community-Call | Zwölf Adapter in `arcade\adapters\`, Erkennung per VID/PID, mame.ini-, `[Controllers]`-, Supermodel- und EMULATOR.INI-Schreiben, Steam-controller_blacklist |
+| **Eingabe-Matrix** (universelles Button-Setup) | ✅ Automatisiert · zuerst MAME | Ein Profil (`arcade\input-profiles\`, eigene in `%USERPROFILE%\RetroCabinet\InputProfiles`) wird zu `saves\mame\ctrlr\kit-<profil>.cfg`; liest `es_settings.cfg` und warnt, ändert sie nie; TeknoParrot und Demul folgen |
 | **Pads-Paket** (8BitDo, Xbox, PlayStation, Switch Pro) | ✅ Automatisiert | Dritte Eingabeklasse; enge VID/PID- plus BTHENUM-Erkennung, schreibt nur retrobat.ini `[Controllers]`, nie auf der Steam-Blacklist, immer hinter Guns und Arcade |
 | **Haptik-Middleware** (MAMEHooker, qMameHook, Hook of the Reaper, DirectOutput, DMD Extensions) | ⚠️ Automatisiert · Middleware selbst mitgebracht | `output\adapters\` erkennt per Prozess, Port und unterstütztem Board; schreibt mame.ini `output=`, konfiguriert die Middleware, Solenoid-Schutz (HotR `0x53` / 200 ms); installiert keine Dienste, killt keine Prozesse |
 | **PinballY** | ✅ Automatisiert | Prüf- und Retarget-Operation über die API (`pinbally.detect`, `pinbally.retarget`), erst Probelauf, dann Änderung |

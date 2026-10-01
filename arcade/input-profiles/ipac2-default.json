@@ -1,0 +1,31 @@
+{
+  "Description": "Ultimarc I-PAC 2 factory layout (MAME default keys), 2 players, 8/6 buttons, mouse buttons on P1 1-3",
+  "Mapping": {
+    "START1": "KEY_1",
+    "START2": "KEY_2",
+    "COIN1": "KEY_5",
+    "COIN2": "KEY_6",
+    "P1_JOYSTICK_UP": "KEY_UP",
+    "P1_JOYSTICK_DOWN": "KEY_DOWN",
+    "P1_JOYSTICK_LEFT": "KEY_LEFT",
+    "P1_JOYSTICK_RIGHT": "KEY_RIGHT",
+    "P1_BUTTON1": ["KEY_LCONTROL", "MOUSE1_BUTTON1"],
+    "P1_BUTTON2": ["KEY_LALT", "MOUSE1_BUTTON3"],
+    "P1_BUTTON3": ["KEY_SPACE", "MOUSE1_BUTTON2"],
+    "P1_BUTTON4": "KEY_LSHIFT",
+    "P1_BUTTON5": "KEY_Z",
+    "P1_BUTTON6": "KEY_X",
+    "P1_BUTTON7": "KEY_C",
+    "P1_BUTTON8": "KEY_V",
+    "P2_JOYSTICK_UP": "KEY_R",
+    "P2_JOYSTICK_DOWN": "KEY_F",
+    "P2_JOYSTICK_LEFT": "KEY_D",
+    "P2_JOYSTICK_RIGHT": "KEY_G",
+    "P2_BUTTON1": "KEY_A",
+    "P2_BUTTON2": "KEY_S",
+    "P2_BUTTON3": "KEY_Q",
+    "P2_BUTTON4": "KEY_W",
+    "P2_BUTTON5": "KEY_I",
+    "P2_BUTTON6": "KEY_K"
+  }
+}
