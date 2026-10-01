@@ -33,7 +33,7 @@
 ---
 
 > [!NOTE]
-> **Status: v0.8.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–15 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel, geführter DuckStation-/PCSX2-Prüfung und USB-Adaptern für Gun4IR, OpenFIRE, AimTrak, Retro Shooter und **Sinden**) sind einsatzbereit, dazu die Pakete Arcade, Output und Pads. Neu in v0.4.0: genau diese vier Suiten, die PinballY-Prüf- und Retarget-Operationen (API 1.3) und das Desktop-Dashboard über die API. v0.4.1 behebt den fehlenden Zeiger bei Model 2/3, Naomi, Atomiswave und Dreamcast (neues Layout `Mouse 4:3`). Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
+> **Status: v1.0.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–15 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel, geführter DuckStation-/PCSX2-Prüfung und USB-Adaptern für Gun4IR, OpenFIRE, AimTrak, Retro Shooter und **Sinden**) sind einsatzbereit, dazu die Pakete Arcade, Output und Pads. Neu in v0.4.0: genau diese vier Suiten, die PinballY-Prüf- und Retarget-Operationen (API 1.3) und das Desktop-Dashboard über die API. v0.4.1 behebt den fehlenden Zeiger bei Model 2/3, Naomi, Atomiswave und Dreamcast (neues Layout `Mouse 4:3`). Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
 
 ---
 

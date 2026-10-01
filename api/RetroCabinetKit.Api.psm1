@@ -13,10 +13,14 @@ $script:KitVersion = $(try { ([IO.File]::ReadAllText((Join-Path $script:KitRoot 
 Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 Import-Module (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
 Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
+Import-Module (Join-Path $script:KitRoot 'arcade\RetroCabinetKit.Arcade.psd1')
 Import-Module (Join-Path $script:KitRoot 'pads\RetroCabinetKit.Pads.psd1')
+Import-Module (Join-Path $script:KitRoot 'output\RetroCabinetKit.Output.psd1')
 Import-Module (Join-Path $script:KitRoot 'displays\RetroCabinetKit.Displays.psd1')
 Import-Module (Join-Path $script:KitRoot 'enhancements\RetroCabinetKit.Enhancements.psd1')
 Import-Module (Join-Path $script:KitRoot 'library\RetroCabinetKit.Library.psd1')
+Import-Module (Join-Path $script:KitRoot 'emulators\RetroCabinetKit.Emulators.psd1')
+Import-Module (Join-Path $script:KitRoot 'frontends\RetroCabinetKit.Frontends.psd1')
 
 # Parameters a client may never set (security bindings, test injection, values the API controls itself).
 # Apply and Approved are the API's own switches (and the MCP flags apply / approved): a step parameter with that
@@ -149,6 +153,18 @@ function Get-KitOperation {
         @{ Name = 'library.create_playlist'; Kind = 'Change'; Description = 'Create a playlist in a frontend library.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Roms'; Type = 'String[]'; Mandatory = $true }); Module = 'library' }
         @{ Name = 'library.validate_integrity'; Kind = 'Read'; Description = 'Validate ROM integrity (checksums, missing files, broken references).'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'System'; Type = 'String'; Mandatory = $false }); Module = 'library' }
         @{ Name = 'library.export_catalog'; Kind = 'Read'; Description = 'Export the unified JSON catalog to file.'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }); Module = 'library' }
+        @{ Name = 'emulators.detect_installed'; Kind = 'Read'; Description = 'Detect all installed emulators: MAME, RetroArch, TeknoParrot, Supermodel, Model2, Cemu, Dolphin, RPCS3, Xemu, DuckStation, PCSX2.'; Parameters = @([pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'emulators' }
+        @{ Name = 'emulators.install'; Kind = 'Change'; Description = 'Install an emulator (manual: kit provides official links, user supplies package).'; Parameters = @([pscustomobject]@{ Name = 'Emulator'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'PackagePath'; Type = 'String'; Mandatory = $false }); Module = 'emulators' }
+        @{ Name = 'emulators.configure'; Kind = 'Change'; Description = 'Configure an emulator with best-practice settings.'; Parameters = @([pscustomobject]@{ Name = 'Emulator'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $false }); Module = 'emulators' }
+        @{ Name = 'emulators.apply_shader_preset'; Kind = 'Change'; Description = 'Apply a CRT/retro shader preset to an emulator (none, crt-lottes, crt-royale, hsm-mega-bezel, lcd-grid, scanlines).'; Parameters = @([pscustomobject]@{ Name = 'Emulator'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'Preset'; Type = 'String'; Mandatory = $true }); Module = 'emulators' }
+        @{ Name = 'emulators.patch'; Kind = 'Change'; Description = 'Apply community-curated patches to an emulator (compatibility, performance, fixes).'; Parameters = @([pscustomobject]@{ Name = 'Emulator'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'PatchName'; Type = 'String'; Mandatory = $false }); Module = 'emulators' }
+        @{ Name = 'emulators.verify_integrity'; Kind = 'Read'; Description = 'Verify emulator installation integrity: executable present, configs valid, checksums match.'; Parameters = @([pscustomobject]@{ Name = 'Emulator'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'emulators' }
+        @{ Name = 'frontends.detect'; Kind = 'Read'; Description = 'Detect all installed frontends: RetroBat, PinballY, Playnite, LaunchBox, PinUP.'; Parameters = @([pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'frontends' }
+        @{ Name = 'frontends.install'; Kind = 'Change'; Description = 'Install a frontend (manual: kit provides official links, user supplies package).'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'PackagePath'; Type = 'String'; Mandatory = $false }); Module = 'frontends' }
+        @{ Name = 'frontends.set_theme'; Kind = 'Change'; Description = 'Set the theme for a frontend.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'ThemeName'; Type = 'String'; Mandatory = $true }); Module = 'frontends' }
+        @{ Name = 'frontends.configure_genre_routing'; Kind = 'Change'; Description = 'Configure which emulator launches which system in a frontend.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'frontends' }
+        @{ Name = 'frontends.import_library'; Kind = 'Read'; Description = 'Import a frontend library into the unified JSON catalog format.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'frontends' }
+        @{ Name = 'frontends.export_catalog'; Kind = 'Read'; Description = 'Export the unified catalog to a frontend-specific format.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }); Module = 'frontends' }
     )
     foreach ($o in $fixed) {
         [pscustomobject]@{ Name = $o.Name; Kind = $o.Kind; Suite = ''; Interactive = $false; Available = $true; Description = $o.Description; Parameters = $o.Parameters; Module = $o.Module }
@@ -711,8 +727,17 @@ function Invoke-KitOperation {
                     $gunmoteConnected = @(Get-NetTCPConnection -RemotePort 8000 -State Established -ErrorAction SilentlyContinue |
                         Where-Object { (Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).Name -eq 'Gunmote' }).Count -gt 0
                     
-                    foreach ($w in @($solenoidDetail) + @($portConflicts | ForEach-Object { "Port $($_.Port): $($_.Process)" }) + @($doubleConsumers | ForEach-Object { $_.Detail })) {
+                    $warnings = @()
+                    if ($solenoidDetail) { $warnings += [string]$solenoidDetail }
+                    foreach ($pc in $portConflicts) {
+                        $w = if ($pc -is [System.Collections.IDictionary] -and $pc.Contains('Detail')) { $pc.Detail }
+                             elseif ($pc.PSObject.Properties['Detail']) { $pc.Detail }
+                             elseif ($pc.PSObject.Properties['Port']) { "Port $($pc.Port): $($pc.Process)" }
+                             else { [string]$pc }
                         if ($w) { $warnings += [string]$w }
+                    }
+                    foreach ($dc in $doubleConsumers) {
+                        if ($dc.PSObject.Properties['Detail'] -and $dc.Detail) { $warnings += [string]$dc.Detail }
                     }
                     
                     $data = [pscustomobject]@{
@@ -832,6 +857,211 @@ function Invoke-KitOperation {
             }
             'library.export_catalog' {
                 try { $data = @{ Path = ''; Size = 0 }; $status = 'Ok'; $msg = 'Catalog exported' } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'emulators.detect_installed' {
+                try {
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-EmulatorsRetroBatRoot }
+                    $detected = Get-EmulatorsDetectedAdapters -RetroBatRoot $rb
+                    $emuList = @(foreach ($d in $detected.DetectedDetails) {
+                        [pscustomobject]@{
+                            Name    = $d.Name
+                            Type    = $d.EmulatorType
+                            Version = $d.Version
+                            ExePath = $d.ExePath
+                        }
+                    })
+                    $data = [pscustomobject]@{
+                        Emulators     = $emuList
+                        Count         = $emuList.Count
+                        ScannedAdapters = $detected.ScannedAdapters
+                        Errors        = $detected.Errors
+                    }
+                    $status = 'Ok'
+                    $msg = "Found $($emuList.Count) emulator(s): $($detected.DetectedEmulators -join ', ')"
+                } catch {
+                    $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'emulators.install' {
+                try {
+                    $emu = $p.Emulator
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-EmulatorsRetroBatRoot }
+                    $pkg = if ($p.ContainsKey('PackagePath')) { $p.PackagePath } else { '' }
+                    if (-not $apply) {
+                        $info = Invoke-EmulatorsAdapterFunction -Name $emu -Function "Get-$($emu)EmulatorInfo" -Parameters @{ RetroBatRoot = $rb }
+                        $links = [string]($info.Links.Keys -join ', ')
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                            -Message "Install plan for $emu`: official sources: $links. Provide -PackagePath with a ZIP and -Apply/-Approved to install." `
+                            -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                            -Data ([pscustomobject]@{ Emulator = $emu; Links = $info.Links })
+                    }
+                    $result = Install-EmulatorsAdapter -Name $emu -RetroBatRoot $rb -PackagePath $pkg -Approved:$Approved
+                    $data = [pscustomobject]@{ Emulator = $emu; Result = $result }
+                    $status = if ($result.Success) { 'Done' } else { 'Failed' }
+                    $msg = if ($result.Success) { "Emulator $emu installed" } else { $result.Message }
+                } catch {
+                    $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'emulators.configure' {
+                try {
+                    $emu = $p.Emulator
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-EmulatorsRetroBatRoot }
+                    $frontend = if ($p.ContainsKey('Frontend')) { $p.Frontend } else { 'RetroBat' }
+                    if (-not $apply) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                            -Message "Configure plan for $emu` (frontend: $frontend): best-practice settings will be applied." `
+                            -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                            -Data ([pscustomobject]@{ Emulator = $emu; Frontend = $frontend })
+                    }
+                    $changes = Set-EmulatorsAdapterConfiguration -Names @($emu) -RetroBatRoot $rb -Confirm:$false
+                    $data = [pscustomobject]@{ Emulator = $emu; Frontend = $frontend; Changes = $changes }
+                    $status = if ($changes -gt 0) { 'Done' } else { 'Skipped' }
+                    $msg = if ($changes -gt 0) { "Emulator $emu configured: $changes value(s) set" } else { "Emulator $emu already configured" }
+                } catch {
+                    $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'emulators.apply_shader_preset' {
+                try {
+                    $emu = $p.Emulator
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-EmulatorsRetroBatRoot }
+                    $preset = $p.Preset
+                    if (-not $apply) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                            -Message "Shader preset plan: apply '$preset' to $emu" `
+                            -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                            -Data ([pscustomobject]@{ Emulator = $emu; Preset = $preset })
+                    }
+                    $result = Set-EmulatorsShaderPreset -EmulatorName $emu -RetroBatRoot $rb -Preset $preset
+                    $data = [pscustomobject]@{ Emulator = $emu; Result = $result }
+                    $status = if ($result.Success) { 'Done' } else { 'Failed' }
+                    $msg = if ($result.Success) { "Shader preset '$preset' applied to $emu" } else { $result.Message }
+                } catch {
+                    $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'emulators.patch' {
+                try {
+                    $emu = $p.Emulator
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-EmulatorsRetroBatRoot }
+                    $patchName = if ($p.ContainsKey('PatchName')) { $p.PatchName } else { '' }
+                    # Patches are community-curated; the kit only reports what's available
+                    $info = Invoke-EmulatorsAdapterFunction -Name $emu -Function "Get-$($emu)EmulatorInfo" -Parameters @{ RetroBatRoot = $rb }
+                    $patches = if ($info.Contains('Patches')) { $info.Patches } else { @{} }
+                    if (-not $apply) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                            -Message "Patch plan for $emu`: available patches: $($patches.Keys -join ', '). Apply with -Apply/-Approved." `
+                            -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                            -Data ([pscustomobject]@{ Emulator = $emu; AvailablePatches = $patches })
+                    }
+                    $data = [pscustomobject]@{ Emulator = $emu; PatchName = $patchName; Patches = $patches }
+                    $status = 'Skipped'
+                    $msg = "Patch system: community-curated patches are reviewed before application. Available patches for $emu`: $($patches.Keys -join ', ')"
+                } catch {
+                    $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'emulators.verify_integrity' {
+                try {
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-EmulatorsRetroBatRoot }
+                    if ($p.ContainsKey('Emulator') -and $p.Emulator) {
+                        $result = Test-EmulatorsIntegrity -EmulatorName $p.Emulator -RetroBatRoot $rb
+                        $data = $result
+                        $status = if ($result.AllOk) { 'Ok' } else { 'Failed' }
+                        $msg = if ($result.AllOk) { "Integrity check for $($p.Emulator): all OK" } else { "Integrity check for $($p.Emulator): issues found" }
+                    } else {
+                        $detected = Get-EmulatorsDetectedAdapters -RetroBatRoot $rb
+                        $results = @(foreach ($emu in $detected.DetectedEmulators) {
+                            Test-EmulatorsIntegrity -EmulatorName $emu -RetroBatRoot $rb
+                        })
+                        $allOk = @($results | Where-Object { -not $_.AllOk }).Count -eq 0
+                        $data = [pscustomobject]@{ Emulators = $results; AllOk = $allOk }
+                        $status = if ($allOk) { 'Ok' } else { 'Failed' }
+                        $msg = if ($allOk) { "All $($results.Count) emulator(s) pass integrity check" } else { "Integrity issues found in $(@($results | Where-Object { -not $_.AllOk }).Count) emulator(s)" }
+                    }
+                } catch {
+                    $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'frontends.detect' {
+                try {
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-FrontendsRetroBatRoot }
+                    $detected = Get-FrontendsDetectedAdapters -RetroBatRoot $rb
+                    $feList = @(foreach ($d in $detected.DetectedDetails) {
+                        [pscustomobject]@{ Name = $d.Name; Type = $d.FrontendType; Version = $d.Version; ExePath = $d.ExePath }
+                    })
+                    $data = [pscustomobject]@{ Frontends = $feList; Count = $feList.Count; ScannedAdapters = $detected.ScannedAdapters; Errors = $detected.Errors }
+                    $status = 'Ok'; $msg = "Found $($feList.Count) frontend(s): $($detected.DetectedFrontends -join ', ')"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'frontends.install' {
+                try {
+                    $fe = $p.Frontend; $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-FrontendsRetroBatRoot }
+                    $pkg = if ($p.ContainsKey('PackagePath')) { $p.PackagePath } else { '' }
+                    if (-not $apply) {
+                        $info = Invoke-FrontendsAdapterFunction -Name $fe -Function "Get-$($fe)FrontendInfo" -Parameters @{ RetroBatRoot = $rb }
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf -Message "Install plan for $fe. Official sources: $($info.Links.Keys -join ', '). Provide -PackagePath and -Apply/-Approved." -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data ([pscustomobject]@{ Frontend = $fe; Links = $info.Links })
+                    }
+                    $result = Install-FrontendsAdapter -Name $fe -RetroBatRoot $rb -PackagePath $pkg -Approved:$Approved
+                    $data = [pscustomobject]@{ Frontend = $fe; Result = $result }
+                    $status = if ($result.Success) { 'Done' } else { 'Failed' }
+                    $msg = if ($result.Success) { "Frontend $fe installed" } else { $result.Message }
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'frontends.set_theme' {
+                try {
+                    $fe = $p.Frontend; $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-FrontendsRetroBatRoot }
+                    $theme = $p.ThemeName
+                    if (-not $apply) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf -Message "Theme plan: set '$theme' on $fe" -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data ([pscustomobject]@{ Frontend = $fe; Theme = $theme })
+                    }
+                    $result = Set-FrontendsTheme -FrontendName $fe -RetroBatRoot $rb -ThemeName $theme
+                    $data = [pscustomobject]@{ Frontend = $fe; Result = $result }
+                    $status = if ($result.Success) { 'Done' } else { 'Failed' }
+                    $msg = if ($result.Success) { "Theme '$theme' applied to $fe" } else { $result.Message }
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'frontends.configure_genre_routing' {
+                try {
+                    $fe = $p.Frontend; $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-FrontendsRetroBatRoot }
+                    $routing = Get-FrontendGenreRouting -FrontendName $fe -RetroBatRoot $rb
+                    if (-not $apply) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf -Message "Genre routing plan for ${fe}: $($routing.Count) system(s) mapped. Apply with -Apply." -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data ([pscustomobject]@{ Frontend = $fe; Routing = $routing })
+                    }
+                    $result = Set-FrontendsGenreRouting -FrontendName $fe -RetroBatRoot $rb
+                    $data = [pscustomobject]@{ Frontend = $fe; Result = $result }
+                    $status = 'Done'; $msg = "Genre routing configured for ${fe}: $($routing.Count) system(s)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'frontends.import_library' {
+                try {
+                    $fe = $p.Frontend; $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-FrontendsRetroBatRoot }
+                    $catalog = Import-FrontendsLibrary -FrontendName $fe -RetroBatRoot $rb
+                    $data = $catalog; $status = 'Ok'; $msg = "Library imported from $fe"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'frontends.export_catalog' {
+                try {
+                    $fe = $p.Frontend; $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-FrontendsRetroBatRoot }
+                    $dest = $p.Destination
+                    $result = Export-FrontendsCatalog -FrontendName $fe -RetroBatRoot $rb -Destination $dest
+                    $data = [pscustomobject]@{ Frontend = $fe; Result = $result }
+                    $status = if ($result.Success) { 'Ok' } else { 'Failed' }
+                    $msg = if ($result.Success) { "Catalog exported to $dest" } else { $result.Message }
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
                 return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
             }
         }

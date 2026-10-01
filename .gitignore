@@ -24,4 +24,5 @@ PLAN.md
 _vergleich/
 site/node_modules/
 site/dist/
+dist/
 _intern/

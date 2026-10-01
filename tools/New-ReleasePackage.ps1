@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Builds the release zip of Fried's Retrogaming Kit and writes SHA256SUMS.txt next to it.
 .DESCRIPTION
@@ -32,11 +32,10 @@ if (-not $Version) {
 }
 if ($Version -notmatch '^(\d+\.\d+\.\d+)(-[0-9A-Za-z.-]+)?$') { throw "Invalid version '$Version' (expected e.g. 0.2.0 or 0.2.0-rc.1)." }
 $moduleVersion = $Matches[1]
-foreach ($manifest in 'core\RetroCabinetKit.Core.psd1', 'pinball\RetroCabinetKit.Pinball.psd1', 'lightgun\RetroCabinetKit.Lightgun.psd1', 'gui\RetroCabinetKit.Gui.psd1', 'api\RetroCabinetKit.Api.psd1') {
-    $path = Join-Path $repoRoot $manifest
-    $data = Import-PowerShellDataFile -LiteralPath $path
+foreach ($manifest in (Get-ChildItem -Path (Join-Path $repoRoot '*\RetroCabinetKit.*.psd1'))) {
+    $data = Import-PowerShellDataFile -LiteralPath $manifest.FullName
     if ($data.ModuleVersion -ne $moduleVersion) {
-        throw "$manifest has ModuleVersion $($data.ModuleVersion), VERSION says $moduleVersion. Keep them in sync."
+        throw "$($manifest.Name) has ModuleVersion $($data.ModuleVersion), VERSION says $moduleVersion. Keep them in sync."
     }
 }
 
@@ -55,7 +54,7 @@ $rootFiles = @(
     'README.md', 'README.de.md', 'LICENSE', 'SECURITY.md', 'CREDITS.md', 'CONTRIBUTING.md',
     'CHANGELOG.md', 'ARCHITECTURE.md', 'API.md', 'VERSION'
 )
-$subDirs = @('core', 'pinball', 'lightgun', 'gui', 'api', 'i18n', 'docs', 'tools')
+$subDirs = @('core', 'pinball', 'lightgun', 'arcade', 'pads', 'output', 'displays', 'enhancements', 'library', 'emulators', 'frontends', 'gui', 'api', 'i18n', 'docs', 'tools')
 # Never shipped, even if tracked by mistake or copied without git.
 $excluded = '(^|/)(\.git[^/]*|logs|backups|fixtures-local|node_modules|desktop\.ini)(/|$)|\.(log|tmp|partial)$|\.bak_|(^|/)install-state\.json$'
 

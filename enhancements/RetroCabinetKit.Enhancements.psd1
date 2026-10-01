@@ -1,7 +1,7 @@
 @{
     RootModule        = 'RetroCabinetKit.Enhancements.psm1'
-    ModuleVersion     = '0.8.0'
-    GUID              = 'b2c3d4e5-f6g7-8901-h2i3-j4k5l6m7n8o9'
+    ModuleVersion     = '1.0.0'
+    GUID              = 'e80d3c37-aa66-4243-bddb-85c0c73f7f24'
     Author            = 'Fried'
     Description       = 'Enhancement package of retro-cabinet-kit: GPU, audio, frame pacing, shader, upscaling, latency reduction, ambient lighting, and audio enhancement detection and configuration via adapter plugins.'
     PowerShellVersion = '5.1'

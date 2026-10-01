@@ -1,4 +1,4 @@
-﻿# Allowlist for tools/Test-Depersonalized.ps1: legitimate examples, never real machines or people.
+# Allowlist for tools/Test-Depersonalized.ps1: legitimate examples, never real machines or people.
 # Every entry: Path (wildcard on the repo-relative path with /), optional Kind (PrivateIp, HostName, DrivePath,
 # Email, Secret), optional Match (regex the found text must match) and a Reason. Keep entries as narrow as
 # possible; a new entry needs a reason a reviewer can check.
@@ -28,6 +28,36 @@
             Kind   = 'DrivePath'
             Match  = '^([A-Za-z]:\\?|C:\\Program|D:\\Pin(\\Cab)?|D:\\Games|E:\\My|E:\\Games\.?)$'
             Reason = 'Example roots in code comments and parameter help (e.g. "E:\My Build", "C:\Program Files").'
+        }
+        @{
+            Path   = 'api/*'
+            Kind   = 'DrivePath'
+            Match  = '^C:\\Program'
+            Reason = 'Conventional Program Files path in adapter detection.'
+        }
+        @{
+            Path   = 'output/*'
+            Kind   = 'DrivePath'
+            Match  = '^C:\\Program'
+            Reason = 'Conventional Gunmote install folder in Program Files.'
+        }
+        @{
+            Path   = 'library/*'
+            Kind   = 'DrivePath'
+            Match  = '^[CD]:\\(LaunchBox|PinballY|Pinball)'
+            Reason = 'Conventional install folders for LaunchBox and PinballY.'
+        }
+        @{
+            Path   = 'frontends/*'
+            Kind   = 'DrivePath'
+            Match  = '^[CD]:\\(LaunchBox|PinballY|Pinball|RetroBat|Playnite)'
+            Reason = 'Conventional install folders for frontends.'
+        }
+        @{
+            Path   = 'emulators/*'
+            Kind   = 'DrivePath'
+            Match  = '^[CD]:\\(RetroBat|Pinball|Emulators)'
+            Reason = 'Conventional install folders for emulators.'
         }
         @{
             Path   = 'pinball/modules/Common.ps1'

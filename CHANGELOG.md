@@ -7,6 +7,41 @@ that matches it.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-01
+
+### Added
+- **Package `frontends/`** — detect, install, theme, genre-route, and catalog-export 5 game frontends via extensible adapter plugins.
+  - **5 Frontend adapters:** RetroBat (EmulationStation), PinballY (PinballLauncher), Playnite (UniversalLauncher), LaunchBox (UniversalLauncher), PinUP (PinballLauncher/Popper).
+  - Adapter contract: `Test-<Name>Frontend`, `Get-<Name>FrontendInfo`, `Install-<Name>Frontend`, `Configure-<Name>Frontend`, `Set-<Name>InterferenceShield`.
+  - **Drop-in extensibility:** new frontend = copy `_Template.ps1`, fill 5 functions, auto-discovered by `Get-FrontendsAdapterCatalog`.
+- **6 API operations** `frontends.*` in the operation catalog:
+  - `frontends.detect` (Read) — detect all installed frontends.
+  - `frontends.install` (Change) — install frontend via user-provided package.
+  - `frontends.set_theme` (Change) — set frontend theme.
+  - `frontends.configure_genre_routing` (Change) — which emulator launches which system per frontend.
+  - `frontends.import_library` (Read) — import frontend library into unified JSON catalog.
+  - `frontends.export_catalog` (Read) — export unified catalog to frontend-specific format.
+- **Step** `frontends/steps/01-Frontends.ps1` — detect → configure → theme → genre routing → catalog workflow.
+- **Tests** `tests/api/V100Api.Tests.ps1` — catalog, module, detect, and adapter contract assertions.
+- **Genre routing map** — 20 systems mapped to best-fit emulators per frontend.
+
+## [0.9.0] - 2026-10-01
+
+### Added
+- **Package `emulators/`** — detect, install, configure, patch, and verify 15 emulators via adapter plugins.
+  - **11 Arcade/Console adapters:** MAME, RetroArch, TeknoParrot, Supermodel, Model2, Cemu, Dolphin, RPCS3, Xemu, DuckStation, PCSX2.
+  - **4 Pinball adapters:** FuturePinball (BAM), VisualPinball (VPX), PinballArcade (Arcooda), PinballFX3.
+  - Adapter contract: `Test-<Name>Emulator`, `Get-<Name>EmulatorInfo`, `Install-<Name>Emulator`, `Configure-<Name>Emulator`, `Set-<Name>InterferenceShield`.
+- **6 API operations** `emulators.*` in the operation catalog:
+  - `emulators.detect_installed` (Read) — detect all installed emulators.
+  - `emulators.install` (Change) — install emulator via user-provided package.
+  - `emulators.configure` (Change) — apply best-practice settings per emulator (supports `Frontend` parameter for RetroBat/PinballY/PinUP routing).
+  - `emulators.apply_shader_preset` (Change) — apply CRT shader presets (none, crt-lottes, crt-royale, hsm-mega-bezel, lcd-grid, scanlines).
+  - `emulators.patch` (Change) — community-curated emulator patches (read-only preview).
+  - `emulators.verify_integrity` (Read) — verify emulator installation integrity (exe, configs, checksums).
+- **Step** `emulators/steps/01-Emulators.ps1` — detect → configure → shaders → integrity workflow.
+- **Tests** `tests/api/V090Api.Tests.ps1` — catalog, module, detect, verify, and adapter contract assertions.
+
 ## [0.8.0] - 2026-10-01
 
 ## [0.7.0] - 2026-10-01
@@ -290,7 +325,9 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.9.0...v1.0.0
+[0.9.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.5.0...v0.6.0
