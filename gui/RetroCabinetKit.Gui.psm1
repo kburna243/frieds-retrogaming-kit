@@ -376,14 +376,177 @@ function Invoke-KitGuiImportProfile {
     $r
 }
 
-# Switches between the dashboard, the migrate and the recover view.
+# --- controls & rumble ----------------------------------------------------------------------------------------
+
+function Write-KitGuiControlsLog {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [AllowEmptyString()] [string] $Text)
+    $log = $Ui.Controls.ControlsLog
+    if ($log.Text -eq (Get-KitText 'Gui.Controls.EmptyLog')) { $log.Text = '' }  # the hint goes once there is something to show
+    $log.Text = if ($log.Text) { $log.Text + [Environment]::NewLine + '> ' + $Text } else { '> ' + $Text }
+    if ($Ui.Controls.ContainsKey('ControlsLogScroll')) { $Ui.Controls.ControlsLogScroll.ScrollToEnd() }
+}
+
+# The RetroBat folder the input operations work on: <drive>:\RetroBat on any local drive (the kit's arcade and
+# lightgun steps keep their own in their state; this view only needs a folder to show and pass on).
+function Find-KitGuiRetroBat {
+    [CmdletBinding()]
+    param()
+    foreach ($d in [IO.DriveInfo]::GetDrives()) {
+        if ($d.DriveType -notin 'Fixed', 'Removable' -or -not $d.IsReady) { continue }
+        $root = Join-Path $d.RootDirectory.FullName 'RetroBat'
+        if (Test-Path -LiteralPath (Join-Path $root 'emulationstation\emulationstation.exe') -PathType Leaf) { return $root }
+    }
+    $null
+}
+
+# Runs the reads of this view in a background runspace (detection takes seconds); Receive-KitGuiControlsCheck
+# returns @{ Detect; Hook; Profiles } once all three are back ($null before).
+function Start-KitGuiControlsCheck {
+    [CmdletBinding()]
+    param([string] $RetroBatRoot, [string] $Culture = (Get-KitCulture))
+    $ps = [PowerShell]::Create()
+    $null = $ps.AddScript({
+        param($KitRoot, $Culture, $RetroBatRoot)
+        Import-Module (Join-Path $KitRoot 'core\RetroCabinetKit.Core.psd1')
+        Import-Module (Join-Path $KitRoot 'api\RetroCabinetKit.Api.psd1')
+        Set-KitCulture -Culture $Culture
+        $rb = if ($RetroBatRoot) { @{ RetroBatRoot = $RetroBatRoot } } else { @{} }
+        [pscustomobject]@{
+            Detect   = Invoke-KitOperation -Name 'controllers.detect'
+            Hook     = Invoke-KitOperation -Name 'outputs.wiimote_hook' -Parameters $rb
+            Profiles = Invoke-KitOperation -Name 'controllers.input_profiles'
+        }
+    }).AddArgument($script:KitRoot).AddArgument($Culture).AddArgument($RetroBatRoot)
+    [pscustomobject]@{ PowerShell = $ps; Handle = $ps.BeginInvoke() }
+}
+
+function Receive-KitGuiControlsCheck {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Job)
+    if (-not $Job.Handle.IsCompleted) { return $null }
+    try { @($Job.PowerShell.EndInvoke($Job.Handle)) | Select-Object -Last 1 } finally { $Job.PowerShell.Dispose() }
+}
+
+function New-KitGuiRow([string] $Level, [string] $Label, [string] $Text) {
+    $look = $script:LevelLook[$Level]
+    [pscustomobject]@{
+        Level = $Level; Symbol = $look.Symbol; Label = $Label; Text = $Text
+        Brush = (New-Object Windows.Media.BrushConverter).ConvertFromString($look.Color)
+        TextVisibility = if ($Text) { 'Visible' } else { 'Collapsed' }
+    }
+}
+
+# One row per device group of controllers.detect: the kinds of device present. Names only, no count: detection
+# sees one pad several times (USB and HID entry of the same device).
+function Get-KitGuiDeviceRows {
+    [CmdletBinding()]
+    param($Result)
+    if (-not $Result -or -not $Result.Success) { return , @(New-KitGuiRow 'Error' (Get-KitText 'Gui.Controls.Devices') $(if ($Result) { $Result.Message } else { '' })) }
+    $rows = foreach ($g in 'Lightguns', 'Arcade', 'Pads') {
+        $text = (@(@($Result.Data.$g) | Where-Object { $_ -and $_.Present } | ForEach-Object { $_.Name } | Select-Object -Unique) -join ', ')
+        if ($text) { New-KitGuiRow 'Ok' (Get-KitText "Gui.Controls.Group.$g") $text }
+        else { New-KitGuiRow 'Info' (Get-KitText "Gui.Controls.Group.$g") (Get-KitText 'Gui.Controls.NoneFound') }
+    }
+    , @($rows)
+}
+
+# The Wiimote output chain of outputs.wiimote_hook as rows: what is missing is Warn, the hint goes under the row.
+function Get-KitGuiChainRows {
+    [CmdletBinding()]
+    param($Result)
+    if (-not $Result -or -not $Result.Success -or -not $Result.Data) { return , @(New-KitGuiRow 'Error' (Get-KitText 'Gui.Controls.Chain') $(if ($Result) { $Result.Message } else { '' })) }
+    $d = $Result.Data
+    $rows = @(
+        New-KitGuiRow $(if ($d.WiimoteDetected) { 'Ok' } else { 'Warn' }) (Get-KitText 'Gui.Chain.Wiimote') $(if (-not $d.WiimoteDetected) { Get-KitText 'Gui.Chain.WiimoteHint' })
+        New-KitGuiRow $(if ($d.GunmoteRunning) { 'Ok' } elseif ($d.GunmoteInstalled) { 'Warn' } else { 'Error' }) (Get-KitText 'Gui.Chain.Gunmote') $(if (-not $d.GunmoteRunning) { Get-KitText 'Gui.Chain.GunmoteHint' })
+        New-KitGuiRow $(if ($d.ViGEmBusInstalled) { 'Ok' } else { 'Error' }) (Get-KitText 'Gui.Chain.ViGEm') ''
+        New-KitGuiRow $(if ($d.RelayInstalled) { 'Ok' } else { 'Warn' }) (Get-KitText 'Gui.Chain.Relay') $(if (-not $d.RelayInstalled) { Get-KitText 'Gui.Chain.RelayHint' })
+        New-KitGuiRow $(if ($d.MameOutputWindows) { 'Ok' } else { 'Warn' }) (Get-KitText 'Gui.Chain.MameOutput') $(if (-not $d.MameOutputWindows) { Get-KitText 'Gui.Chain.MameOutputHint' })
+    )
+    foreach ($p in @($d.PortConflicts) + @($d.DoubleConsumers)) { if ($p) { $rows += New-KitGuiRow 'Error' (Get-KitText 'Gui.Chain.Conflict') $p } }
+    , $rows
+}
+
+# Rows of the mapping table: function (intent) and its sources, several sources = any of them.
+function Get-KitGuiMappingRows {
+    [CmdletBinding()]
+    param($InputProfile)
+    if (-not $InputProfile -or -not $InputProfile.PSObject.Properties['Mapping'] -or -not $InputProfile.Mapping) { return , @() }
+    # In-process the API hands over the profile's (ordered) dictionary; through JSON it is an object.
+    $m = $InputProfile.Mapping
+    $pairs = if ($m -is [Collections.IDictionary]) { @($m.Keys | ForEach-Object { @{ Name = $_; Value = $m[$_] } }) } else { @($m.PSObject.Properties | ForEach-Object { @{ Name = $_.Name; Value = $_.Value } }) }
+    , @(foreach ($p in $pairs) { [pscustomobject]@{ Intent = $p.Name; Sources = (@($p.Value) -join '  |  ') } })
+}
+
+# Shows the result of Start-KitGuiControlsCheck: devices, chain, the profile list (keeps the chosen profile).
+function Show-KitGuiControls {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] $Check)
+    $c = $Ui.Controls
+    $c.DeviceRows.ItemsSource = Get-KitGuiDeviceRows $Check.Detect
+    $c.ChainRows.ItemsSource = Get-KitGuiChainRows $Check.Hook
+    $profiles = if ($Check.Profiles -and $Check.Profiles.Success) { @($Check.Profiles.Data.Profiles) } else { @() }
+    $chosen = if ($c.ProfileList.SelectedItem) { $c.ProfileList.SelectedItem.Name } else { $null }
+    $c.ProfileList.ItemsSource = $profiles
+    $pick = @($profiles | Where-Object { $_.Name -eq $chosen }) + @($profiles | Where-Object { -not $_.Builtin }) + $profiles | Select-Object -First 1
+    if ($pick) { $c.ProfileList.SelectedItem = $pick }
+}
+
+# Loads the mapping of the chosen profile (controllers.input_profiles -Name) into the table.
+function Update-KitGuiMapping {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui)
+    $p = $Ui.Controls.ProfileList.SelectedItem
+    if (-not $p) { $Ui.Controls.MappingList.ItemsSource = @(); return }
+    $r = Invoke-KitOperation -Name 'controllers.input_profiles' -Parameters @{ Name = $p.Name }
+    $full = if ($r.Success) { @($r.Data.Profiles) | Select-Object -First 1 } else { $null }
+    $Ui.Controls.MappingList.ItemsSource = Get-KitGuiMappingRows $full
+}
+
+# The button says what it will do: a dry run while the box is ticked, otherwise write.
+function Update-KitGuiApplyButton {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui)
+    $c = $Ui.Controls
+    $dry = [bool]$c.InputDryRunBox.IsChecked
+    $c.ApplyInputButton.Tag = if ($dry) { 'i18n:Gui.Controls.DryRunButton' } else { 'i18n:Gui.Controls.WriteButton' }
+    $c.ApplyInputButton.Content = Get-KitText $c.ApplyInputButton.Tag.Substring(5)
+    $c.ApplyInputButton.Style = $Ui.Window.FindResource($(if ($dry) { 'SecondaryButton' } else { 'PrimaryButton' }))
+    $c.ApplyInputButton.IsEnabled = [bool]$c.ProfileList.SelectedItem
+}
+
+# Writes the chosen profile as the kit's own MAME ctrlr file (controllers.input_apply). Follows the dry-run box;
+# a real write asks first. The plan's RetroBat warnings (a ctrlr profile RetroBat would not load) go to the log.
+function Invoke-KitGuiApplyInput {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [scriptblock] $Confirm = { param($text) Confirm-KitGuiAction -Text $text })
+    $p = $Ui.Controls.ProfileList.SelectedItem
+    if (-not $p) { Write-KitGuiControlsLog -Ui $Ui -Text (Get-KitText 'Gui.Controls.ChooseProfile'); return }
+    $root = [string]$Ui.Values['RetroBatRoot']
+    if (-not $root) { Write-KitGuiControlsLog -Ui $Ui -Text (Get-KitText 'Gui.Controls.NoRetroBat'); return }
+    $params = @{ Profile = $p.Name; RetroBatRoot = $root }
+    $dry = [bool]$Ui.Controls.InputDryRunBox.IsChecked
+    if (-not $dry) {
+        $plan = Invoke-KitOperation -Name 'controllers.input_apply' -Parameters $params
+        if (-not (& $Confirm (Get-KitText 'Gui.Controls.ConfirmWrite' -f $p.Name, $plan.Message))) { return }
+    }
+    $r = Invoke-KitOperation -Name 'controllers.input_apply' -Parameters $params -Apply:(-not $dry)
+    Write-KitGuiControlsLog -Ui $Ui -Text $r.Message
+    foreach ($w in @($r.Warnings)) { if ($w) { Write-KitGuiControlsLog -Ui $Ui -Text "  ! $w" } }
+    foreach ($e in @($r.Errors)) { if ($e) { Write-KitGuiControlsLog -Ui $Ui -Text "  $e" } }
+    $r
+}
+
+# Switches between the dashboard and the migrate, recover and controls views.
 function Show-KitGuiView {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [ValidateSet('Dashboard', 'Migrate', 'Recover')] [string] $Name)
+    param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] [ValidateSet('Dashboard', 'Migrate', 'Recover', 'Controls')] [string] $Name)
     $c = $Ui.Controls
     $c.DashboardView.Visibility = if ($Name -eq 'Dashboard') { 'Visible' } else { 'Collapsed' }
     $c.MigrateView.Visibility = if ($Name -eq 'Migrate') { 'Visible' } else { 'Collapsed' }
     $c.RecoverView.Visibility = if ($Name -eq 'Recover') { 'Visible' } else { 'Collapsed' }
+    $c.ControlsView.Visibility = if ($Name -eq 'Controls') { 'Visible' } else { 'Collapsed' }
     $c.BackButton.Visibility = if ($Name -eq 'Dashboard') { 'Collapsed' } else { 'Visible' }
     $Ui.Values['View'] = $Name
 }
@@ -392,9 +555,15 @@ function Show-KitGuiView {
 function Update-KitGuiColumnText {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [psobject] $Ui)
-    $keys = 'Gui.Recover.ColCreated', 'Gui.Recover.ColKind', 'Gui.Recover.ColPurpose', 'Gui.Recover.ColTarget'
-    $columns = $Ui.Controls.BackupList.View.Columns
-    for ($i = 0; $i -lt [Math]::Min($columns.Count, $keys.Count); $i++) { $columns[$i].Header = Get-KitText $keys[$i] }
+    $sets = @(
+        @{ List = 'BackupList'; Keys = 'Gui.Recover.ColCreated', 'Gui.Recover.ColKind', 'Gui.Recover.ColPurpose', 'Gui.Recover.ColTarget' }
+        @{ List = 'MappingList'; Keys = 'Gui.Controls.ColIntent', 'Gui.Controls.ColSources' }
+    )
+    foreach ($s in $sets) {
+        if (-not $Ui.Controls.ContainsKey($s.List)) { continue }
+        $columns = $Ui.Controls[$s.List].View.Columns
+        for ($i = 0; $i -lt [Math]::Min($columns.Count, $s.Keys.Count); $i++) { $columns[$i].Header = Get-KitText $s.Keys[$i] }
+    }
 }
 
 # Starts a wizard in its own Windows PowerShell process (full path, like the *.cmd launchers).

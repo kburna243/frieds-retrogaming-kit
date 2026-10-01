@@ -48,6 +48,40 @@ function Set-HotwSettings {
 
 # --- Detection ---------------------------------------------------------------
 
+# True when a Wiimote is present. $Device: PnP entities (Name, DeviceID). Over Bluetooth a Wiimote shows up under
+# BTHENUM/HID as VID&0002057E with PID&0306 (RVL-CNT-01) or PID&0330 (RVL-CNT-01-TR), named "Nintendo RVL-CNT-01*";
+# a DolphinBar is USB VID_0079&PID_18xx.
+function Test-HotwWiimoteDevice {
+    [CmdletBinding()]
+    param([AllowEmptyCollection()] [object[]] $Device = @())
+    foreach ($d in $Device) {
+        $id = ([string]$d.DeviceID).ToUpperInvariant()
+        if ($id -match '057E[_&]PID&03(06|30)' -or $id -match 'VID_057E&PID_03(06|30)' -or $id -match 'VID_0079&PID_18') { return $true }
+        if ([string]$d.Name -match 'RVL-CNT-01') { return $true }
+    }
+    $false
+}
+
+# True when MAME sends its outputs as window messages. RetroBat rewrites bios\mame\ini\mame.ini (its -inipath) from
+# es_settings.cfg (mame.mame_output) at every start, so that setting decides; the ini files count when RetroBat has
+# none (standalone MAME).
+function Test-HotwMameOutputWindows {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [string] $RetroBatRoot)
+    $es = Join-Path $RetroBatRoot 'emulationstation\.emulationstation\es_settings.cfg'
+    if (Test-Path -LiteralPath $es -PathType Leaf) {
+        $m = [regex]::Match([IO.File]::ReadAllText($es), '<string\s+name="mame\.mame_output"\s+value="([^"]*)"')
+        if ($m.Success) { return $m.Groups[1].Value -eq 'windows' }
+    }
+    foreach ($rel in 'bios\mame\ini\mame.ini', 'emulators\mame\mame.ini') {
+        $ini = Join-Path $RetroBatRoot $rel
+        if (-not (Test-Path -LiteralPath $ini -PathType Leaf)) { continue }
+        $m = [regex]::Match([IO.File]::ReadAllText($ini), '(?m)^\s*output\s+(\S+)')
+        if ($m.Success) { return $m.Groups[1].Value -eq 'windows' }
+    }
+    $false
+}
+
 function Get-HookOfTheWiimoteInfo {
     [CmdletBinding()]
     param([string] $RetroBatRoot = (Get-OutputRetroBatRoot))
@@ -78,14 +112,9 @@ function Get-HookOfTheWiimoteInfo {
     if (Test-Path "$gunsFolder\ArcadeOutputs" -PathType Container) { $h.GunmoteInstalled = $true }
     if (Test-Path "$gunsFolder\Gunmote.dll" -PathType Leaf) { $h.GunmoteInstalled = $true }
 
-    # Wiimote detection: Bluetooth or DolphinBar
+    # Wiimote detection: Bluetooth (BTHENUM/HID, not USB) or DolphinBar
     try {
-        $usb = Get-CimInstance Win32_PnPEntity -ErrorAction Stop | Where-Object { $_.DeviceID -like '*USB*' }
-        $ids = ($usb.DeviceID -join ' ').ToUpperInvariant()
-        if ($ids -match 'VID_057E' -or $ids -match 'RVL-CNT-01') {
-            $h.WiimoteDetected = $true
-        }
-        if ($ids -match 'VID_0079&PID_18') { $h.WiimoteDetected = $true }  # DolphinBar Wiimote
+        $h.WiimoteDetected = Test-HotwWiimoteDevice -Device @(Get-CimInstance Win32_PnPEntity -ErrorAction Stop)
     } catch {}
 
     # ViGEmBus
@@ -94,9 +123,12 @@ function Get-HookOfTheWiimoteInfo {
     # Python
     try { $null = & py -3 --version 2>&1; $h.PythonInstalled = $true } catch {}
 
-    # Recoil relay
+    # Recoil relay: the kit's own copy, or the relay task (hotwm / recoil-stretch) that Gunmote talks to
     $relayPath = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'tools\HookOfTheWiimote\recoil-stretch.py' } else { '' }
     $h.RelayInstalled = [bool]$relayPath -and (Test-Path -LiteralPath $relayPath -PathType Leaf)
+    if (-not $h.RelayInstalled) {
+        try { $h.RelayInstalled = [bool](Get-ScheduledTask -TaskName 'Gunmote Recoil Stretch' -ErrorAction SilentlyContinue) } catch {}
+    }
 
     # TeknoParrot
     if ($RetroBatRoot) {
@@ -109,13 +141,7 @@ function Get-HookOfTheWiimoteInfo {
     $h.DemulShooterFound = [bool]$dsPath -and (Test-Path -LiteralPath $dsPath -PathType Leaf)
 
     # MAME output mode
-    if ($h.GunmoteInstalled -and $RetroBatRoot) {
-        $mameIni = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'emulators\mame\mame.ini' } else { '' }
-        if (Test-Path $mameIni) {
-            $ini = ConvertFrom-Ini -Path $mameIni
-            $h.MameOutputWindows = ($ini.ContainsKey('') -and $ini[''].ContainsKey('output') -and $ini['']['output'] -eq 'windows')
-        }
-    }
+    if ($h.GunmoteInstalled -and $RetroBatRoot) { $h.MameOutputWindows = Test-HotwMameOutputWindows -RetroBatRoot $RetroBatRoot }
 
     # Port conflicts: TCP 8000
     try {

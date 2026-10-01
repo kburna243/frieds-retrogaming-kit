@@ -1,7 +1,7 @@
 ﻿<#
 .SYNOPSIS
     Opens the kit's dashboard (WPF): new cabinet (pinball / lightgun wizards), migrate (cabinet profile A -> B),
-    recover (backups),
+    recover (backups), controls & rumble (devices, Wiimote output chain, input profiles),
     and the system status from the doctor (read-only, runs in the background).
 .PARAMETER Culture
     UI language (de-DE, en-US). Default: the Windows display language.
@@ -14,7 +14,9 @@
 .PARAMETER Screenshot
     Render the window to this PNG without showing it (Save-KitGuiSnapshot) and exit.
 .PARAMETER View
-    The view to open with: Dashboard (default), Migrate or Recover (screenshots, tests).
+    The view to open with: Dashboard (default), Migrate, Recover or Controls (screenshots, tests).
+.PARAMETER RetroBatRoot
+    RetroBat folder for the controls view. Default: <drive>:\RetroBat on a local drive.
 #>
 [CmdletBinding()]
 param(
@@ -23,7 +25,8 @@ param(
     [object[]] $DoctorResult,
     [scriptblock] $Launcher,
     [string] $Screenshot,
-    [ValidateSet('Dashboard', 'Migrate', 'Recover')] [string] $View = 'Dashboard'
+    [ValidateSet('Dashboard', 'Migrate', 'Recover', 'Controls')] [string] $View = 'Dashboard',
+    [string] $RetroBatRoot
 )
 $ErrorActionPreference = 'Stop'
 $kitRoot = Split-Path -Parent $PSScriptRoot
@@ -41,6 +44,7 @@ if (-not $Launcher) { $Launcher = { param($Suite) Start-KitGuiWizard -Suite $Sui
 $ui = New-KitGuiWindow
 $c = $ui.Controls
 $ui.Values['Launcher'] = $Launcher
+$ui.Values['RetroBatRoot'] = if ($RetroBatRoot) { $RetroBatRoot } else { Find-KitGuiRetroBat }
 # Language chips: the button's Tag "active" fills it (ChipButton style); the culture itself is kept in the core.
 function Set-Language([string] $Culture) {
     Set-KitCulture -Culture $Culture
@@ -57,6 +61,31 @@ function Update-Texts {
     $c.FooterVersion.Text = Get-KitText 'Gui.Footer.Version' -f $version, $PSVersionTable.PSVersion
     if (-not $ui.Values.ContainsKey('ProfilePath')) { $c.ProfilePathText.Text = Get-KitText 'Gui.Migrate.NoProfile' }
     if ($ui.Values.ContainsKey('DoctorResult')) { $null = Show-KitGuiStatus -Ui $ui -Result $ui.Values['DoctorResult'] }
+    $c.RetroBatText.Text = if ($ui.Values['RetroBatRoot']) { $ui.Values['RetroBatRoot'] } else { Get-KitText 'Gui.Controls.NoRetroBat' }
+    if (-not $c.ControlsLog.Text) { $c.ControlsLog.Text = Get-KitText 'Gui.Controls.EmptyLog' }
+    Update-KitGuiApplyButton -Ui $ui
+    if ($ui.Values.ContainsKey('ControlsCheck')) { Show-KitGuiControls -Ui $ui -Check $ui.Values['ControlsCheck'] }
+}
+
+# Devices, Wiimote chain and profiles in the background; the rows say "checking" until the answer is back.
+function Start-ControlsCheck {
+    $c.RefreshControlsButton.IsEnabled = $false
+    $wait = @(New-KitGuiRow 'Info' (Get-KitText 'Gui.Controls.Loading') '')
+    $c.DeviceRows.ItemsSource = $wait
+    $c.ChainRows.ItemsSource = $wait
+    $job = Start-KitGuiControlsCheck -RetroBatRoot $ui.Values['RetroBatRoot']
+    $timer = New-Object Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(250)
+    $timer.Tag = $job
+    $timer.add_Tick({
+        $check = Receive-KitGuiControlsCheck -Job $this.Tag
+        if ($null -eq $check) { return }
+        $this.Stop()
+        $ui.Values['ControlsCheck'] = $check
+        Show-KitGuiControls -Ui $ui -Check $check
+        $c.RefreshControlsButton.IsEnabled = $true
+    })
+    $timer.Start()
 }
 
 function Start-Doctor {
@@ -95,6 +124,17 @@ $c.CheckBackupButton.add_Click({ $null = Invoke-KitGuiCheckBackup -Ui $ui })
 $c.RestoreBackupButton.add_Click({ $null = Invoke-KitGuiRestoreBackup -Ui $ui })
 $c.ExportBackupButton.add_Click({ $null = Invoke-KitGuiExportBackup -Ui $ui })
 $c.DeleteBackupButton.add_Click({ $null = Invoke-KitGuiRemoveBackup -Ui $ui })
+$c.ControlsButton.add_Click({ Show-KitGuiView -Ui $ui -Name Controls; if (-not $ui.Values.ContainsKey('ControlsCheck')) { Start-ControlsCheck } })
+$c.RefreshControlsButton.add_Click({ Start-ControlsCheck })
+$c.ChooseRetroBatButton.add_Click({
+    Add-Type -AssemblyName System.Windows.Forms
+    $dialog = New-Object Windows.Forms.FolderBrowserDialog
+    try { if ($dialog.ShowDialog() -eq 'OK') { $ui.Values['RetroBatRoot'] = $dialog.SelectedPath; $c.RetroBatText.Text = $dialog.SelectedPath; Start-ControlsCheck } } finally { $dialog.Dispose() }
+})
+$c.ProfileList.add_SelectionChanged({ Update-KitGuiMapping -Ui $ui; Update-KitGuiApplyButton -Ui $ui })
+$c.InputDryRunBox.add_Checked({ Update-KitGuiApplyButton -Ui $ui })
+$c.InputDryRunBox.add_Unchecked({ Update-KitGuiApplyButton -Ui $ui })
+$c.ApplyInputButton.add_Click({ $null = Invoke-KitGuiApplyInput -Ui $ui })
 
 Update-Texts
 Show-KitGuiView -Ui $ui -Name $View
@@ -104,6 +144,13 @@ if ($PSBoundParameters.ContainsKey('DoctorResult')) { $null = Show-KitGuiStatus 
 if ($NoShow -and -not $Screenshot) { return $ui }
 
 if ($Screenshot) {
+    # The controls view is shown with real data: the reads run here, in the foreground, before the render.
+    if ($View -eq 'Controls') {
+        $job = Start-KitGuiControlsCheck -RetroBatRoot $ui.Values['RetroBatRoot']
+        while ($null -eq ($check = Receive-KitGuiControlsCheck -Job $job)) { Start-Sleep -Milliseconds 200 }
+        $ui.Values['ControlsCheck'] = $check
+        Show-KitGuiControls -Ui $ui -Check $check
+    }
     $null = Save-KitGuiSnapshot -Ui $ui -Path $Screenshot
     $ui.Window.Close()
     return
