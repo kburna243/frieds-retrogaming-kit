@@ -13,7 +13,7 @@ $script:KitRoot   = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
 
-foreach ($name in 'Common', 'Adapters', 'InputMatrix') {
+foreach ($name in 'Common', 'Adapters', 'InputMatrix', 'XInput') {
     . (Join-Path $PSScriptRoot "modules\$name.ps1")
 }
 

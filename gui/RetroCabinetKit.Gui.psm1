@@ -401,7 +401,7 @@ function Find-KitGuiRetroBat {
 }
 
 # Runs the reads of this view in a background runspace (detection takes seconds); Receive-KitGuiControlsCheck
-# returns @{ Detect; Hook; Profiles } once all three are back ($null before).
+# returns @{ Detect; Hook; Profiles; Slots } once all four are back ($null before).
 function Start-KitGuiControlsCheck {
     [CmdletBinding()]
     param([string] $RetroBatRoot, [string] $Culture = (Get-KitCulture))
@@ -416,6 +416,7 @@ function Start-KitGuiControlsCheck {
             Detect   = Invoke-KitOperation -Name 'controllers.detect'
             Hook     = Invoke-KitOperation -Name 'outputs.wiimote_hook' -Parameters $rb
             Profiles = Invoke-KitOperation -Name 'controllers.input_profiles'
+            Slots    = Invoke-KitOperation -Name 'controllers.xinput_slots'
         }
     }).AddArgument($script:KitRoot).AddArgument($Culture).AddArgument($RetroBatRoot)
     [pscustomobject]@{ PowerShell = $ps; Handle = $ps.BeginInvoke() }
@@ -451,6 +452,18 @@ function Get-KitGuiDeviceRows {
     , @($rows)
 }
 
+# One row per used XInput slot (controllers.xinput_slots): the MAME joystick number it gets, the device kind, and on
+# arcade sticks that LT/RT are buttons 5/6. This is the number an input profile uses (JOY<n>_...).
+function Get-KitGuiSlotRows {
+    [CmdletBinding()]
+    param($Result)
+    if (-not $Result -or -not $Result.Success -or -not $Result.Data) { return , @() }
+    , @(foreach ($s in @($Result.Data.Slots) | Where-Object { $_.Connected }) {
+        $text = if ($s.TriggersAsButtons) { Get-KitText 'Gui.Controls.SlotTriggers' -f $s.Kind } else { $s.Kind }
+        New-KitGuiRow 'Ok' (Get-KitText 'Gui.Controls.Slot' -f $s.MameJoy, $s.Slot) $text
+    })
+}
+
 # The Wiimote output chain of outputs.wiimote_hook as rows: what is missing is Warn, the hint goes under the row.
 function Get-KitGuiChainRows {
     [CmdletBinding()]
@@ -484,7 +497,9 @@ function Show-KitGuiControls {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] $Check)
     $c = $Ui.Controls
-    $c.DeviceRows.ItemsSource = Get-KitGuiDeviceRows $Check.Detect
+    $slots = if ($Check.PSObject.Properties['Slots']) { Get-KitGuiSlotRows $Check.Slots } else { @() }
+    $devices = Get-KitGuiDeviceRows $Check.Detect   # assigned first: @() around the call would nest the returned array
+    $c.DeviceRows.ItemsSource = @($devices) + @($slots)
     $c.ChainRows.ItemsSource = Get-KitGuiChainRows $Check.Hook
     $profiles = if ($Check.Profiles -and $Check.Profiles.Success) { @($Check.Profiles.Data.Profiles) } else { @() }
     $chosen = if ($c.ProfileList.SelectedItem) { $c.ProfileList.SelectedItem.Name } else { $null }

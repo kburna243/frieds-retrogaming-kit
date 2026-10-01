@@ -5,7 +5,7 @@
 
 Set-StrictMode -Version 2.0
 
-$script:ApiVersion = '1.5'
+$script:ApiVersion = '1.6'
 $script:ApiDir     = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 # The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
@@ -112,6 +112,7 @@ function Get-KitOperation {
         @{ Name = 'support.bundle'; Kind = 'Change'; Description = 'Writes an anonymized support bundle (doctor, environment, step states, logs).'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $false }); Module = 'core' }
         @{ Name = 'controllers.detect'; Kind = 'Read'; Description = 'Detect all controllers: lightguns, arcade sticks, pads. One result across three packages.'; Parameters = @(); Module = 'controllers' }
         @{ Name = 'controllers.input_profiles'; Kind = 'Read'; Description = 'List the input profiles (one button layout for the whole cabinet), or one profile with its mapping.'; Parameters = @([pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
+        @{ Name = 'controllers.xinput_slots'; Kind = 'Read'; Description = 'The four XInput slots: which is in use, by what kind of device, its MAME joystick number (JOY<n> counts connected slots only) and the source names of its buttons as MAME numbers them.'; Parameters = @(); Module = 'controllers' }
         @{ Name = 'controllers.input_apply'; Kind = 'Change'; Description = 'Write an input profile as a MAME ctrlr file of its own (never a hand-made one); the plan names the RetroBat settings that load it.'; Parameters = @([pscustomobject]@{ Name = 'Profile'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'CtrlrName'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
         @{ Name = 'displays.detect'; Kind = 'Read'; Description = 'Detect all displays: monitors (EDID), virtual DMD, backglass, topper.'; Parameters = @(); Module = 'displays' }
         @{ Name = 'enhancements.detect'; Kind = 'Read'; Description = 'Detect all enhancements: GPU, shader presets, latency, upscaling, frame pacing, pinball visuals, ambient lighting, audio.'; Parameters = @(); Module = 'enhancements' }
@@ -501,6 +502,14 @@ function Invoke-KitOperation {
                         [pscustomobject]$row
                     })
                     $data = [pscustomobject]@{ Profiles = $rows }; $status = 'Ok'; $msg = "$($rows.Count) input profile(s)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'controllers.xinput_slots' {
+                try {
+                    $slots = @(Get-ArcadeXInputSlot)
+                    $used = @($slots | Where-Object { $_.Connected }).Count
+                    $data = [pscustomobject]@{ Slots = $slots }; $status = 'Ok'; $msg = "$used of 4 XInput slot(s) in use"
                 } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
                 return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
             }

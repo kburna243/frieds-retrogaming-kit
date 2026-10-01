@@ -681,6 +681,8 @@
     'Gui.Controls.Refresh'          = 'Erneut prüfen'
     'Gui.Controls.Loading'          = 'wird geprüft …'
     'Gui.Controls.NoneFound'        = 'keins erkannt'
+    'Gui.Controls.Slot'             = '{0} = XInput {1}'
+    'Gui.Controls.SlotTriggers'     = '{0}, LT/RT = Knopf 5/6'
     'Gui.Controls.Group.Lightguns'  = 'Lightguns'
     'Gui.Controls.Group.Arcade'     = 'Arcade-Sticks'
     'Gui.Controls.Group.Pads'       = 'Pads'
