@@ -1,4 +1,4 @@
-# Kit API (v1.4)
+# Kit API (v1.5)
 
 One stable entry point for every client of the kit — the WPF dashboard, the command line, scripts, tests and
 external tools such as an agent harness. The API is a thin, versioned facade over the engine modules; it adds no
@@ -40,7 +40,7 @@ another process (stdin/stdout, no network port).
 
 | Field | Type | Meaning |
 | :--- | :--- | :--- |
-| `ApiVersion` | string | `1.4`; a new major version is a breaking change |
+| `ApiVersion` | string | `1.5`; a new major version is a breaking change |
 | `KitVersion` | string | the kit's version (`VERSION` file), e.g. `0.3.0`; empty if the file is missing |
 | `Operation` | string | the operation name as called |
 | `Kind` | string | `Read` or `Change` |
@@ -174,3 +174,4 @@ operation changes meaning or disappears. The contract tests in `tests\api\` pin 
 | `1.2` | unreleased | operation `pinbally.detect` and the `PinballY` component row: the second front end can be described (reads only, never writes) |
 | `1.3` | unreleased | operation `pinbally.retarget`: the paths of a copied PinballY installation get their targets on this machine, gated by rule 2 like every other change |
 | `1.4` | 1.2.0 | operations `setup.set_mode`, `presets.list`, `presets.apply` (setup levels Easy / Custom / NerdExtreme and presets), `status.health` (fast health snapshot: USB hardware, storage reachability, interfering processes, vitals; reads only), `auto.detect` (a plain-language description mapped to kit settings by keyword scoring; reads only), `backups.snapshot`, `backups.rollback` (named rollback points), `outputs.wiimote_hook` (the Wiimote output chain; reads only). The full list with parameters is what `operations` returns |
+| `1.5` | 1.3.0 | operations `controllers.input_profiles` (the input profiles: one button layout for the whole cabinet; reads only) and `controllers.input_apply` (a profile written as a MAME ctrlr file of the kit's own; never a file the kit did not write, never `retrobat_auto.cfg`; the plan warns about every RetroBat setting that would keep MAME from loading it) |

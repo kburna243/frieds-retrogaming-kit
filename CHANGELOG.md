@@ -7,6 +7,25 @@ that matches it.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-01
+
+### Added
+
+- **Input matrix (universal button setup):** one input profile maps what the player wants (MAME port types such as
+  `START1`, `COIN1`, `P1_BUTTON1`) to what the panel sends (`KEY_LCONTROL`, `JOY1_BUTTON2`, `MOUSE1_BUTTON1`,
+  several per button joined with `OR`). Built-in profile `ipac2-default` (the I-PAC 2 factory layout); own
+  profiles in `%USERPROFILE%\RetroCabinet\InputProfiles`. First dialect: MAME ctrlr (`saves\mame\ctrlr\kit-<profile>.cfg`).
+- API 1.5: `controllers.input_profiles` (Read) and `controllers.input_apply` (Change: dry run without `-Apply`,
+  ZIP backup before rewriting its own file).
+
+### Safety
+
+- The matrix never overwrites a ctrlr file it did not write (`custom1.cfg` holds the gun layout) nor RetroBat's
+  `retrobat_auto.cfg`. It does not change `es_settings.cfg`; the plan warns when `mame.emulator`,
+  `mame.disableautocontrollers` or `mame.mame_ctrlr_profile` would keep MAME from loading the file.
+
+## [1.3.0] - 2026-10-01
+
 ## [1.2.0] - 2026-10-01
 
 ### Added
@@ -397,7 +416,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.9.0...v1.0.0
