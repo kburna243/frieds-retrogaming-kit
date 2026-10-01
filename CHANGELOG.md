@@ -7,6 +7,11 @@ that matches it.
 
 ## [Unreleased]
 
+### Fixed
+
+- Input matrix: `JOY<n>_DPAD_<dir>` wrote `JOYCODE_<n>_DPAD<dir>`, a token MAME does not know, so the d-pad of XInput pads
+  did nothing in MAME. It now writes `JOYCODE_<n>_HAT1<dir>`, the item MAME's xinput provider uses for the d-pad.
+
 ## [1.3.1] - 2026-10-01
 
 ### Added
