@@ -33,6 +33,12 @@ Describe 'Input matrix (profiles -> MAME ctrlr)' {
         ConvertTo-ArcadeMameCode 'JOY1_HAT_LEFT' | Should Be 'JOYCODE_1_HAT1LEFT'
         ConvertTo-ArcadeMameCode 'MOUSE1_BUTTON3' | Should Be 'MOUSECODE_1_BUTTON3'
         ConvertTo-ArcadeMameCode 'NONE' | Should Be 'NONE'
+        ConvertTo-ArcadeMameCode 'JOY1_DPAD_UP' | Should Be 'JOYCODE_1_DPADUP'
+        ConvertTo-ArcadeMameCode 'JOY2_XAXIS' | Should Be 'JOYCODE_2_XAXIS'
+        ConvertTo-ArcadeMameCode 'JOY1_RZAXIS' | Should Be 'JOYCODE_1_RZAXIS'
+        ConvertTo-ArcadeMameCode 'JOY1_SELECT+JOY1_START' | Should Be 'JOYCODE_1_SELECT JOYCODE_1_START'
+        { ConvertTo-ArcadeMameCode 'JOY1_SELECT+KEY_NOPE' } | Should Throw
+        { ConvertTo-ArcadeMameCode 'JOY1_WAXIS' } | Should Throw
         { ConvertTo-ArcadeMameCode 'KEY_LCTRL' } | Should Throw
         { ConvertTo-ArcadeMameCode 'key_1' } | Should Throw
     }
@@ -57,14 +63,13 @@ Describe 'Input matrix (profiles -> MAME ctrlr)' {
         $plan.Target | Should Be (Join-Path $ctrlrDir 'kit-ipac2-default.cfg')
         $plan.Exists | Should Be $false
         @($plan.Changes).Count | Should Be 26
-        @($plan.Warnings).Count | Should Be 2
-        ($plan.Warnings -join ' ') | Should Match 'mame.disableautocontrollers'
+        @($plan.Warnings).Count | Should Be 1
         ($plan.Warnings -join ' ') | Should Match 'mame_ctrlr_profile'
         Test-Path (Join-Path $ctrlrDir 'kit-ipac2-default.cfg') | Should Be $false
     }
 
     It 'writes a ctrlr file MAME can read, then skips the second run' {
-        Set-TestEs @{ 'mame.emulator' = 'mame64'; 'mame.disableautocontrollers' = '1'; 'mame.mame_ctrlr_profile' = 'kit-ipac2-default' }
+        Set-TestEs @{ 'mame.emulator' = 'mame64'; 'mame.mame_ctrlr_profile' = 'kit-ipac2-default' }
         $r = Set-ArcadeInputMatrix -ProfileName 'ipac2-default' -RetroBatRoot $rb -Confirm:$false
         $r.Written | Should Be $true
         $r.Backup | Should BeNullOrEmpty
