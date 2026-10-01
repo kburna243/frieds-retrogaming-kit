@@ -1,0 +1,1 @@
+{"name":"balanced_cabinet","module":"enhancements","description":"Custom-mode: balanced performance/looks for a general-purpose cabinet","mode":"Custom","values":{"shader":"crt-lottes","upscaling":"2x","vsync":"adaptive","run_ahead":"1","frame_pacing":"auto","anti_aliasing":"fxaa","ambient_lighting":"basic","audio":"stereo-upmix"}}

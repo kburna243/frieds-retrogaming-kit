@@ -1,0 +1,1 @@
+{"name":"custom_racing","module":"controllers","description":"Custom-mode: racing wheel with FFB tuning","mode":"Custom","values":{"deadzone":"5","ffb_gain":"80","rotation":"900","pedal_mode":"separate"}}

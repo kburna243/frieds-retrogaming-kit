@@ -83,7 +83,7 @@ foreach ($op in Get-KitOperation) {
 }
 Write-Log ("{0} tools, read-only={1}, anonymize={2}" -f $tools.Count, [bool]$ReadOnly, -not $NoAnonymize)
 
-$instructions = 'Local tools of Fried''s Retrogaming Kit for this Windows cabinet (pinball and lightgun). Read tools only look. ' +
+$instructions = 'Local tools of Fried''s Retrogaming Kit for this Windows cabinet (pinball, lightgun, arcade, pads, displays, enhancements, library, emulators, frontends). Read tools only look. ' +
     'Change tools are dry runs unless apply=true: always call without apply first, show the plan and any Approvals to the user, ' +
     'and only after an explicit yes call again with apply=true (and approved=true only for the approvals the user accepted). ' +
     'Steps that need a person at the cabinet are not offered; tell the user to run them in the wizard.'

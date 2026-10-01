@@ -43,10 +43,10 @@ function Invoke-LibraryAdapterFunction {
 
 function Get-LibraryAdapterValue($Info, [string] $Key) { if ($Info -and $Info.Contains($Key)) { $Info[$Key] } }
 
-# Snapshot of the machine a library adapter probe may read. Without -Snapshot the real system answers:
+# Base snapshot of the machine a library adapter probe may read. Without -Snapshot the real system answers:
 # Frontend installations, RetroBat root, PinballY root, and common paths.
 # Tests inject their own hashtable so nothing on the machine is touched.
-function Get-LibrarySystemSnapshot {
+function Get-LibraryBaseSnapshot {
     [CmdletBinding()]
     param(
         [string] $RetroBatRoot = '',
@@ -224,7 +224,7 @@ function Get-LibrarySystemSnapshot {
     )
     
     # Get base snapshot
-    $snapshot = Get-LibrarySystemSnapshot -RetroBatRoot $RetroBatRoot -PinballYRoot $PinballYRoot
+    $snapshot = Get-LibraryBaseSnapshot -RetroBatRoot $RetroBatRoot -PinballYRoot $PinballYRoot
     
     # Add library-specific information
     $snapshot | Add-Member -NotePropertyName LibraryDir -NotePropertyValue (Get-LibraryAdapterDir)

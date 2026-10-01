@@ -158,7 +158,9 @@ function Test-FrontendsAdapterConfiguration {
     $true
 }
 
-# INI helpers for frontend config files
+# INI helpers for frontend config files — SECTION-AWARE + SHADOW OVERRIDE.
+# For every config.ini, the user may create config.override.ini in the same folder.
+# Override values ALWAYS win over kit defaults. The plan SKIPS keys managed by the user.
 function Get-FrontendsIniPlan {
     [CmdletBinding()]
     param(
@@ -167,25 +169,38 @@ function Get-FrontendsIniPlan {
         [hashtable] $Values = @{}
     )
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return @() }
-    $lines = @(Get-Content -LiteralPath $Path -Encoding UTF8)
+    $base = ConvertFrom-Ini -Path $Path
+    $overridePath = Get-IniOverridePath $Path
+    $override = if (Test-Path -LiteralPath $overridePath) { ConvertFrom-Ini -Path $overridePath } else { @{} }
+
     $plan = @()
     foreach ($key in $Values.Keys) {
-        $found = $false
-        for ($i = 0; $i -lt $lines.Count; $i++) {
-            if ($lines[$i] -match "^\s*$key\s*[=:]\s*(.*)") {
-                $oldVal = $matches[1].Trim()
-                if ($oldVal -ne [string]$Values[$key]) {
-                    $plan += [pscustomobject]@{ Key = $key; Old = $oldVal; New = [string]$Values[$key]; Line = $i }
+        $desiredKitValue = [string]$Values[$key]
+
+        if ($override.ContainsKey($Section) -and $override[$Section].ContainsKey($key)) {
+            $overrideValue = $override[$Section][$key]
+            if ($base.ContainsKey($Section) -and $base[$Section].ContainsKey($key)) {
+                if ($base[$Section][$key] -ne $overrideValue) {
+                    $plan += [pscustomobject]@{ Key = $key; Section = $Section; Old = $base[$Section][$key]; New = $overrideValue; Overridden = $true }
                 }
-                $found = $true
-                break
+            } else {
+                $plan += [pscustomobject]@{ Key = $key; Section = $Section; Old = $null; New = $overrideValue; Overridden = $true }
             }
+            continue
         }
-        if (-not $found) {
-            $plan += [pscustomobject]@{ Key = $key; Old = $null; New = [string]$Values[$key]; Line = -1 }
+
+        if ($base.ContainsKey($Section) -and $base[$Section].ContainsKey($key)) {
+            $currentValue = $base[$Section][$key]
+            if ($currentValue -ne $desiredKitValue) {
+                $plan += [pscustomobject]@{ Key = $key; Section = $Section; Old = $currentValue; New = $desiredKitValue; Overridden = $false }
+            }
+        } else {
+            $plan += [pscustomobject]@{ Key = $key; Section = $Section; Old = $null; New = $desiredKitValue; Overridden = $false }
         }
     }
     $plan
+    if ($plan.Count -eq 0) { return @() }
+    return ,$plan
 }
 
 function Set-FrontendsIniValue {
@@ -196,21 +211,35 @@ function Set-FrontendsIniValue {
         [hashtable] $Values = @{}
     )
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return 0 }
-    if (-not $PSCmdlet.ShouldProcess($Path, "set $($Values.Count) INI value(s)")) { return 0 }
-    $plan = Get-FrontendsIniPlan -Path $Path -Section $Section -Values $Values
-    if (-not $plan.Count) { return 0 }
-    $lines = [Collections.Generic.List[string]](@(Get-Content -LiteralPath $Path -Encoding UTF8))
-    foreach ($p in $plan) {
-        if ($p.Line -ge 0) {
-            $lines[$p.Line] = "$($p.Key) = $($p.New)"
-        } else {
-            $lines.Add("$($p.Key) = $($p.New)")
+    if (-not $PSCmdlet.ShouldProcess($Path, "set $($Values.Count) INI value(s) in [$Section]")) { return 0 }
+
+    # 0. Backup before ANY modification
+    $backupPath = "$Path.bak_$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $Path -Destination $backupPath -Force
+    Write-Verbose "Backup: $backupPath"
+
+    # 1. Load base INI
+    $ini = ConvertFrom-Ini -Path $Path
+    if (-not $ini.ContainsKey($Section)) { $ini[$Section] = @{} }
+    $changed = 0
+    foreach ($key in $Values.Keys) {
+        $desired = [string]$Values[$key]
+        $current = if ($ini[$Section].ContainsKey($key)) { $ini[$Section][$key] } else { $null }
+        if ($current -ne $desired) {
+            $ini[$Section][$key] = $desired
+            $changed++
         }
     }
-    $backup = "$Path.bak_$(Get-Date -Format 'yyyyMMddHHmmss')"
-    Copy-Item -LiteralPath $Path -Destination $backup
-    [IO.File]::WriteAllLines($Path, $lines, [Text.UTF8Encoding]::new($false))
-    $plan.Count
+    if ($changed -eq 0) { return 0 }
+
+    $overridePath = Get-IniOverridePath $Path
+    if (Test-Path -LiteralPath $overridePath) {
+        $override = ConvertFrom-Ini -Path $overridePath
+        $ini = Merge-IniData -BaseData $ini -OverrideData $override
+    }
+
+    ConvertTo-Ini -IniData $ini -Path $Path
+    $changed
 }
 
 # Set theme for a frontend

@@ -1,0 +1,1 @@
+{"name":"nerd_lightgun","module":"lightgun","description":"NerdExtreme-mode: full lightgun calibration with raw values","mode":"NerdExtreme","values":{"deadzone_x":"2","deadzone_y":"2","saturation":"95","rumble_strength":"100","recoil_duration":"150","border_size":"0","ir_gain":"50"}}
