@@ -18,6 +18,12 @@ that matches it.
 - API 1.5: `controllers.input_profiles` (Read) and `controllers.input_apply` (Change: dry run without `-Apply`,
   ZIP backup before rewriting its own file).
 
+### Fixed
+
+- Website: the start page stayed blank (React error #130). The release list had six entries and four icons;
+  every entry now has one, and a longer list falls back to a default icon instead of crashing. Release texts
+  on the site and both READMEs now describe 1.1 to 1.3 (they still showed v0.3 / v1.0.0 / v0.4.0).
+
 ### Safety
 
 - The matrix never overwrites a ctrlr file it did not write (`custom1.cfg` holds the gun layout) nor RetroBat's

@@ -6,7 +6,7 @@ Import-Module (Join-Path $kitRoot 'api\RetroCabinetKit.Api.psd1') -Force
 # the user profile folder of the arcade module is pointed into TestDrive, so no real profile is read.
 Describe 'API 1.5 -- input matrix' {
     Set-KitCulture -Culture 'en-US'
-    & (Get-Module 'RetroCabinetKit.Arcade') { $script:InputUserDir = $args[0] } (Join-Path $TestDrive 'home\InputProfiles')
+    foreach ($m in @(Get-Module -All 'RetroCabinetKit.Arcade')) { & $m { $script:InputUserDir = $args[0] } (Join-Path $TestDrive 'home\InputProfiles') }
     $rb = Join-Path $TestDrive 'RetroBat'
     $ctrlrDir = Join-Path $rb 'saves\mame\ctrlr'
     $null = New-Item -ItemType Directory -Path $ctrlrDir, (Join-Path $rb 'emulationstation\.emulationstation') -Force

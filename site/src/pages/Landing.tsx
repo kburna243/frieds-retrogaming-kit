@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Bot, CircleDot, Crosshair, Download, Heart, LayoutDashboard, ListChecks, Route as RouteIcon, ShieldCheck, Stethoscope, Truck, Package } from "lucide-react";
+import { ArrowRight, BookOpen, CircleDot, Crosshair, Download, Gamepad2, Heart, History, ListChecks, Route as RouteIcon, ShieldCheck, SlidersHorizontal, Stethoscope, Package } from "lucide-react";
 import Hero from "../sections/Hero";
 import { ChunkButton, SectionHeading } from "../components/ui";
 import { Reveal } from "../lib/retro";
@@ -13,7 +13,9 @@ const CARDS: { id: "pinball" | "lightgun" | "skills"; icon: typeof CircleDot; ac
 ];
 
 const HOW_ICONS = [RouteIcon, ListChecks, Package, ShieldCheck];
-const RELEASE_ICONS = [LayoutDashboard, Truck, Stethoscope, Bot];
+// One icon per entry of t.release.features. The lists live in two files; the fallback keeps a longer text list
+// from rendering an undefined component, which blanks the whole page.
+const RELEASE_ICONS = [Gamepad2, SlidersHorizontal, ShieldCheck, Stethoscope, History, Crosshair];
 const withVersion = (s: string) => s.split("{v}").join(KIT_VERSION);
 
 export default function Landing() {
@@ -65,7 +67,7 @@ export default function Landing() {
           </Reveal>
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {t.release.features.map((f, i) => {
-              const Icon = RELEASE_ICONS[i];
+              const Icon = RELEASE_ICONS[i] ?? Package;
               return (
                 <Reveal key={f.title} delay={i * 80}>
                   <div className="h-full border-[3px] border-night-3 bg-night p-5">
@@ -98,7 +100,7 @@ export default function Landing() {
           </Reveal>
           <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {t.how.steps.map((s, i) => {
-              const Icon = HOW_ICONS[i];
+              const Icon = HOW_ICONS[i] ?? Package;
               return (
                 <Reveal key={s.title} as="li" delay={i * 80}>
                   <div className="h-full border-[3px] border-night-3 bg-night-2 p-5">

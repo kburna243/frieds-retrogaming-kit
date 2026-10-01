@@ -7,7 +7,7 @@ Import-Module (Join-Path $kitRoot 'arcade\RetroCabinetKit.Arcade.psd1') -Force
 Describe 'Input matrix (profiles -> MAME ctrlr)' {
     Set-KitCulture -Culture 'en-US'
     $userDir = Join-Path $TestDrive 'home\InputProfiles'
-    & (Get-Module 'RetroCabinetKit.Arcade') { $script:InputUserDir = $args[0] } $userDir
+    foreach ($m in @(Get-Module -All 'RetroCabinetKit.Arcade')) { & $m { $script:InputUserDir = $args[0] } $userDir }
     $null = New-Item -ItemType Directory -Path $userDir -Force
     $rb = Join-Path $TestDrive 'RetroBat'
     $ctrlrDir = Join-Path $rb 'saves\mame\ctrlr'

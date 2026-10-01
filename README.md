@@ -37,16 +37,18 @@
 
 ---
 
-## ✨ New in v1.0.0
+## ✨ New in v1.3.0
+
+Since v1.0.0 (details in the [CHANGELOG](CHANGELOG.md)):
 
 | | What you get |
 | :--- | :--- |
-| 🎯 **Sinden Lightgun Adapter** | Camera tracking (`16C0/0F01-0F02`), white border configuration in RetroBat (`retrobat.ini [Guns]`), DemulShooter device mapping, rawinput MAME configuration, and recoil COM port handling. |
-| 🔫 **USB Lightgun Adapters** | Modular drop-in adapters for **Gun4IR, OpenFIRE, AimTrak, Retro Shooter and Sinden** with PnP discovery, device conflict prevention, and official source enforcement. |
-| 🕹️ **Arcade & Fightstick Package** | Plug-and-play support for 12 encoders and wheels (**GP2040-CE, Brook UFB, I-PAC, Zero Delay, Hori, Mad Catz, Logitech, Thrustmaster**) with class-safe bindings. |
-| 📳 **Output & Haptics Middleware** | Coordinated haptic feedback for guns and wheels (**MameHooker, QMamehook, Hook of the Reaper**) with 200 ms solenoid protection. |
-| 📍 **PinballY Inspection & Retarget** | API 1.3 operations `pinbally.detect` and `pinbally.retarget`: automatic drive letter and folder mapping for copied pinball installations without breaking databases. |
-| 💬 **Community Blitz-Feedback** | 60-second interactive web feedback form with 6 Most Wanted profiles, automatic client-side sanitization, and 1-click GitHub report export. |
+| 🎮 **Universal button setup** (1.3) | One input profile for the whole cabinet maps actions (`START1`, `COIN1`, `P1_BUTTON1` …) to what the panel sends — keys, pad buttons, mouse buttons, several per button. Written as a MAME ctrlr file of the kit's own; a hand-made file like the gun layout `custom1.cfg` is never overwritten. API `controllers.input_profiles`, `controllers.input_apply`. |
+| 🎚️ **Setup levels & presets** (1.1) | Easy / Custom / NerdExtreme and four built-in presets plus your own (`setup.set_mode`, `presets.list`, `presets.apply`). |
+| 🛡️ **Your settings stay yours** (1.1) | Put a `config.override.ini` next to any `config.ini`: your values always win, kit updates never overwrite them. |
+| 🩺 **Health check in about 2 s** (1.2) | `status.health`: USB hardware, reachable ROM folders (NAS shares with a 1 s timeout), interfering programs, vitals. |
+| ⏪ **Rollback points** (1.2) | `backups.snapshot` / `backups.rollback`: named points before bigger changes. |
+| 🔫 **Wiimote output chain** (1.2) | `outputs.wiimote_hook`: DolphinBar, Gunmote, recoil relay and rumble limits at a glance — the base for Hook of the Wiimote. |
 
 ---
 
@@ -116,6 +118,7 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 | **DuckStation / PCSX2** | 🔎 Guided check | Audits settings and explains the mapping, step 14 |
 | **USB lightgun adapters** (Gun4IR, OpenFIRE, AimTrak, Retro Shooter, **Sinden**) | ✅ Automated · hardware bench: community call | Step 15: read-only detection by exact VID&PID, RetroBat `[Guns]` settings, DemulShooter routing, Steam blacklist, official packages linked only — never auto-downloaded |
 | **Arcade package** (fightsticks, encoders, wheels — Brook, GP2040CE, Hori, IPAC, ZeroDelay, Fanatec, Logitech …) | ✅ Automated · hardware bench: community call | Twelve adapters in `arcade\adapters\`, VID/PID detection, mame.ini, `[Controllers]`, Supermodel and EMULATOR.INI writes, Steam controller_blacklist |
+| **Input matrix** (universal button setup) | ✅ Automated · MAME first | One profile (`arcade\input-profiles\`, own ones in `%USERPROFILE%\RetroCabinet\InputProfiles`) written as `saves\mame\ctrlr\kit-<profile>.cfg`; reads `es_settings.cfg` and warns, never changes it; TeknoParrot and Demul next |
 | **Pads package** (8BitDo, Xbox, PlayStation, Switch Pro) | ✅ Automated | Third input class; tight VID/PID plus BTHENUM detection, writes only retrobat.ini `[Controllers]`, never on the Steam blacklist, always behind guns and arcade |
 | **Haptic middleware** (MAMEHooker, qMameHook, Hook of the Reaper, DirectOutput, DMD Extensions) | ⚠️ Automated · middleware user-supplied | `output\adapters\` detects by process, port and supported board; writes mame.ini `output=`, configures the middleware, solenoid guard (HotR `0x53` / 200 ms); never installs services, never kills processes |
 | **PinballY** | ✅ Automated | Inspect and retarget operations over the API (`pinbally.detect`, `pinbally.retarget`), dry run before every change |
