@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule        = 'RetroCabinetKit.Pinball.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = '4f350b38-63fa-4449-b89d-be63ff8bc4ed'

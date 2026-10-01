@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule        = 'RetroCabinetKit.Emulators.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = 'e9f8a7b6-c5d4-3210-9876-fedcba543210'

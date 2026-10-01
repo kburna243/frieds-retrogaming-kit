@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule        = 'RetroCabinetKit.Arcade.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = '7c2f60d3-5b41-4f8a-9d26-3a1e88bf4c57'

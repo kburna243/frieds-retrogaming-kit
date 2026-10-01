@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule        = 'RetroCabinetKit.Displays.psm1'
     ModuleVersion     = '1.0.0'
     GUID              = 'f2a28165-a849-4f13-8e26-b3427567b1c3'
