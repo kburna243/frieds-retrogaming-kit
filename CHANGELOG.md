@@ -7,10 +7,16 @@ that matches it.
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-10-01
+
 ### Fixed
 
 - Input matrix: `JOY<n>_DPAD_<dir>` wrote `JOYCODE_<n>_DPAD<dir>`, a token MAME does not know, so the d-pad of XInput pads
   did nothing in MAME. It now writes `JOYCODE_<n>_HAT1<dir>`, the item MAME's xinput provider uses for the d-pad.
+
+### Changed
+
+- Website: dependency updates (vite, lucide-react, tailwind-merge).
 
 ## [1.3.1] - 2026-10-01
 
@@ -447,7 +453,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.1.0...v1.2.0
