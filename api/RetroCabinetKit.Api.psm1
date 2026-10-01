@@ -5,7 +5,7 @@
 
 Set-StrictMode -Version 2.0
 
-$script:ApiVersion = '1.3'
+$script:ApiVersion = '1.4'
 $script:ApiDir     = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 # The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
@@ -46,43 +46,8 @@ function Get-KitVersion {
     $script:KitVersion
 }
 
-function New-KitOperationResult {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)] [string] $Operation,
-        [ValidateSet('Read', 'Change')] [string] $Kind = 'Read',
-        [Parameter(Mandatory)] [ValidateSet('Ok', 'Done', 'Skipped', 'WhatIf', 'NeedsUser', 'Failed', 'NotAvailable')] [string] $Status,
-        [string] $Message = '',
-        [bool] $Applied = $false,
-        [string[]] $Warnings = @(),
-        [string[]] $Errors = @(),
-        [object[]] $Changes = @(),
-        [string[]] $Backups = @(),
-        [string[]] $Approvals = @(),
-        [double] $Duration = 0,
-        [datetime] $StartedAt = (Get-Date),
-        [object] $Data = $null
-    )
-    [pscustomobject]@{
-        PSTypeName = 'RetroCabinetKit.OperationResult'
-        ApiVersion = $script:ApiVersion
-        KitVersion = $script:KitVersion
-        Operation  = $Operation
-        Kind       = $Kind
-        Success    = $Status -in 'Ok', 'Done', 'Skipped', 'WhatIf'
-        Status     = $Status
-        Applied    = $Applied
-        Message    = $Message
-        Warnings   = @($Warnings | Where-Object { $_ })
-        Errors     = @($Errors | Where-Object { $_ })
-        Changes    = @($Changes | Where-Object { $_ })
-        Backups    = @($Backups | Where-Object { $_ })
-        Approvals  = @($Approvals | Where-Object { $_ })
-        Duration   = [math]::Round($Duration, 3)
-        StartedAt  = $StartedAt.ToString('o')
-        Data       = $Data
-    }
-}
+# --- sub-modules (extracted to keep the API facade lean) --------------------------------------------
+. (Join-Path $PSScriptRoot 'modules\Result.ps1')
 
 # --- catalog --------------------------------------------------------------------------------------------------
 
@@ -132,8 +97,10 @@ function Get-KitOperation {
     $fixed = @(
         @{ Name = 'operations'; Kind = 'Read'; Description = 'This catalog.'; Parameters = @(); Module = 'core' }
         @{ Name = 'status'; Kind = 'Read'; Description = 'Health check of system, pinball, lightgun and security (doctor).'; Parameters = @(); Module = 'core' }
+        @{ Name = 'status.health'; Kind = 'Read'; Description = 'Fast-path system health (under 2s): USB hardware matrix, storage reachability, interference processes, vitals (uptime/memory/disk/cpu). Returns OK or Degraded.'; Parameters = @([pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'ExtraStoragePaths'; Type = 'String[]'; Mandatory = $false }, [pscustomobject]@{ Name = 'ExtraBadProcesses'; Type = 'String[]'; Mandatory = $false }); Module = 'core' }
         @{ Name = 'components'; Kind = 'Read'; Description = 'Detected components: Windows, RetroBat, Gunmote, ViGEmBus, DolphinBar, Steam, pinball build, PinballY.'; Parameters = @(); Module = 'core' }
         @{ Name = 'outputs.verify_safety'; Kind = 'Read'; Description = 'Verify output safety: solenoid limits, port conflicts, double output consumers.'; Parameters = @([pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'outputs' }
+        @{ Name = 'outputs.wiimote_hook'; Kind = 'Read'; Description = 'Inspect the Wiimote lightgun output chain: DolphinBar detection, Gunmote status, recoil relay, rumble safety thresholds, double-consumer warnings.'; Parameters = @([pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'outputs' }
         # The second front end is not part of a build, so its folder is asked for, not derived from the state.
         @{ Name = 'pinbally.detect'; Kind = 'Read'; Description = 'Inspect a PinballY installation: version, systems, table databases and which path references do not resolve on this machine. Reads only.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }); Module = 'pinball' }
         @{ Name = 'pinbally.retarget'; Kind = 'Change'; Description = 'Give the dead absolute paths of a PinballY installation the targets of this machine, following pairs written as Old=New (the same folder under another drive is the usual case). Only path values that do not resolve here are planned, and only when the new path exists; comments, [TOKEN] values, relative paths, DefaultSettings.txt and the own copies of the program are never touched. Dry run without -Apply; the plan needs -Approved.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Map'; Type = 'String[]'; Mandatory = $true }, [pscustomobject]@{ Name = 'BackupDir'; Type = 'String'; Mandatory = $false }); Module = 'pinball' }
@@ -165,6 +132,12 @@ function Get-KitOperation {
         @{ Name = 'frontends.configure_genre_routing'; Kind = 'Change'; Description = 'Configure which emulator launches which system in a frontend.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'frontends' }
         @{ Name = 'frontends.import_library'; Kind = 'Read'; Description = 'Import a frontend library into the unified JSON catalog format.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'frontends' }
         @{ Name = 'frontends.export_catalog'; Kind = 'Read'; Description = 'Export the unified catalog to a frontend-specific format.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }); Module = 'frontends' }
+        @{ Name = 'presets.list'; Kind = 'Read'; Description = 'List all available configuration presets (built-in + user).'; Parameters = @([pscustomobject]@{ Name = 'Module'; Type = 'String'; Mandatory = $false }); Module = 'core' }
+        @{ Name = 'presets.apply'; Kind = 'Change'; Description = 'Apply a named preset: sets setup mode, target module, and values.'; Parameters = @([pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'core' }
+        @{ Name = 'setup.set_mode'; Kind = 'Change'; Description = 'Set the setup level: Easy (autopilot), Custom (assistant), or NerdExtreme (deep dive).'; Parameters = @([pscustomobject]@{ Name = 'Mode'; Type = 'String'; Mandatory = $true }); Module = 'core' }
+        @{ Name = 'auto.detect'; Kind = 'Read'; Description = 'Natural language to kit configuration: describe your cabinet, get back modules, setup mode, and preset suggestion. No LLM call -- fast keyword engine.'; Parameters = @([pscustomobject]@{ Name = 'Description'; Type = 'String'; Mandatory = $true }); Module = 'core' }
+        @{ Name = 'backups.snapshot'; Kind = 'Change'; Description = 'Take a snapshot of specific files for rollback. Push a named rollback point onto the stack.'; Parameters = @([pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Paths'; Type = 'String[]'; Mandatory = $true }, [pscustomobject]@{ Name = 'Description'; Type = 'String'; Mandatory = $false }); Module = 'core' }
+        @{ Name = 'backups.rollback'; Kind = 'Change'; Description = 'Roll back to the last saved rollback point (or a named one). Restores all snapshotted files.'; Parameters = @([pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $false }); Module = 'core' }
     )
     foreach ($o in $fixed) {
         [pscustomobject]@{ Name = $o.Name; Kind = $o.Kind; Suite = ''; Interactive = $false; Available = $true; Description = $o.Description; Parameters = $o.Parameters; Module = $o.Module }
@@ -312,6 +285,16 @@ function Invoke-KitOperation {
                     Checks  = @($checks | ForEach-Object { [pscustomobject]@{ Area = $_.Area; Name = $_.Name; Level = $_.Level; Detail = $_.Detail } })
                 }
                 $status = 'Ok'; $msg = Get-KitText 'Doctor.Result' -f $s.Error, $s.Warn, $s.Ok
+            }
+            'status.health' {
+                try {
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-OutputRetroBatRoot }
+                    $extraPaths = if ($p.ContainsKey('ExtraStoragePaths') -and $p.ExtraStoragePaths) { @($p.ExtraStoragePaths) } else { @() }
+                    $extraProcs = if ($p.ContainsKey('ExtraBadProcesses') -and $p.ExtraBadProcesses) { @($p.ExtraBadProcesses) } else { @() }
+                    $health = Get-SystemHealth -RetroBatRoot $rb -ExtraStoragePaths $extraPaths -ExtraBadProcesses $extraProcs
+                    $data = $health; $status = 'Ok'
+                    $msg = "System health: $($health.Status). Hardware: DolphinBar=$($health.Hardware.DolphinBar), Arcade=$($health.Hardware.ArcadeEncoder). Vitals: $($health.Vitals.MemoryFreeMB)MB free, $($health.Vitals.CpuLoadPercent)% CPU."
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
             }
             'components' { $data = [pscustomobject]@{ Components = @(Get-KitApiComponent -PinballStatePath $PinballStatePath -LightgunStatePath $LightgunStatePath) }; $status = 'Ok'; $msg = '' }
             'pinbally.detect' {
@@ -1064,6 +1047,104 @@ function Invoke-KitOperation {
                 } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
                 return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
             }
+            'presets.list' {
+                try {
+                    $module = if ($p.ContainsKey('Module')) { $p.Module } else { '' }
+                    $catalog = Get-KitPresetCatalog -Module $module
+                    $data = [pscustomobject]@{ Presets = $catalog; Count = $catalog.Count; SetupMode = (Get-KitSetupMode) }
+                    $status = 'Ok'; $msg = "Found $($catalog.Count) preset(s)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'presets.apply' {
+                try {
+                    $presetName = $p.Name
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { '' }
+                    if (-not $apply) {
+                        $preset = Get-KitPreset -Name $presetName
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                            -Message "Preset plan: apply '$presetName' (mode: $($preset.mode), module: $($preset.module)). Apply with -Apply." `
+                            -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                            -Data ([pscustomobject]@{ Preset = $presetName; Mode = $preset.mode; Module = $preset.module; Values = $preset.values })
+                    }
+                    $values = Invoke-KitPreset -Name $presetName -RetroBatRoot $rb
+                    $data = [pscustomobject]@{ Preset = $presetName; Values = $values; SetupMode = (Get-KitSetupMode) }
+                    $status = 'Done'; $msg = "Preset '$presetName' applied: mode=$(Get-KitSetupMode)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'setup.set_mode' {
+                try {
+                    $mode = $p.Mode
+                    if (-not (Test-KitSetupMode $mode)) { throw "Invalid mode: $mode. Valid: Easy, Custom, NerdExtreme" }
+                    if (-not $apply) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                            -Message "Setup mode plan: switch to '$mode'. Apply with -Apply." `
+                            -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                            -Data ([pscustomobject]@{ CurrentMode = (Get-KitSetupMode); TargetMode = $mode })
+                    }
+                    Set-KitSetupMode -Mode $mode
+                    $ctx = Export-KitSetupContext | ConvertFrom-Json
+                    $data = [pscustomobject]@{ Mode = (Get-KitSetupMode); Context = $ctx }
+                    $status = 'Done'; $msg = "Setup mode set to '$mode' ($(if ($mode -eq 'Easy') { 'autopilot' } elseif ($mode -eq 'Custom') { 'assistant' } else { 'deep dive' }))"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'auto.detect' {
+                try {
+                    $desc = $p.Description
+                    $detection = Get-KitAutoDetect -Description $desc
+                    $data = $detection
+                    $status = 'Ok'
+                    $msg = "Auto-detect: $($data.PrimaryModule) / $($data.SetupMode) / $($data.Preset)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'outputs.wiimote_hook' {
+                try {
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-OutputRetroBatRoot }
+                    $info = Get-HookOfTheWiimoteInfo -RetroBatRoot $rb
+                    $data = $info
+                    $status = 'Ok'
+                    $msg = "Wiimote: Gunmote=$($info.GunmoteInstalled), Relay=$($info.RelayInstalled). $($info.Recommendation)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'backups.snapshot' {
+                try {
+                    $name = $p.Name; $paths = @($p.Paths)
+                    $desc = if ($p.ContainsKey('Description')) { $p.Description } else { '' }
+                    if (-not $apply) {
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                            -Message "Snapshot plan: save $($paths.Count) path(s) as rollback point '$name'." `
+                            -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                            -Data ([pscustomobject]@{ Name = $name; Paths = $paths })
+                    }
+                    $point = Push-KitRollbackPoint -Name $name -Paths $paths -Description $desc
+                    $data = [pscustomobject]@{ Point = $point; StackDepth = (Get-KitRollbackStack).Depth }
+                    $status = 'Done'; $msg = "Snapshot '$name' saved: $($point.SnapshotCount) file(s)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'backups.rollback' {
+                try {
+                    if (-not $apply) {
+                        $stack = Get-KitRollbackStack
+                        return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                            -Message "Rollback plan: $($stack.Depth) point(s) on stack. Top: $($stack.TopPoint). Apply with -Apply." `
+                            -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                            -Data $stack
+                    }
+                    if ($p.ContainsKey('Name') -and $p.Name) {
+                        $result = Pop-KitRollbackPointByName -Name $p.Name
+                    } else {
+                        $result = Pop-KitRollbackPoint
+                    }
+                    $data = $result
+                    $status = 'Done'; $msg = "Rollback: $($result.Restored) file(s) restored"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
         }
         New-KitOperationResult -Operation $Name -Kind $kind -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
     } catch {
@@ -1071,65 +1152,13 @@ function Invoke-KitOperation {
     }
 }
 
-# Runs one operation in its own PowerShell instance without a console host: "What if:" lines and host output of
-# the engine go nowhere, only the result object comes back (same process, live objects). For every client that
-# owns standard output (the JSON command, the MCP server).
-function Invoke-KitOperationIsolated {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)] [string] $Name,
-        [hashtable] $Parameters = @{},
-        [switch] $Apply,
-        [switch] $Approved,
-        [string] $Culture = (Get-KitCulture)
-    )
-    $ps = [PowerShell]::Create()
-    try {
-        $null = $ps.AddScript({
-            param($KitRoot, $Culture, $Name, $Parameters, $Apply, $Approved)
-            Import-Module (Join-Path $KitRoot 'core\RetroCabinetKit.Core.psd1')
-            Import-Module (Join-Path $KitRoot 'api\RetroCabinetKit.Api.psd1')
-            Set-KitCulture -Culture $Culture
-            Invoke-KitOperation -Name $Name -Parameters $Parameters -Apply:$Apply -Approved:$Approved
-        }).AddArgument($script:KitRoot).AddArgument($Culture).AddArgument($Name).AddArgument($Parameters).AddArgument([bool]$Apply).AddArgument([bool]$Approved)
-        $result = @($ps.Invoke() | Where-Object { $_ -and $_.PSObject.TypeNames -contains 'RetroCabinetKit.OperationResult' }) | Select-Object -Last 1
-        if (-not $result) {
-            $why = @($ps.Streams.Error | ForEach-Object { $_.Exception.Message }) -join ' '
-            $result = New-KitOperationResult -Operation $Name -Status Failed -Message "No result. $why" -Errors @($why)
-        }
-        $result
-    } finally { $ps.Dispose() }
-}
+. (Join-Path $PSScriptRoot 'modules\Isolation.ps1')
 
 # --- convenience wrappers (same result type) ------------------------------------------------------------------------
 
 function Get-KitCabinetStatus { [CmdletBinding()] param() Invoke-KitOperation -Name 'status' }
 function Get-KitCabinetComponent { [CmdletBinding()] param() Invoke-KitOperation -Name 'components' }
 function Get-KitBackupList { [CmdletBinding()] param([string[]] $Root) $p = @{}; if ($Root) { $p.Root = $Root }; Invoke-KitOperation -Name 'backups.list' -Parameters $p }
-
-# Every string inside a result, anonymized (same rules as the support bundle); names and structure stay.
-function ConvertTo-AnonymousValue($Value) {
-    if ($null -eq $Value) { return $null }
-    if ($Value -is [string]) { return (ConvertTo-KitSupportText -Text $Value) }
-    if ($Value -is [ValueType]) { return $Value }
-    if ($Value -is [Collections.IEnumerable] -and $Value -isnot [Collections.IDictionary]) { return ,@($Value | ForEach-Object { ConvertTo-AnonymousValue $_ }) }
-    $copy = [ordered]@{}
-    if ($Value -is [Collections.IDictionary]) { foreach ($k in $Value.Keys) { $copy[[string]$k] = ConvertTo-AnonymousValue $Value[$k] } }
-    else { foreach ($prop in $Value.PSObject.Properties) { $copy[$prop.Name] = ConvertTo-AnonymousValue $prop.Value } }
-    [pscustomobject]$copy
-}
-
-# JSON for other processes. -Anonymize for anything that leaves this PC (e.g. to a cloud model).
-function ConvertTo-KitApiJson {
-    [CmdletBinding()]
-    param([Parameter(Mandatory, ValueFromPipeline)] [psobject] $Result, [switch] $Anonymize)
-    process {
-        # Through JSON once, so every value is plain data (no live .NET objects), then anonymized, then final JSON.
-        $plain = ConvertTo-Json -InputObject $Result -Depth 10 | ConvertFrom-Json
-        if ($Anonymize) { $plain = ConvertTo-AnonymousValue $plain }
-        ConvertTo-Json -InputObject $plain -Depth 10 -Compress
-    }
-}
 
 Export-ModuleMember -Function 'Get-KitApiVersion', 'Get-KitVersion', 'New-KitOperationResult', 'Get-KitOperation', 'Invoke-KitOperation', 'Invoke-KitOperationIsolated',
     'Get-KitCabinetStatus', 'Get-KitCabinetComponent', 'Get-KitBackupList', 'ConvertTo-KitApiJson'

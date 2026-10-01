@@ -7,6 +7,78 @@ that matches it.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-01
+
+### Added
+- **Fast-Path System Health** (`core/modules/Diagnostics.ps1`):
+  - `Get-SystemHealth` -- sub-2-second hardware/storage/interference diagnostic.
+  - Three vital pillars: USB hardware matrix (DolphinBar, Arcade Encoder, 5 lightgun families, Xbox controllers), storage reachability (local + UNC NAS mounts via Test-Path), interference detection (Steam, Epic, JoyToKey, AnyDesk, Discord, 10 bad actors).
+  - System vitals: uptime, free RAM, free disk C:, CPU load.
+  - Returns `{Status: 'OK'|'Degraded', Hardware: {…}, Storage: {…}, Interference: {…}, Vitals: {…}}` -- no text parsing needed.
+- **API operation `status.health`** (Read) -- automatically exposed as MCP tool, agent can query hardware state without log parsing.
+- **Configurable**: `ExtraStoragePaths` (UNC NAS mounts) and `ExtraBadProcesses` parameters for cabinet-specific checks.
+- **Auto-Detection** (`core/modules/AutoDetect.ps1`):
+  - `Get-KitAutoDetect` -- natural language to kit configuration: keyword/scoring engine, no LLM call.
+  - Returns target modules with confidence scores, suggested setup mode, and preset hint.
+  - German + English keyword catalogs for 9 modules + 3 setup modes + 4 presets.
+  - `Invoke-KitAutoDetect` -- apply detected mode and preset in one call.
+- **Rollback Stack** (`core/modules/Rollback.ps1`):
+  - `Push-KitRollbackPoint` / `Pop-KitRollbackPoint` -- snapshot-based LIFO rollback for complex installs.
+  - Persisted across sessions via `%USERPROFILE%\RetroCabinet\rollback-stack.json`.
+  - `Pop-KitRollbackPointByName` -- roll back to a specific named point (unwinds intermediate points too).
+- **Saga Transaction Pattern** (`core/modules/Transaction.ps1`):
+  - `Invoke-KitTransaction` -- wrap multi-step operations: either all succeed, or NONE are applied.
+  - `Register-RollbackStep` -- each step registers its own undo action (scriptblock) on a LIFO stack.
+  - On failure: stack unwinds in reverse order, restoring exact pre-transaction state.
+  - Per-step error reporting, rollback-failure detection, cabinet consistency guarantees.
+- **3 API operations**:
+  - `auto.detect` (Read) -- natural language → kit config (modules, mode, preset).
+  - `backups.snapshot` (Change) -- take file snapshot, push rollback point.
+  - `backups.rollback` (Change) -- roll back to last (or named) point, restore all snapshotted files.
+
+## [1.1.0] - 2026-10-01
+
+### Added
+- **Setup-Levels** (`core/modules/SetupContext.ps1`) -- three modes across all 10 packages:
+  - **Easy** (Autopilot): minimal questions, best-practice presets, silent backups.
+  - **Custom** (Assistent): choice + sliders, plan summary before execution.
+  - **NerdExtreme** (Deep Dive): raw INI keys, file paths, JSON diffs, no hand-holding.
+  - Context header contract: agent sends `{mode, target_module, hardware_detected, preset}` as JSON.
+- **Preset Management** (`core/modules/Presets.ps1`):
+  - 4 built-in presets: `easy_arcade`, `custom_racing`, `nerd_lightgun`, `balanced_cabinet`.
+  - User presets in `%USERPROFILE%\RetroCabinet\Presets\`, never deleted by kit updates.
+  - `Get-KitPresetCatalog`, `Get-KitPreset`, `Set-KitPreset`, `Remove-KitPreset`, `Invoke-KitPreset`.
+- **3 API operations** in the catalog:
+  - `setup.set_mode` (Change) -- Easy/Custom/NerdExtreme.
+  - `presets.list` (Read) -- all available presets.
+  - `presets.apply` (Change) -- apply a named preset, sets mode and values.
+- **Structured INI Parser** (`core/modules/IniParser.ps1`):
+  - `ConvertFrom-Ini` / `ConvertTo-Ini`: section-aware round-trip with nested hashtables.
+  - `Merge-IniData`: deep merge with override priority.
+  - `Get-IniEffectiveConfig`: base + override union in one call.
+- **Shadow Override** pattern -- for every `config.ini`, user can create `config.override.ini`:
+  - `Get-EmulatorsIniPlan` / `Get-FrontendsIniPlan` now skip keys managed by user override.
+  - `Set-EmulatorsIniValue` / `Set-FrontendsIniValue` merge overrides on top of kit values.
+  - Kit updates never overwrite user customizations -- overrides always win.
+  - New plan output includes `Overridden` flag for transparency.
+- **Formal Adapter Contract** (`core/modules/AdapterContract.ps1`):
+  - `Test-AdapterContract`: verifies required functions + Capabilities hashtable per adapter kind.
+  - `Test-AdapterContractBatch`: validate all adapters in a directory.
+
+### Changed
+- **API monolith split**: `api/modules/Result.ps1` (OperationResult + JSON + Anonymize) and `api/modules/Isolation.ps1` (process isolation) extracted from `api/RetroCabinetKit.Api.psm1`.
+- **Emulator/Frontend INI handlers** rewritten from line-based to structured `ConvertFrom-Ini`/`Merge-IniData`/`ConvertTo-Ini` pipeline with shadow override support.
+- **README**: `New in v1.0.0` section replaces stale v0.4.0, all 10 packages listed.
+- **MCP server description**: now covers all packages (pinball, lightgun, arcade, pads, displays, enhancements, library, emulators, frontends).
+
+### Fixed
+- **INI parser now section-aware**: `[Section]` headers tracked, `[regex]::Escape($key)` for safe key matching (was matching first key occurrence regardless of section).
+- **Duplicate `Get-LibrarySystemSnapshot`** renamed to `Get-LibraryBaseSnapshot`, no more recursive calls.
+- **All `--` (em dashes) replaced with `--` (ASCII) across all module files (PowerShell 5.1 incompatible).
+
+### Tests
+- `tests/core/AdapterContract.Tests.ps1`: multi-section INI, adapter contract compliance (20 adapters), idempotency (Verify-before-Invoke), backup creation.
+
 ## [1.0.0] - 2026-10-01
 
 ### Added
@@ -325,7 +397,9 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v0.7.0...v0.8.0

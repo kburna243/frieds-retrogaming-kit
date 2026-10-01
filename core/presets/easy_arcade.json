@@ -1,0 +1,1 @@
+{"name":"easy_arcade","module":"emulators","description":"Easy-mode: arcade cabinet with RetroArch + MAME, CRT shader","mode":"Easy","values":{"shader":"crt-lottes","fullscreen":"1","vsync":"1","audio":"stereo"}}

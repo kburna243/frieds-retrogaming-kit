@@ -12,8 +12,8 @@ $script:KitRoot   = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
 
-foreach ($name in 'Common', 'Adapters') {
+foreach ($name in 'Common', 'Adapters', 'WiimoteHook', 'HookOfTheWiimote') {
     . (Join-Path $PSScriptRoot "modules\$name.ps1")
 }
 
-Export-ModuleMember -Function '*-Output*'
+Export-ModuleMember -Function '*-Output*', '*-KitWiimote*', '*-HookOfTheWiimote*', '*-Hotw*'

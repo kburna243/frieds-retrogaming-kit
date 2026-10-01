@@ -33,11 +33,11 @@
 ---
 
 > [!NOTE]
-> **Status: v1.0.0** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). The shared core (`core\`), the virtual pinball suite (`pinball\`, steps 1–9) and the Wiimote lightgun suite (`lightgun\`, steps 1–15 including TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel, a guided DuckStation / PCSX2 check and USB adapters for Gun4IR, OpenFIRE, AimTrak, Retro Shooter and **Sinden**) are functional, next to the arcade, output and pads packages. New in v0.4.0: those four suites, the PinballY inspection and retarget operations (API 1.3) and the desktop dashboard over the API. v0.4.1 fixes the missing pointer in Model 2/3, Naomi, Atomiswave and Dreamcast (new `Mouse 4:3` layout). Rumble output is planned. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
+> **Status: v1.2.0** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Ten packages covering the full arcade cabinet stack: `core`, `pinball`, `lightgun`, `arcade`, `pads`, `output`, `displays`, `enhancements`, `library`, `emulators` (15 adapters: MAME … PinballFX3), and `frontends` (5 adapters: RetroBat, PinballY, Playnite, LaunchBox, PinUP). 35+ API operations via MCP server. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
 
 ---
 
-## ✨ New in v0.4.0
+## ✨ New in v1.0.0
 
 | | What you get |
 | :--- | :--- |
