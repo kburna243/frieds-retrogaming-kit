@@ -1,0 +1,1 @@
+Library adapters — RetroBat, PinballY, Playnite, LaunchBox, Generic frontend ROM and media management.

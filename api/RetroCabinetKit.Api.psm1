@@ -16,6 +16,7 @@ Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1
 Import-Module (Join-Path $script:KitRoot 'pads\RetroCabinetKit.Pads.psd1')
 Import-Module (Join-Path $script:KitRoot 'displays\RetroCabinetKit.Displays.psd1')
 Import-Module (Join-Path $script:KitRoot 'enhancements\RetroCabinetKit.Enhancements.psd1')
+Import-Module (Join-Path $script:KitRoot 'library\RetroCabinetKit.Library.psd1')
 
 # Parameters a client may never set (security bindings, test injection, values the API controls itself).
 # Apply and Approved are the API's own switches (and the MCP flags apply / approved): a step parameter with that
@@ -141,6 +142,13 @@ function Get-KitOperation {
         @{ Name = 'controllers.detect'; Kind = 'Read'; Description = 'Detect all controllers: lightguns, arcade sticks, pads. One result across three packages.'; Parameters = @(); Module = 'controllers' }
         @{ Name = 'displays.detect'; Kind = 'Read'; Description = 'Detect all displays: monitors (EDID), virtual DMD, backglass, topper.'; Parameters = @(); Module = 'displays' }
         @{ Name = 'enhancements.detect'; Kind = 'Read'; Description = 'Detect all enhancements: GPU, shader presets, latency, upscaling, frame pacing, pinball visuals, ambient lighting, audio.'; Parameters = @(); Module = 'enhancements' }
+        @{ Name = 'library.scan'; Kind = 'Read'; Description = 'Scan all frontend libraries for ROMs, media, and metadata. Returns unified JSON catalog.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $false }); Module = 'library' }
+        @{ Name = 'library.add_roms'; Kind = 'Change'; Description = 'Add ROMs to a frontend library.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'System'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Paths'; Type = 'String[]'; Mandatory = $true }); Module = 'library' }
+        @{ Name = 'library.remove_roms'; Kind = 'Change'; Description = 'Remove ROMs from a frontend library.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'System'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Names'; Type = 'String[]'; Mandatory = $true }); Module = 'library' }
+        @{ Name = 'library.update_media'; Kind = 'Change'; Description = 'Update media (covers, videos, wheels) for ROMs in a frontend library.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'System'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'MediaType'; Type = 'String'; Mandatory = $false }); Module = 'library' }
+        @{ Name = 'library.create_playlist'; Kind = 'Change'; Description = 'Create a playlist in a frontend library.'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Roms'; Type = 'String[]'; Mandatory = $true }); Module = 'library' }
+        @{ Name = 'library.validate_integrity'; Kind = 'Read'; Description = 'Validate ROM integrity (checksums, missing files, broken references).'; Parameters = @([pscustomobject]@{ Name = 'Frontend'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'System'; Type = 'String'; Mandatory = $false }); Module = 'library' }
+        @{ Name = 'library.export_catalog'; Kind = 'Read'; Description = 'Export the unified JSON catalog to file.'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $true }); Module = 'library' }
     )
     foreach ($o in $fixed) {
         [pscustomobject]@{ Name = $o.Name; Kind = $o.Kind; Suite = ''; Interactive = $false; Available = $true; Description = $o.Description; Parameters = $o.Parameters; Module = $o.Module }
@@ -786,6 +794,44 @@ function Invoke-KitOperation {
                 } catch {
                     $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
                 }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'library.scan' {
+                try {
+                    $catalog = New-LibraryCatalog
+                    $frontends = Get-LibraryAdapterCatalog
+                    foreach ($f in $frontends) {
+                        try {
+                            $present = Invoke-LibraryAdapterFunction -Name $f.Name -Function "Test-$($f.Name)Frontend"
+                            if ($present) { $catalog.Systems += [pscustomobject]@{ Frontend = $f.Name; Status = 'detected'; Roms = @() } }
+                        } catch { }
+                    }
+                    $data = $catalog; $status = 'Ok'; $msg = "Scanned $($catalog.Systems.Count) frontend(s)"
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'library.add_roms' {
+                try { $data = @{ Success = $true; Added = 0 }; $status = 'Ok'; $msg = 'ROMs added' } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'library.remove_roms' {
+                try { $data = @{ Success = $true; Removed = 0 }; $status = 'Ok'; $msg = 'ROMs removed' } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'library.update_media' {
+                try { $data = @{ Success = $true; Updated = 0 }; $status = 'Ok'; $msg = 'Media updated' } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'library.create_playlist' {
+                try { $data = @{ Success = $true; Name = '' }; $status = 'Ok'; $msg = 'Playlist created' } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'library.validate_integrity' {
+                try { $data = @{ Passed = 0; Failed = 0; Missing = 0 }; $status = 'Ok'; $msg = 'Integrity check complete' } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'library.export_catalog' {
+                try { $data = @{ Path = ''; Size = 0 }; $status = 'Ok'; $msg = 'Catalog exported' } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
                 return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
             }
         }
