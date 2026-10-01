@@ -15,6 +15,12 @@ that matches it.
   arcade sticks and arcade pads counts LT/RT as buttons 5/6, LB/RB as 7/8; buttons a device does not report get no
   number (`input_xinput.cpp`).
 - Controls & rumble view: the used XInput slots with their `JOY<n>` under the devices.
+- API 1.6: operations `controllers.wiimote_order` and `controllers.wiimote_bind`. Gunmote numbers the Wiimotes in the
+  order they connect (verified on a cabinet in both directions); Windows keeps that order as each Wiimote's arrival
+  time and its Bluetooth address in the device tree. The kit saves which Wiimote is which player and says before a game
+  whether the order is right, swapped (with the order to switch them on in) or unclear (a Wiimote connected before
+  Gunmote or long after the other, e.g. a reconnect - then it does not guess).
+- Controls & rumble view: the player order under the rumble chain, and "Save order". The window is 860 px high.
 - Dashboard: fourth card **Controls & rumble**. The devices the kit recognizes, the Wiimote output chain (Wiimote,
   Gunmote, ViGEmBus, recoil relay, MAME outputs) with a hint for every missing link, and the input profiles: pick one,
   see its mapping, run it as a dry run, write it after a yes. The button says what it will do (dry run or write).

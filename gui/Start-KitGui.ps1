@@ -135,6 +135,7 @@ $c.ProfileList.add_SelectionChanged({ Update-KitGuiMapping -Ui $ui; Update-KitGu
 $c.InputDryRunBox.add_Checked({ Update-KitGuiApplyButton -Ui $ui })
 $c.InputDryRunBox.add_Unchecked({ Update-KitGuiApplyButton -Ui $ui })
 $c.ApplyInputButton.add_Click({ $null = Invoke-KitGuiApplyInput -Ui $ui })
+$c.SaveOrderButton.add_Click({ if (Invoke-KitGuiSaveOrder -Ui $ui) { Start-ControlsCheck } })
 
 Update-Texts
 Show-KitGuiView -Ui $ui -Name $View
