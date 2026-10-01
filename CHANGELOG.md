@@ -7,6 +7,26 @@ that matches it.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-01
+
+### Added
+
+- Input matrix: guns and panel in one profile. New sources for XInput pads (Gunmote's Wiimotes): `JOY<n>_DPAD_<dir>`,
+  the axes `JOY<n>_XAXIS` … `JOY<n>_RZAXIS`, and `A+B` for buttons pressed together (`JOY1_SELECT+JOY1_START`);
+  new intents `P<n>_LIGHTGUN_X/Y` and `P<n>_AD_STICK_X/Y/Z`.
+
+### Changed
+
+- Lightgun step 7 keeps `mame.mame_ctrlr_profile` when it names a ctrlr file the input matrix wrote; any other
+  value is still set back to `custom1`. Without this the step would undo the switch to a combined profile.
+
+### Fixed
+
+- The input-matrix plan no longer warns about `mame.disableautocontrollers`: RetroBat loads the ctrlr profile
+  without it (measured on the cabinet with `custom1`).
+
+## [1.3.1] - 2026-10-01
+
 ## [1.3.0] - 2026-10-01
 
 ### Added
@@ -422,7 +442,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.0.0...v1.1.0

@@ -289,3 +289,30 @@ Describe 'RetroBat settings (es_settings.cfg, es_input.cfg)' {
         Get-Hash $p2.EsSettings | Should Be $hash
     }
 }
+
+# The input matrix may point MAME at a ctrlr file of its own (guns AND panel); step 7 must not set it back.
+Describe 'RetroBat settings keep a ctrlr profile the input matrix wrote' {
+    $rb = Join-Path $TestDrive 'RBM'
+    $es = Join-Path $rb 'emulationstation\.emulationstation\es_settings.cfg'
+    $ctrlr = Join-Path $rb 'saves\mame\ctrlr'
+    $null = New-Item -ItemType Directory -Path (Split-Path -Parent $es), $ctrlr -Force
+    function Set-TestProfile([string] $Name) {
+        [IO.File]::WriteAllText($es, "<?xml version=`"1.0`"?>`r`n<config>`r`n  <string name=`"mame.mame_ctrlr_profile`" value=`"$Name`" />`r`n</config>`r`n")
+    }
+
+    It 'keeps a profile whose file carries the input-matrix marker' {
+        [IO.File]::WriteAllText((Join-Path $ctrlr 'kit-cabinet.cfg'), '<mameconfig version="10"><!-- kit:input-matrix profile=cabinet --></mameconfig>')
+        Set-TestProfile 'kit-cabinet'
+        @(Get-LightgunEsSettingsPlan -Path $es | Where-Object { $_.Name -eq 'mame.mame_ctrlr_profile' }).Count | Should Be 0
+    }
+
+    It 'sets any other profile back to the gun profile, as before' {
+        [IO.File]::WriteAllText((Join-Path $ctrlr 'hand.cfg'), '<mameconfig version="10" />')
+        foreach ($name in 'hand', 'missing', 'retrobat_auto') {
+            Set-TestProfile $name
+            $row = @(Get-LightgunEsSettingsPlan -Path $es | Where-Object { $_.Name -eq 'mame.mame_ctrlr_profile' })
+            $row.Count | Should Be 1
+            $row[0].New | Should Be 'custom1'
+        }
+    }
+}

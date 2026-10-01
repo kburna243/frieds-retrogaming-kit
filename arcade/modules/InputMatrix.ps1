@@ -21,7 +21,7 @@ function Get-ArcadeInputProfileDir {
 
 # Intents are MAME port types: the most complete arcade vocabulary there is, and the other dialects map from it.
 function Test-ArcadeInputIntent([string] $Intent) {
-    $Intent -cmatch '^(START[1-8]|COIN[1-8]|SERVICE[1-4]?|TILT|P[1-8]_(JOYSTICK|JOYSTICKLEFT|JOYSTICKRIGHT)_(UP|DOWN|LEFT|RIGHT)|P[1-8]_BUTTON([1-9]|1[0-6])|P[1-8]_(START|SELECT)|UI_[A-Z_]+)$'
+    $Intent -cmatch '^(START[1-8]|COIN[1-8]|SERVICE[1-4]?|TILT|P[1-8]_(JOYSTICK|JOYSTICKLEFT|JOYSTICKRIGHT)_(UP|DOWN|LEFT|RIGHT)|P[1-8]_BUTTON([1-9]|1[0-6])|P[1-8]_(START|SELECT)|P[1-8]_(LIGHTGUN|AD_STICK)_[XYZ]|UI_[A-Z_]+)$'
 }
 
 # One generic source -> MAME code. Unknown names are an error, never a silent drop: a typo would leave a
@@ -31,6 +31,8 @@ function ConvertTo-ArcadeMameCode {
     param([Parameter(Mandatory)] [string] $Source)
     $keys = '^(?:[A-Z]|[0-9]|F([1-9]|1[0-5])|UP|DOWN|LEFT|RIGHT|[LR](CONTROL|ALT|SHIFT|WIN)|SPACE|ENTER|ESC|TAB|BACKSPACE|INSERT|DEL|HOME|END|PGUP|PGDN|MINUS|EQUALS|OPENBRACE|CLOSEBRACE|COLON|QUOTE|BACKSLASH|COMMA|STOP|SLASH|TILDE|[0-9]_PAD|(PLUS|MINUS|SLASH|ASTERISK|DEL|ENTER)_PAD|PRTSCR|PAUSE|MENU)$'
     if ($Source -ceq 'NONE') { return 'NONE' }
+    # A+B: both pressed together (MAME writes the codes side by side), e.g. JOY1_SELECT+JOY1_START.
+    if ($Source.Contains('+')) { return (@($Source.Split('+') | ForEach-Object { ConvertTo-ArcadeMameCode $_ }) -join ' ') }
     if ($Source -cmatch '^KEY_(.+)$') {
         $key = $Matches[1]   # the next -cmatch overwrites $Matches
         if ($key -cmatch $keys) { return "KEYCODE_$key" }
@@ -42,8 +44,11 @@ function ConvertTo-ArcadeMameCode {
         return "JOYCODE_$($Matches[1])_$($axis[$Matches[2]])"
     }
     if ($Source -cmatch '^JOY([1-8])_HAT_(UP|DOWN|LEFT|RIGHT)$') { return "JOYCODE_$($Matches[1])_HAT1$($Matches[2])" }
+    # XInput pads (Gunmote's Wiimotes): the d-pad and the analog axes the gun aims with.
+    if ($Source -cmatch '^JOY([1-8])_DPAD_(UP|DOWN|LEFT|RIGHT)$') { return "JOYCODE_$($Matches[1])_DPAD$($Matches[2])" }
+    if ($Source -cmatch '^JOY([1-8])_(R?[XYZ])AXIS$') { return "JOYCODE_$($Matches[1])_$($Matches[2])AXIS" }
     if ($Source -cmatch '^MOUSE([1-8])_BUTTON([1-9])$') { return "MOUSECODE_$($Matches[1])_BUTTON$($Matches[2])" }
-    throw "Unknown input source '$Source' (KEY_<name>, JOY<n>_BUTTON<m>, JOY<n>_UP/DOWN/LEFT/RIGHT, JOY<n>_HAT_<dir>, JOY<n>_START/SELECT, MOUSE<n>_BUTTON<m>, NONE)"
+    throw "Unknown input source '$Source' (KEY_<name>, JOY<n>_BUTTON<m>, JOY<n>_UP/DOWN/LEFT/RIGHT, JOY<n>_HAT_<dir>, JOY<n>_DPAD_<dir>, JOY<n>_XAXIS/YAXIS/ZAXIS/RXAXIS/RYAXIS/RZAXIS, JOY<n>_START/SELECT, MOUSE<n>_BUTTON<m>, NONE, A+B)"
 }
 
 # Profiles: Get-ArcadeInputProfile lists them; -Name returns one with its mapping (intent -> sources[]).
@@ -113,8 +118,9 @@ function Read-ArcadeMameCtrlrPorts([string] $Path) {
     $ports
 }
 
-# What RetroBat must have set so MAME loads <CtrlrName>.cfg: standalone MAME, its automatic off for MAME,
-# and the ctrlr profile name. Read only; missing keys and other values come back as warnings.
+# What RetroBat must have set so MAME loads <CtrlrName>.cfg: standalone MAME and the ctrlr profile name.
+# (mame.disableautocontrollers is not needed: the cabinet loads custom1.cfg without it.)
+# Read only; missing keys and other values come back as warnings.
 function Get-ArcadeMameRetroBatWarnings([string] $RetroBatRoot, [string] $CtrlrName) {
     $esPath = Join-Path $RetroBatRoot 'emulationstation\.emulationstation\es_settings.cfg'
     if (-not (Test-Path -LiteralPath $esPath -PathType Leaf)) { return @("es_settings.cfg not found ($esPath): RetroBat's MAME settings could not be checked") }
@@ -129,7 +135,7 @@ function Get-ArcadeMameRetroBatWarnings([string] $RetroBatRoot, [string] $CtrlrN
             if ($reader.NodeType -eq [Xml.XmlNodeType]::Element -and $reader.GetAttribute('name')) { $values[$reader.GetAttribute('name')] = $reader.GetAttribute('value') }
         }
     } finally { $reader.Dispose() }
-    $want = [ordered]@{ 'mame.emulator' = 'mame64'; 'mame.disableautocontrollers' = '1'; 'mame.mame_ctrlr_profile' = $CtrlrName }
+    $want = [ordered]@{ 'mame.emulator' = 'mame64'; 'mame.mame_ctrlr_profile' = $CtrlrName }
     $warnings = @()
     foreach ($k in $want.Keys) {
         $have = if ($values.ContainsKey($k)) { [string]$values[$k] } else { '' }

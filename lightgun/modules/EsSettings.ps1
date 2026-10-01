@@ -133,6 +133,17 @@ function Get-LightgunEsSettingsPlan {
         if ($byName.ContainsKey($name)) { [pscustomobject]@{ File = $Path; Name = $name; Old = $byName[$name].GetAttribute('value'); New = $null; Action = 'Remove' } }
     }
     $target = $Target
+    # The input matrix (arcade package) may point MAME at a ctrlr file of its own that holds the guns AND the panel.
+    # A profile name whose file the matrix wrote stays; anything else is set back to the gun profile as before.
+    $ctrlrKey = 'mame.mame_ctrlr_profile'
+    if ($target.Contains($ctrlrKey) -and $byName.ContainsKey($ctrlrKey)) {
+        $current = $byName[$ctrlrKey].GetAttribute('value')
+        $rbRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $Path))
+        $cfg = if ($current -match '^[A-Za-z0-9_.-]+$') { Join-Path $rbRoot "saves\mame\ctrlr\$current.cfg" } else { '' }
+        if ($cfg -and (Test-Path -LiteralPath $cfg -PathType Leaf) -and ([IO.File]::ReadAllText($cfg)).Contains('kit:input-matrix')) {
+            $copy = [ordered]@{}; foreach ($k in $target.Keys) { if ($k -ne $ctrlrKey) { $copy[$k] = $target[$k] } }; $target = $copy
+        }
+    }
     foreach ($name in $target.Keys) {
         $want = $target[$name]
         if ($byName.ContainsKey($name)) {

@@ -33,7 +33,7 @@
 ---
 
 > [!NOTE]
-> **Status: v1.3.0** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Ten packages covering the full arcade cabinet stack: `core`, `pinball`, `lightgun`, `arcade`, `pads`, `output`, `displays`, `enhancements`, `library`, `emulators` (15 adapters: MAME … PinballFX3), and `frontends` (5 adapters: RetroBat, PinballY, Playnite, LaunchBox, PinUP). 35+ API operations via MCP server. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
+> **Status: v1.3.1** ([download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Ten packages covering the full arcade cabinet stack: `core`, `pinball`, `lightgun`, `arcade`, `pads`, `output`, `displays`, `enhancements`, `library`, `emulators` (15 adapters: MAME … PinballFX3), and `frontends` (5 adapters: RetroBat, PinballY, Playnite, LaunchBox, PinUP). 35+ API operations via MCP server. See the [feature status](#-feature-status) below, the [CHANGELOG](CHANGELOG.md) and the [ROADMAP](ROADMAP.md).
 
 ---
 
