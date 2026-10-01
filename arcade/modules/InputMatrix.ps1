@@ -45,7 +45,8 @@ function ConvertTo-ArcadeMameCode {
     }
     if ($Source -cmatch '^JOY([1-8])_HAT_(UP|DOWN|LEFT|RIGHT)$') { return "JOYCODE_$($Matches[1])_HAT1$($Matches[2])" }
     # XInput pads (Gunmote's Wiimotes): the d-pad and the analog axes the gun aims with.
-    if ($Source -cmatch '^JOY([1-8])_DPAD_(UP|DOWN|LEFT|RIGHT)$') { return "JOYCODE_$($Matches[1])_DPAD$($Matches[2])" }
+    # MAME's xinput provider registers the d-pad as HAT1; it has no DPAD token, so DPAD is an alias.
+    if ($Source -cmatch '^JOY([1-8])_DPAD_(UP|DOWN|LEFT|RIGHT)$') { return "JOYCODE_$($Matches[1])_HAT1$($Matches[2])" }
     if ($Source -cmatch '^JOY([1-8])_(R?[XYZ])AXIS$') { return "JOYCODE_$($Matches[1])_$($Matches[2])AXIS" }
     if ($Source -cmatch '^MOUSE([1-8])_BUTTON([1-9])$') { return "MOUSECODE_$($Matches[1])_BUTTON$($Matches[2])" }
     throw "Unknown input source '$Source' (KEY_<name>, JOY<n>_BUTTON<m>, JOY<n>_UP/DOWN/LEFT/RIGHT, JOY<n>_HAT_<dir>, JOY<n>_DPAD_<dir>, JOY<n>_XAXIS/YAXIS/ZAXIS/RXAXIS/RYAXIS/RZAXIS, JOY<n>_START/SELECT, MOUSE<n>_BUTTON<m>, NONE, A+B)"

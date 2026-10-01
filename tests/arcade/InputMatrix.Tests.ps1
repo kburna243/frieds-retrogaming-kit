@@ -33,7 +33,7 @@ Describe 'Input matrix (profiles -> MAME ctrlr)' {
         ConvertTo-ArcadeMameCode 'JOY1_HAT_LEFT' | Should Be 'JOYCODE_1_HAT1LEFT'
         ConvertTo-ArcadeMameCode 'MOUSE1_BUTTON3' | Should Be 'MOUSECODE_1_BUTTON3'
         ConvertTo-ArcadeMameCode 'NONE' | Should Be 'NONE'
-        ConvertTo-ArcadeMameCode 'JOY1_DPAD_UP' | Should Be 'JOYCODE_1_DPADUP'
+        ConvertTo-ArcadeMameCode 'JOY1_DPAD_UP' | Should Be 'JOYCODE_1_HAT1UP'
         ConvertTo-ArcadeMameCode 'JOY2_XAXIS' | Should Be 'JOYCODE_2_XAXIS'
         ConvertTo-ArcadeMameCode 'JOY1_RZAXIS' | Should Be 'JOYCODE_1_RZAXIS'
         ConvertTo-ArcadeMameCode 'JOY1_SELECT+JOY1_START' | Should Be 'JOYCODE_1_SELECT JOYCODE_1_START'
