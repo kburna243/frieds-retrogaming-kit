@@ -1,0 +1,1 @@
+Enhancement adapters — shaders, latency, upscaling, frame pacing, pinball visuals, ambient lighting, audio.

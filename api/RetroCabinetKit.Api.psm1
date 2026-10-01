@@ -15,6 +15,7 @@ Import-Module (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
 Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
 Import-Module (Join-Path $script:KitRoot 'pads\RetroCabinetKit.Pads.psd1')
 Import-Module (Join-Path $script:KitRoot 'displays\RetroCabinetKit.Displays.psd1')
+Import-Module (Join-Path $script:KitRoot 'enhancements\RetroCabinetKit.Enhancements.psd1')
 
 # Parameters a client may never set (security bindings, test injection, values the API controls itself).
 # Apply and Approved are the API's own switches (and the MCP flags apply / approved): a step parameter with that
@@ -139,6 +140,7 @@ function Get-KitOperation {
         @{ Name = 'support.bundle'; Kind = 'Change'; Description = 'Writes an anonymized support bundle (doctor, environment, step states, logs).'; Parameters = @([pscustomobject]@{ Name = 'Destination'; Type = 'String'; Mandatory = $false }); Module = 'core' }
         @{ Name = 'controllers.detect'; Kind = 'Read'; Description = 'Detect all controllers: lightguns, arcade sticks, pads. One result across three packages.'; Parameters = @(); Module = 'controllers' }
         @{ Name = 'displays.detect'; Kind = 'Read'; Description = 'Detect all displays: monitors (EDID), virtual DMD, backglass, topper.'; Parameters = @(); Module = 'displays' }
+        @{ Name = 'enhancements.detect'; Kind = 'Read'; Description = 'Detect all enhancements: GPU, shader presets, latency, upscaling, frame pacing, pinball visuals, ambient lighting, audio.'; Parameters = @(); Module = 'enhancements' }
     )
     foreach ($o in $fixed) {
         [pscustomobject]@{ Name = $o.Name; Kind = $o.Kind; Suite = ''; Interactive = $false; Available = $true; Description = $o.Description; Parameters = $o.Parameters; Module = $o.Module }
@@ -749,6 +751,38 @@ function Invoke-KitOperation {
                     } catch { }
                     $data = [pscustomobject]@{ Displays = $displayResults; Monitors = $monitors }
                     $status = 'Ok'; $msg = "Found $($monitors.Count) monitor(s) and $($displayResults.Count) display adapter(s)"
+                } catch {
+                    $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
+                }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'enhancements.detect' {
+                try {
+                    $enhResults = @()
+                    $catalog = Get-EnhancementsAdapterCatalog
+                    foreach ($adapter in $catalog) {
+                        try {
+                            $info = Invoke-EnhancementsAdapterFunction -Name $adapter.Name -Function "Get-$($adapter.Name)AdapterInfo"
+                            $present = Invoke-EnhancementsAdapterFunction -Name $adapter.Name -Function "Test-$($adapter.Name)Hardware"
+                            $enhResults += [pscustomobject]@{
+                                Name = $adapter.Name
+                                Present = [bool]$present
+                                Info = @{ Links = if ($info.Contains('Links')) { $info.Links } else { @{} }; Notes = if ($info.Contains('Notes')) { $info.Notes } else { '' } }
+                                ProfileHint = if ($info.Contains('ProfileHint')) { $info.ProfileHint } else { '' }
+                                Category = 'enhancement'
+                            }
+                        } catch { }
+                    }
+                    $gpu = @()
+                    try {
+                        $gpu = @(Get-CimInstance -ClassName Win32_VideoController -ErrorAction SilentlyContinue |
+                            ForEach-Object {
+                                [pscustomobject]@{ Name = $_.Name; DriverVersion = $_.DriverVersion; VRAM = [math]::Round($_.AdapterRAM/1GB, 1) }
+                            })
+                    } catch { }
+                    $profiles = @('Performance', 'Balanced', 'BestLook')
+                    $data = [pscustomobject]@{ Enhancements = $enhResults; Gpu = $gpu; Profiles = $profiles }
+                    $status = 'Ok'; $msg = "Found $($gpu.Count) GPU(s) and $($enhResults.Count) enhancement adapter(s)"
                 } catch {
                     $status = 'Failed'; $msg = $_.Exception.Message; $data = $null
                 }
