@@ -113,6 +113,8 @@ function Get-KitOperation {
         @{ Name = 'controllers.detect'; Kind = 'Read'; Description = 'Detect all controllers: lightguns, arcade sticks, pads. One result across three packages.'; Parameters = @(); Module = 'controllers' }
         @{ Name = 'controllers.input_profiles'; Kind = 'Read'; Description = 'List the input profiles (one button layout for the whole cabinet), or one profile with its mapping.'; Parameters = @([pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
         @{ Name = 'controllers.xinput_slots'; Kind = 'Read'; Description = 'The four XInput slots: which is in use, by what kind of device, its MAME joystick number (JOY<n> counts connected slots only) and the source names of its buttons as MAME numbers them.'; Parameters = @(); Module = 'controllers' }
+        @{ Name = 'controllers.wiimote_order'; Kind = 'Read'; Description = 'Which Wiimote is player 1, 2, ... in Gunmote right now (Gunmote numbers them in the order they connect) and whether that matches the saved binding: Ok, Swapped, Unbound, Unclear, NoGunmote, NoWiimote.'; Parameters = @(); Module = 'controllers' }
+        @{ Name = 'controllers.wiimote_bind'; Kind = 'Change'; Description = 'Save the current Wiimote order as the player binding (Bluetooth address -> player); the plan shows the binding, -Apply writes it.'; Parameters = @(); Module = 'controllers' }
         @{ Name = 'controllers.input_apply'; Kind = 'Change'; Description = 'Write an input profile as a MAME ctrlr file of its own (never a hand-made one); the plan names the RetroBat settings that load it.'; Parameters = @([pscustomobject]@{ Name = 'Profile'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'CtrlrName'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
         @{ Name = 'displays.detect'; Kind = 'Read'; Description = 'Detect all displays: monitors (EDID), virtual DMD, backglass, topper.'; Parameters = @(); Module = 'displays' }
         @{ Name = 'enhancements.detect'; Kind = 'Read'; Description = 'Detect all enhancements: GPU, shader presets, latency, upscaling, frame pacing, pinball visuals, ambient lighting, audio.'; Parameters = @(); Module = 'enhancements' }
@@ -512,6 +514,36 @@ function Invoke-KitOperation {
                     $data = [pscustomobject]@{ Slots = $slots }; $status = 'Ok'; $msg = "$used of 4 XInput slot(s) in use"
                 } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
                 return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'controllers.wiimote_order' {
+                try {
+                    $o = Get-ArcadeWiimoteOrder
+                    $msg = switch ($o.State) {
+                        'Ok'        { 'Wiimote order matches the binding' }
+                        'Swapped'   { 'Wiimote order is swapped: switch them off, then on in this order: ' + ($o.SwitchOnOrder -join ', ') }
+                        'Unbound'   { 'No binding saved yet: controllers.wiimote_bind saves the current order' }
+                        'Unclear'   { 'Order unclear: a Wiimote connected before Gunmote started or long after the other (reconnect?). Switch them off, then on one after the other.' }
+                        'NoGunmote' { 'Gunmote is not running: it numbers the Wiimotes when they connect' }
+                        default     { 'No Wiimote connected' }
+                    }
+                    $status = 'Ok'; $data = $o
+                } catch { $status = 'Failed'; $msg = $_.Exception.Message; $data = $null }
+                return New-KitOperationResult -Operation $Name -Kind Read -Status $status -Message $msg -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $data
+            }
+            'controllers.wiimote_bind' {
+                # Rule 1: without -Apply the answer is the plan and nothing is written.
+                try {
+                    $entries = @(Save-ArcadeWiimoteLedger -WhatIf:(-not $apply))
+                    $text = ($entries | ForEach-Object { 'player {0} = {1} ({2})' -f $_.Player, $_.Mac, $_.Model }) -join ', '
+                    $status = if ($apply) { 'Done' } else { 'WhatIf' }
+                    $msg = if ($apply) { "Wiimote binding saved: $text" } else { "Plan: $text. Apply with -Apply." }
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg `
+                        -Changes @($entries | ForEach-Object { "player $($_.Player) = $($_.Mac)" }) -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                        -Data ([pscustomobject]@{ Wiimotes = $entries })
+                } catch {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status Failed -Message $_.Exception.Message -Errors @($_.Exception.Message) `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started
+                }
             }
             'controllers.input_apply' {
                 # Rule 1: without -Apply the answer is the plan and nothing is written.

@@ -401,7 +401,7 @@ function Find-KitGuiRetroBat {
 }
 
 # Runs the reads of this view in a background runspace (detection takes seconds); Receive-KitGuiControlsCheck
-# returns @{ Detect; Hook; Profiles; Slots } once all four are back ($null before).
+# returns @{ Detect; Hook; Profiles; Slots; Order } once all are back ($null before).
 function Start-KitGuiControlsCheck {
     [CmdletBinding()]
     param([string] $RetroBatRoot, [string] $Culture = (Get-KitCulture))
@@ -417,6 +417,7 @@ function Start-KitGuiControlsCheck {
             Hook     = Invoke-KitOperation -Name 'outputs.wiimote_hook' -Parameters $rb
             Profiles = Invoke-KitOperation -Name 'controllers.input_profiles'
             Slots    = Invoke-KitOperation -Name 'controllers.xinput_slots'
+            Order    = Invoke-KitOperation -Name 'controllers.wiimote_order'
         }
     }).AddArgument($script:KitRoot).AddArgument($Culture).AddArgument($RetroBatRoot)
     [pscustomobject]@{ PowerShell = $ps; Handle = $ps.BeginInvoke() }
@@ -492,15 +493,43 @@ function Get-KitGuiMappingRows {
     , @(foreach ($p in $pairs) { [pscustomobject]@{ Intent = $p.Name; Sources = (@($p.Value) -join '  |  ') } })
 }
 
+# The Wiimote player order (controllers.wiimote_order): the state with what to do, then the players in one row.
+function Get-KitGuiOrderRows {
+    [CmdletBinding()]
+    param($Result)
+    if (-not $Result -or -not $Result.Success -or -not $Result.Data) { return , @() }
+    $o = $Result.Data
+    $level = @{ Ok = 'Ok'; Swapped = 'Error'; Unclear = 'Warn'; Unbound = 'Warn'; NoGunmote = 'Warn'; NoWiimote = 'Info' }[[string]$o.State]
+    $text = Get-KitText "Gui.Order.$($o.State)" -f (@($o.SwitchOnOrder) -join ', ')
+    $rows = @(New-KitGuiRow $level (Get-KitText 'Gui.Order.Title') $text)
+    $players = @($o.Wiimotes | ForEach-Object { '{0}: {1} ({2})' -f (Get-KitText 'Gui.Order.Player' -f $_.Player), $_.Mac, $_.Model })
+    if ($players.Count) { $rows += New-KitGuiRow 'Info' (Get-KitText 'Gui.Order.Now') ($players -join [Environment]::NewLine) }
+    , $rows
+}
+
+# Saves the current Wiimote order as the binding (controllers.wiimote_bind), after a yes.
+function Invoke-KitGuiSaveOrder {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [psobject] $Ui, [scriptblock] $Confirm = { param($text) Confirm-KitGuiAction -Text $text })
+    $plan = Invoke-KitOperation -Name 'controllers.wiimote_bind'
+    if ($plan.Status -eq 'Failed') { Write-KitGuiControlsLog -Ui $Ui -Text $plan.Message; return $null }
+    if (-not (& $Confirm (Get-KitText 'Gui.Order.ConfirmSave' -f (@($plan.Changes) -join ', ')))) { return $null }
+    $r = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Apply
+    Write-KitGuiControlsLog -Ui $Ui -Text $r.Message
+    $r
+}
+
 # Shows the result of Start-KitGuiControlsCheck: devices, chain, the profile list (keeps the chosen profile).
 function Show-KitGuiControls {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [psobject] $Ui, [Parameter(Mandatory)] $Check)
     $c = $Ui.Controls
     $slots = if ($Check.PSObject.Properties['Slots']) { Get-KitGuiSlotRows $Check.Slots } else { @() }
+    $order = if ($Check.PSObject.Properties['Order']) { Get-KitGuiOrderRows $Check.Order } else { @() }
     $devices = Get-KitGuiDeviceRows $Check.Detect   # assigned first: @() around the call would nest the returned array
     $c.DeviceRows.ItemsSource = @($devices) + @($slots)
-    $c.ChainRows.ItemsSource = Get-KitGuiChainRows $Check.Hook
+    $chain = Get-KitGuiChainRows $Check.Hook
+    $c.ChainRows.ItemsSource = @($chain) + @($order)
     $profiles = if ($Check.Profiles -and $Check.Profiles.Success) { @($Check.Profiles.Data.Profiles) } else { @() }
     $chosen = if ($c.ProfileList.SelectedItem) { $c.ProfileList.SelectedItem.Name } else { $null }
     $c.ProfileList.ItemsSource = $profiles
@@ -599,7 +628,7 @@ function Save-KitGuiSnapshot {
         [Parameter(Mandatory)] [psobject] $Ui,
         [Parameter(Mandatory)] [string] $Path,
         [int] $Width = 1120,
-        [int] $Height = 760
+        [int] $Height = 860
     )
     $window = $Ui.Window
     $content = $window.Content

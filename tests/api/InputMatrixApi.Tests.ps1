@@ -40,3 +40,18 @@ Describe 'API 1.6 -- XInput slots' {
         $r.Message | Should Match '^\d of 4 XInput slot'
     }
 }
+
+Describe 'API 1.6 -- Wiimote player order' {
+    It 'API: the order is read with a known state; binding without -Apply writes nothing' {
+        $r = Invoke-KitOperation -Name 'controllers.wiimote_order'
+        $r.Status | Should Be 'Ok'
+        @('Ok', 'Swapped', 'Unbound', 'Unclear', 'NoGunmote', 'NoWiimote') -contains $r.Data.State | Should Be $true
+        $ledger = Join-Path $env:USERPROFILE 'RetroCabinet\wiimotes.json'
+        $before = if (Test-Path $ledger) { (Get-Item $ledger).LastWriteTimeUtc } else { $null }
+        $plan = Invoke-KitOperation -Name 'controllers.wiimote_bind'
+        @('WhatIf', 'Failed') -contains $plan.Status | Should Be $true   # Failed: no Wiimote on this machine
+        $plan.Applied | Should Be $false
+        $after = if (Test-Path $ledger) { (Get-Item $ledger).LastWriteTimeUtc } else { $null }
+        $after | Should Be $before
+    }
+}

@@ -305,6 +305,28 @@ Describe 'Controls view' {
         ($rows | ForEach-Object { "$($_.Label)|$($_.Text)" }) -join ';' | Should Be 'JOY1 = XInput 1|Gamepad;JOY2 = XInput 2|ArcadeStick, LT/RT = buttons 5/6'
     }
 
+    # Own Context: in Pester 3 a Mock lives for the whole Describe, not only its It.
+    Context 'player order' {
+        It 'shows the Wiimote player order with what to do, and saves it only after a yes' {
+            Set-KitCulture -Culture 'en-US'
+            $order = [pscustomobject]@{ Success = $true; Data = [pscustomobject]@{ State = 'Swapped'; SwitchOnOrder = @('0017AB2CD0A0 (RVL-CNT-01)', '34AF2CD5795B (RVL-CNT-01-TR)')
+                Wiimotes = @([pscustomobject]@{ Player = 1; Mac = '34AF2CD5795B'; Model = 'RVL-CNT-01-TR'; Expected = 2 }, [pscustomobject]@{ Player = 2; Mac = '0017AB2CD0A0'; Model = 'RVL-CNT-01'; Expected = 1 }) } }
+            $rows = Get-KitGuiOrderRows $order
+            $rows[0].Level | Should Be 'Error'
+            $rows[0].Text | Should Be (Get-KitText 'Gui.Order.Swapped' -f '0017AB2CD0A0 (RVL-CNT-01), 34AF2CD5795B (RVL-CNT-01-TR)')
+            $rows[1].Text | Should Match '^Player 1: 34AF2CD5795B'
+
+            $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult @()
+            try {
+                Mock -ModuleName 'RetroCabinetKit.Gui' Invoke-KitOperation { [pscustomobject]@{ Status = $(if ($Apply) { 'Done' } else { 'WhatIf' }); Message = "saved=$([bool]$Apply)"; Changes = @('player 1 = 0017AB2CD0A0') } }
+                Invoke-KitGuiSaveOrder -Ui $ui -Confirm { $false } | Should BeNullOrEmpty
+                Assert-MockCalled -ModuleName 'RetroCabinetKit.Gui' Invoke-KitOperation -Times 1 -Exactly -ParameterFilter { -not $Apply }
+                (Invoke-KitGuiSaveOrder -Ui $ui -Confirm { $true }).Status | Should Be 'Done'
+                $ui.Controls.ControlsLog.Text | Should Match 'saved=True'
+            } finally { $ui.Window.Close() }
+        }
+    }
+
     It 'the button follows the dry-run box; a dry run writes nothing and asks nothing, writing only after a yes' {
         $rb = Join-Path $TestDrive 'RetroBat'
         & $newRetroBat -Root $rb
