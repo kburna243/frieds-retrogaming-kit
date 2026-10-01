@@ -35,14 +35,9 @@ function Get-KitHealthStorageDefaults {
     [CmdletBinding()]
     param([string] $RetroBatRoot = '')
     $paths = [ordered]@{}
-    # Try kit state first, fall back to common paths
-    if ($RetroBatRoot -and (Test-Path -LiteralPath $RetroBatRoot)) {
-        $paths['RetroBat'] = $RetroBatRoot
-    } elseif (Test-Path 'C:\RetroBat') {
-        $paths['RetroBat'] = 'C:\RetroBat'
-    } elseif (Test-Path 'F:\RetroBat') {
-        $paths['RetroBat'] = 'F:\RetroBat'
-    }
+    # The caller resolves the root from the kit state (the API does); no guessed drive letters,
+    # they would be wrong on most cabinets and the release check refuses them.
+    if ($RetroBatRoot) { $paths['RetroBat'] = $RetroBatRoot }
     if ($env:ProgramData) { $paths['PinballY'] = Join-Path $env:ProgramData 'PinballY' }
     $paths['KitRoot'] = $script:KitRoot
     $paths
@@ -65,6 +60,7 @@ function Get-SystemHealth {
         Interference  = [ordered]@{ ActiveBlockers = @(); ContextBlockers = @() }
         ExecutionTime = 0
         Vitals        = [ordered]@{}
+        Warnings      = @()
     }
 
     # --- 1. Hardware Matrix (USB VID via CIM, no deep scan) ---

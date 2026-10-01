@@ -50,7 +50,7 @@ function Set-HotwSettings {
 
 function Get-HookOfTheWiimoteInfo {
     [CmdletBinding()]
-    param([string] $RetroBatRoot = 'C:\RetroBat')
+    param([string] $RetroBatRoot = (Get-OutputRetroBatRoot))
 
     $h = [ordered]@{
         Ok                 = $true
@@ -95,22 +95,22 @@ function Get-HookOfTheWiimoteInfo {
     try { $null = & py -3 --version 2>&1; $h.PythonInstalled = $true } catch {}
 
     # Recoil relay
-    $relayPath = Join-Path $RetroBatRoot 'tools\HookOfTheWiimote\recoil-stretch.py'
-    $h.RelayInstalled = Test-Path -LiteralPath $relayPath -PathType Leaf
+    $relayPath = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'tools\HookOfTheWiimote\recoil-stretch.py' } else { '' }
+    $h.RelayInstalled = [bool]$relayPath -and (Test-Path -LiteralPath $relayPath -PathType Leaf)
 
     # TeknoParrot
     if ($RetroBatRoot) {
-        $tpDir = Join-Path $RetroBatRoot 'emulators\teknoparrot'
+        $tpDir = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'emulators\teknoparrot' } else { '' }
         $h.TeknoParrotFound = Test-Path $tpDir -PathType Container
     }
 
     # DemulShooter
-    $dsPath = Join-Path $RetroBatRoot 'emulators\demulshooter\DemulShooter.exe'
-    $h.DemulShooterFound = Test-Path $dsPath -PathType Leaf
+    $dsPath = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'emulators\demulshooter\DemulShooter.exe' } else { '' }
+    $h.DemulShooterFound = [bool]$dsPath -and (Test-Path -LiteralPath $dsPath -PathType Leaf)
 
     # MAME output mode
     if ($h.GunmoteInstalled -and $RetroBatRoot) {
-        $mameIni = Join-Path $RetroBatRoot 'emulators\mame\mame.ini'
+        $mameIni = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'emulators\mame\mame.ini' } else { '' }
         if (Test-Path $mameIni) {
             $ini = ConvertFrom-Ini -Path $mameIni
             $h.MameOutputWindows = ($ini.ContainsKey('') -and $ini[''].ContainsKey('output') -and $ini['']['output'] -eq 'windows')
@@ -158,9 +158,11 @@ function Get-HookOfTheWiimoteInfo {
 function Install-HookOfTheWiimote {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [string] $RetroBatRoot = 'C:\RetroBat',
+        [string] $RetroBatRoot = (Get-OutputRetroBatRoot),
         [switch] $Approved
     )
+    # A write needs a known root; without one it would build relative paths into the current folder.
+    if (-not $RetroBatRoot) { throw 'RetroBat folder unknown: pass -RetroBatRoot or run the lightgun detect step first.' }
     $info = Get-HookOfTheWiimoteInfo -RetroBatRoot $RetroBatRoot
     if (-not $PSCmdlet.ShouldProcess('Hook of the Wiimote', 'install')) {
         return [pscustomobject]@{ Info = $info; Applied = $false; Changes = @() }
@@ -169,7 +171,7 @@ function Install-HookOfTheWiimote {
     $changes = @()
 
     # 1. Install recoil relay
-    $relayDir = Join-Path $RetroBatRoot 'tools\HookOfTheWiimote'
+    $relayDir = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'tools\HookOfTheWiimote' } else { '' }
     $relayPath = Join-Path $relayDir 'recoil-stretch.py'
     $sourceRelay = Join-Path $script:KitRoot 'output\tools\recoil-stretch.py'
     if (-not (Test-Path $relayPath) -and (Test-Path $sourceRelay)) {
@@ -196,7 +198,7 @@ function Install-HookOfTheWiimote {
     }
 
     # 3. Configure FFBBlaster (TeknoParrot) -- OutputsSystem=1, NetOutputsTCPPort=8002
-    $ffbIni = Join-Path $RetroBatRoot 'emulators\teknoparrot\FFBBlaster.ini'
+    $ffbIni = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'emulators\teknoparrot\FFBBlaster.ini' } else { '' }
     if (Test-Path $ffbIni) {
         $ffb = ConvertFrom-Ini -Path $ffbIni
         $modified = $false
@@ -215,7 +217,7 @@ function Install-HookOfTheWiimote {
     }
 
     # 4. Configure DemulShooter -- Windows Messages output
-    $dsIni = Join-Path $RetroBatRoot 'emulators\demulshooter\config.ini'
+    $dsIni = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'emulators\demulshooter\config.ini' } else { '' }
     if (Test-Path $dsIni) {
         $ds = ConvertFrom-Ini -Path $dsIni
         $modified = $false
@@ -232,7 +234,7 @@ function Install-HookOfTheWiimote {
     }
 
     # 5. MAME: output = windows
-    $mameIni = Join-Path $RetroBatRoot 'emulators\mame\mame.ini'
+    $mameIni = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'emulators\mame\mame.ini' } else { '' }
     if (Test-Path $mameIni) {
         $mame = ConvertFrom-Ini -Path $mameIni
         if (-not $mame.ContainsKey('') -or -not $mame[''].ContainsKey('output') -or $mame['']['output'] -ne 'windows') {

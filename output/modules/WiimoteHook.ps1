@@ -1,4 +1,4 @@
-# WiimoteHook.ps1 -- Wiimote-as-Lightgun output hook configuration.
+﻿# WiimoteHook.ps1 -- Wiimote-as-Lightgun output hook configuration.
 # When the Wiimote is used as a lightgun (via DolphinBar + Gunmote), the output chain
 # must be configured so rumble goes to the Wiimote motor, not a solenoid.
 #
@@ -12,7 +12,7 @@
 
 function Get-KitWiimoteHookInfo {
     [CmdletBinding()]
-    param([string] $RetroBatRoot = 'C:\RetroBat')
+    param([string] $RetroBatRoot = (Get-OutputRetroBatRoot))
     
     $info = [ordered]@{
         WiimoteDetected    = $false
@@ -53,8 +53,8 @@ function Get-KitWiimoteHookInfo {
     }
 
     # 3. Recoil stretch relay (recoil-stretch.py in output/tools/)
-    $relayPath = Join-Path $RetroBatRoot 'tools\output\recoil-stretch.py'
-    $info.RecoilRelayPresent = Test-Path -LiteralPath $relayPath -PathType Leaf
+    $relayPath = if ($RetroBatRoot) { Join-Path $RetroBatRoot 'tools\output\recoil-stretch.py' } else { '' }
+    $info.RecoilRelayPresent = [bool]$relayPath -and (Test-Path -LiteralPath $relayPath -PathType Leaf)
 
     # 4. Double-consumer check: Gunmote + HookOfTheReaper both active
     try {
@@ -124,7 +124,9 @@ function Get-KitWiimoteHookInfo {
 # Applies safe defaults for Gunmote and verifies the chain is intact.
 function Set-KitWiimoteHook {
     [CmdletBinding(SupportsShouldProcess)]
-    param([string] $RetroBatRoot = 'C:\RetroBat')
+    param([string] $RetroBatRoot = (Get-OutputRetroBatRoot))
+    # A write needs a known root; without one it would build relative paths into the current folder.
+    if (-not $RetroBatRoot) { throw 'RetroBat folder unknown: pass -RetroBatRoot or run the lightgun detect step first.' }
 
     $info = Get-KitWiimoteHookInfo -RetroBatRoot $RetroBatRoot
     if (-not $PSCmdlet.ShouldProcess('Wiimote lightgun output chain', 'configure')) {

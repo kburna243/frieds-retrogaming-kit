@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 # Kit API v1 (see API.md): one facade for every client. Operations return RetroCabinetKit.OperationResult;
 # change operations run as dry run unless -Apply; approvals are declined unless -Approved; only plain parameters
 # are accepted. No kit logic lives here: every handler calls the engine modules.
@@ -288,7 +288,7 @@ function Invoke-KitOperation {
             }
             'status.health' {
                 try {
-                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { '' }
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-OutputRetroBatRoot }
                     $extraPaths = if ($p.ContainsKey('ExtraStoragePaths') -and $p.ExtraStoragePaths) { @($p.ExtraStoragePaths) } else { @() }
                     $extraProcs = if ($p.ContainsKey('ExtraBadProcesses') -and $p.ExtraBadProcesses) { @($p.ExtraBadProcesses) } else { @() }
                     $health = Get-SystemHealth -RetroBatRoot $rb -ExtraStoragePaths $extraPaths -ExtraBadProcesses $extraProcs
@@ -1102,7 +1102,7 @@ function Invoke-KitOperation {
             }
             'outputs.wiimote_hook' {
                 try {
-                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { 'C:\RetroBat' }
+                    $rb = if ($p.ContainsKey('RetroBatRoot') -and $p.RetroBatRoot) { $p.RetroBatRoot } else { Get-OutputRetroBatRoot }
                     $info = Get-HookOfTheWiimoteInfo -RetroBatRoot $rb
                     $data = $info
                     $status = 'Ok'

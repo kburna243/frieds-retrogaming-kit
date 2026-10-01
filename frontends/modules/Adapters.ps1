@@ -199,8 +199,6 @@ function Get-FrontendsIniPlan {
         }
     }
     $plan
-    if ($plan.Count -eq 0) { return @() }
-    return ,$plan
 }
 
 function Set-FrontendsIniValue {
@@ -212,11 +210,6 @@ function Set-FrontendsIniValue {
     )
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return 0 }
     if (-not $PSCmdlet.ShouldProcess($Path, "set $($Values.Count) INI value(s) in [$Section]")) { return 0 }
-
-    # 0. Backup before ANY modification
-    $backupPath = "$Path.bak_$(Get-Date -Format 'yyyyMMddHHmmss')"
-    Copy-Item -LiteralPath $Path -Destination $backupPath -Force
-    Write-Verbose "Backup: $backupPath"
 
     # 1. Load base INI
     $ini = ConvertFrom-Ini -Path $Path
@@ -231,6 +224,13 @@ function Set-FrontendsIniValue {
         }
     }
     if ($changed -eq 0) { return 0 }
+
+    # Backup before writing; a second write in the same millisecond gets a counter instead of
+    # overwriting the earlier backup and with it the original.
+    $backupPath = "$Path.bak_$(Get-Date -Format 'yyyyMMddHHmmssfff')"
+    for ($n = 1; Test-Path -LiteralPath $backupPath; $n++) { $backupPath = "$Path.bak_$(Get-Date -Format 'yyyyMMddHHmmssfff')_$n" }
+    Copy-Item -LiteralPath $Path -Destination $backupPath
+    Write-Verbose "Backup: $backupPath"
 
     $overridePath = Get-IniOverridePath $Path
     if (Test-Path -LiteralPath $overridePath) {

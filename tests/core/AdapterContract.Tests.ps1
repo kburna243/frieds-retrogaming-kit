@@ -24,7 +24,7 @@ volume = 80
 
     It 'Get-EmulatorsIniPlan matches only keys in the specified section' {
         # Section='video': should find fullscreen=0, NOT fullscreen=1 from [input]
-        $plan = Get-EmulatorsIniPlan -Path $testIni -Section 'video' -Values @{ fullscreen = '1' }
+        $plan = @(Get-EmulatorsIniPlan -Path $testIni -Section 'video' -Values @{ fullscreen = '1' })
         $plan.Count | Should Be 1
         $plan[0].Key | Should Be 'fullscreen'
         $plan[0].Old | Should Be '0'
@@ -32,13 +32,16 @@ volume = 80
     }
 
     It 'Get-EmulatorsIniPlan does NOT match keys from wrong section' {
-        $plan = Get-EmulatorsIniPlan -Path $testIni -Section 'audio' -Values @{ fullscreen = '1' }
-        # fullscreen exists in [video] and [input], but NOT in [audio] -- should not find it
-        $plan.Count | Should Be 0
+        $plan = @(Get-EmulatorsIniPlan -Path $testIni -Section 'audio' -Values @{ fullscreen = '1' })
+        # fullscreen exists in [video] and [input], but NOT in [audio]: the plan adds it to [audio]
+        # (Old = $null) instead of taking the value of another section
+        $plan.Count | Should Be 1
+        $plan[0].Old | Should BeNullOrEmpty
+        $plan[0].Section | Should Be 'audio'
     }
 
     It 'Get-EmulatorsIniPlan with Section="input" finds input-specific keys' {
-        $plan = Get-EmulatorsIniPlan -Path $testIni -Section 'input' -Values @{ deadzone = '10' }
+        $plan = @(Get-EmulatorsIniPlan -Path $testIni -Section 'input' -Values @{ deadzone = '10' })
         $plan.Count | Should Be 1
         $plan[0].Key | Should Be 'deadzone'
         $plan[0].Old | Should Be '15'
@@ -51,7 +54,7 @@ global_setting = on
 [video]
 fullscreen = 0
 '@ | Set-Content -LiteralPath $testIni -Encoding UTF8
-        $plan = Get-EmulatorsIniPlan -Path $testIni -Section '' -Values @{ global_setting = 'off' }
+        $plan = @(Get-EmulatorsIniPlan -Path $testIni -Section '' -Values @{ global_setting = 'off' })
         $plan.Count | Should Be 1
         $plan[0].Old | Should Be 'on'
     }
@@ -66,7 +69,7 @@ fullscreen = 0
     }
 
     It 'Get-FrontendsIniPlan also respects sections (cross-check)' {
-        $plan = Get-FrontendsIniPlan -Path $testIni -Section 'video' -Values @{ fullscreen = '1'; resolution = '1280x720' }
+        $plan = @(Get-FrontendsIniPlan -Path $testIni -Section 'video' -Values @{ fullscreen = '1'; resolution = '1280x720' })
         $plan.Count | Should Be 2
         $plan[0].Section | Should Be 'video'
         $plan[1].Section | Should Be 'video'
@@ -130,7 +133,7 @@ vsync = 1
 
     It 'Get-EmulatorsIniPlan returns empty when values already match' {
         Set-EmulatorsIniValue -Path $testIni -Section 'video' -Values @{ fullscreen = '1' }
-        $plan = Get-EmulatorsIniPlan -Path $testIni -Section 'video' -Values @{ fullscreen = '1' }
+        $plan = @(Get-EmulatorsIniPlan -Path $testIni -Section 'video' -Values @{ fullscreen = '1' })
         $plan.Count | Should Be 0
     }
 
