@@ -168,6 +168,11 @@ Describe 'Game helper plan' {
     It 'reports an unreachable relay instead of failing' {
         Send-LightgunRelayCommand -Command 'PING' -Port 1 -TimeoutMs 300 | Should Be $false
     }
+
+    It 'can only reach this computer: the loopback sender has no address parameter' {
+        $names = @((Get-Command Send-KitLoopbackLine).Parameters.Keys)
+        foreach ($n in 'Host', 'HostName', 'Address', 'IPAddress', 'ComputerName', 'Server', 'Uri') { $names -contains $n | Should Be $false }
+    }
 }
 
 Describe 'FFBBlaster network outputs' {

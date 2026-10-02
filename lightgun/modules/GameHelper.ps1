@@ -89,16 +89,9 @@ function Get-LightgunShowPlayersCommand {
     'SHOW_PLAYERS ' + ($wrong -join ' ')
 }
 
-# Sends one line to the hotwm relay on localhost. $true when it was delivered.
+# Sends one line to the hotwm relay on this computer (core Loopback.ps1). $true when it was delivered.
 function Send-LightgunRelayCommand {
     [CmdletBinding()]
     param([Parameter(Mandatory)] [string] $Command, [int] $Port = $script:LightgunRelayPort, [int] $TimeoutMs = 2000)
-    $client = New-Object Net.Sockets.TcpClient
-    try {
-        if (-not $client.ConnectAsync('127.0.0.1', $Port).Wait($TimeoutMs)) { return $false }
-        $bytes = [Text.Encoding]::ASCII.GetBytes($Command + "`r`n")
-        $client.GetStream().Write($bytes, 0, $bytes.Length)
-        Start-Sleep -Milliseconds 300
-        $true
-    } catch { $false } finally { $client.Dispose() }
+    Send-KitLoopbackLine -Port $Port -Line $Command -TimeoutMs $TimeoutMs
 }
