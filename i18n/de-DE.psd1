@@ -735,6 +735,7 @@
     'Api.UnknownParameter'          = 'Unbekannter oder über die API nicht erlaubter Parameter: {0}'
     'Api.MissingParameter'          = 'Parameter fehlt: {0}'
     'Api.NotAvailable'              = 'Noch nicht verfügbar: {0}'
+    'Api.PackageMissing'            = 'In diesem Kit nicht enthalten (Paket pinball): {0}'
     'Api.Interactive'               = '{0} braucht eine Person am Kabinett; bitte im Assistenten ausführen.'
     'Api.NoResult'                  = 'Der Schritt hat kein Ergebnis geliefert.'
     'Api.RestoredFiles'             = '{0} Datei(en) im Plan.'

@@ -11,7 +11,10 @@ $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 # The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
 $script:KitVersion = $(try { ([IO.File]::ReadAllText((Join-Path $script:KitRoot 'VERSION'))).Trim() } catch { '' })
 Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
-Import-Module (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
+# pinball\ is optional: a distribution without it (hotwm) still gets every other operation.
+$script:KitHasPinball = Test-Path -LiteralPath (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
+if ($script:KitHasPinball) { Import-Module (Join-Path $script:KitRoot 'pinball\RetroCabinetKit.Pinball.psd1') }
+else { . (Join-Path $script:KitRoot 'core\PinballAbsent.ps1') }
 Import-Module (Join-Path $script:KitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
 Import-Module (Join-Path $script:KitRoot 'arcade\RetroCabinetKit.Arcade.psd1')
 Import-Module (Join-Path $script:KitRoot 'pads\RetroCabinetKit.Pads.psd1')
@@ -76,6 +79,7 @@ function Get-KitApiStep {
     [CmdletBinding()]
     param()
     foreach ($suite in 'pinball', 'lightgun') {
+        if ($suite -eq 'pinball' -and -not $script:KitHasPinball) { continue }
         foreach ($f in Get-ChildItem -LiteralPath (Join-Path $script:KitRoot "$suite\steps") -Filter '*.ps1' -File | Sort-Object Name) {
             $name = 'step.{0}.{1}' -f $suite, $f.BaseName.ToLowerInvariant()
             [pscustomobject]@{
@@ -145,7 +149,8 @@ function Get-KitOperation {
         @{ Name = 'backups.rollback'; Kind = 'Change'; Description = 'Roll back to the last saved rollback point (or a named one). Restores all snapshotted files.'; Parameters = @([pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $false }); Module = 'core' }
     )
     foreach ($o in $fixed) {
-        [pscustomobject]@{ Name = $o.Name; Kind = $o.Kind; Suite = ''; Interactive = $false; Available = $true; Description = $o.Description; Parameters = $o.Parameters; Module = $o.Module }
+        $available = $script:KitHasPinball -or $o.Module -ne 'pinball'
+        [pscustomobject]@{ Name = $o.Name; Kind = $o.Kind; Suite = ''; Interactive = $false; Available = $available; Description = $o.Description; Parameters = $o.Parameters; Module = $o.Module }
     }
     foreach ($s in Get-KitApiStep) {
         [pscustomobject]@{ Name = $s.Name; Kind = 'Change'; Suite = $s.Suite; Interactive = $s.Interactive; Available = -not $s.Interactive; Description = $s.Description; Parameters = $s.Parameters; Module = $s.Suite }
@@ -228,21 +233,23 @@ function Get-KitApiComponent([string] $PinballStatePath, [string] $LightgunState
     try { $v = Get-LightgunViGEmState; Add-Row 'ViGEmBus' $v.Installed $v.Version '' $(if ($v.Installed -and -not $v.Running) { 'service not running' }) } catch { Add-Row 'ViGEmBus' $false '' '' $_.Exception.Message }
     try { $b = Get-LightgunDolphinBarState; Add-Row 'DolphinBar' ($b.Mode4 -or @($b.WrongMode).Count) '' '' $(if ($b.Mode4) { 'Mode4' } else { @($b.WrongMode) -join ',' }) } catch { Add-Row 'DolphinBar' $false '' '' $_.Exception.Message }
     try { $s = Get-LightgunSteamPath; Add-Row 'Steam' ([bool]$s) '' $s '' } catch { Add-Row 'Steam' $false '' '' $_.Exception.Message }
-    try {
-        $root = if (Test-Path -LiteralPath $PinballStatePath) { [string](Get-KitStateValue -Path $PinballStatePath -Key 'TargetRoot') } else { '' }
-        $problem = if ($root) { Get-PinballRootProblem -Root $root } else { '' }
-        Add-Row 'PinballBuild' ($root -and -not $problem) '' $root $problem
-    } catch { Add-Row 'PinballBuild' $false '' '' $_.Exception.Message }
-    try {
-        # The second front end is not part of a build: its folder comes from the kit state, and an unknown one
-        # stays unknown. Searching drives for it here would make a cheap probe expensive and would guess.
-        $y = if (Test-Path -LiteralPath $PinballStatePath) { [string](Get-KitStateValue -Path $PinballStatePath -Key 'PinballYRoot') } else { '' }
-        $yOk = Test-PinballYInstall -Path $y
-        $detail = if ($yOk) { Get-KitText 'PinballY.ComponentKnown' }
-                  elseif ($y) { Get-KitText 'PinballY.NotAnInstall' -f $y, 'PinballY.exe + Settings.txt' }
-                  else { Get-KitText 'PinballY.NotInState' }
-        Add-Row 'PinballY' $yOk $(if ($yOk) { (Get-PinballYVersion -Path $y).Version }) $y $detail
-    } catch { Add-Row 'PinballY' $false '' '' $_.Exception.Message }
+    if ($script:KitHasPinball) {
+        try {
+            $root = if (Test-Path -LiteralPath $PinballStatePath) { [string](Get-KitStateValue -Path $PinballStatePath -Key 'TargetRoot') } else { '' }
+            $problem = if ($root) { Get-PinballRootProblem -Root $root } else { '' }
+            Add-Row 'PinballBuild' ($root -and -not $problem) '' $root $problem
+        } catch { Add-Row 'PinballBuild' $false '' '' $_.Exception.Message }
+        try {
+            # The second front end is not part of a build: its folder comes from the kit state, and an unknown one
+            # stays unknown. Searching drives for it here would make a cheap probe expensive and would guess.
+            $y = if (Test-Path -LiteralPath $PinballStatePath) { [string](Get-KitStateValue -Path $PinballStatePath -Key 'PinballYRoot') } else { '' }
+            $yOk = Test-PinballYInstall -Path $y
+            $detail = if ($yOk) { Get-KitText 'PinballY.ComponentKnown' }
+                      elseif ($y) { Get-KitText 'PinballY.NotAnInstall' -f $y, 'PinballY.exe + Settings.txt' }
+                      else { Get-KitText 'PinballY.NotInState' }
+            Add-Row 'PinballY' $yOk $(if ($yOk) { (Get-PinballYVersion -Path $y).Version }) $y $detail
+        } catch { Add-Row 'PinballY' $false '' '' $_.Exception.Message }
+    }
     $rows.ToArray()
 }
 
@@ -265,7 +272,7 @@ function Invoke-KitOperation {
     if (-not $op) { return New-KitOperationResult -Operation $Name -Status NotAvailable -Message (Get-KitText 'Api.UnknownOperation' -f $Name) -StartedAt $started }
     $kind = $op.Kind
     if (-not $op.Available) {
-        $key = if ($op.Interactive) { 'Api.Interactive' } else { 'Api.NotAvailable' }
+        $key = if ($op.Interactive) { 'Api.Interactive' } elseif ($op.Module -eq 'pinball' -and -not $script:KitHasPinball) { 'Api.PackageMissing' } else { 'Api.NotAvailable' }
         return New-KitOperationResult -Operation $Name -Kind $kind -Status NotAvailable -Message (Get-KitText $key -f $Name) -StartedAt $started
     }
     $problem = Get-ParameterProblem $op.Parameters $Parameters
