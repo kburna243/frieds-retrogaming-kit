@@ -12,12 +12,16 @@
 .PARAMETER Mode
     Keep (default): existing entries whose layout already does the right thing stay. Replace: the kit's
     layouts everywhere.
+.PARAMETER Connection
+    DolphinBar or Bluetooth (default: recorded by an earlier run, else detected). Decides which layout the
+    emulators get that read RawInput over the DolphinBar but the Xbox pads over Bluetooth.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string] $GunmotePath,
     [string] $RetroBatRoot,
     [ValidateSet('Keep', 'Replace')] [string] $Mode = 'Keep',
+    [ValidateSet('', 'DolphinBar', 'Bluetooth')] [string] $Connection,
     [string] $StatePath,
     [string] $Culture
 )
@@ -29,6 +33,7 @@ if ($Culture) { Set-KitCulture -Culture $Culture }
 if (-not $StatePath) { $StatePath = Get-LightgunDefaultStatePath }
 
 $rb = Resolve-LightgunRetroBat -Root $RetroBatRoot -StatePath $StatePath
+$conn = Resolve-LightgunConnection -Connection $Connection -StatePath $StatePath
 if (-not $GunmotePath) { $GunmotePath = [string](Get-KitStateValue -Path $StatePath -Key 'GunmoteDir') }
 $find = @{}; if ($GunmotePath) { $find.Path = $GunmotePath }
 $gunmote = Find-LightgunGunmote @find
@@ -39,7 +44,7 @@ if ($needsAdmin) { Write-KitLog (Get-KitText 'Lightgun.Step.NeedsAdmin') -Level 
 $usable = $gunmote -and -not $rb.Problem
 $plan = $null
 if ($usable) {
-    try { $plan = Get-LightgunLayoutPlan -KeymapsDir $gunmote.Keymaps -RetroBatRoot $rb.Root -Mode $Mode }
+    try { $plan = Get-LightgunLayoutPlan -KeymapsDir $gunmote.Keymaps -RetroBatRoot $rb.Root -Mode $Mode -Connection $conn }
     catch { Write-KitLog $_.Exception.Message -Level Warn; $usable = $false }
 }
 if ($plan) {
@@ -50,13 +55,14 @@ if ($plan) {
 $step = New-KitStep -Name 'lightgun-6-layouts' `
     -Test { $usable -and -not $needsAdmin -and (Test-LightgunProcessesClosed) } `
     -Invoke { $null = Invoke-LightgunLayoutPlan -Plan $plan -Confirm:$false } `
-    -Verify { $usable -and (Get-LightgunLayoutPlan -KeymapsDir $gunmote.Keymaps -RetroBatRoot $rb.Root -Mode $Mode).Count -eq 0 }
+    -Verify { $usable -and (Get-LightgunLayoutPlan -KeymapsDir $gunmote.Keymaps -RetroBatRoot $rb.Root -Mode $Mode -Connection $conn).Count -eq 0 }
 $result = Invoke-KitStep -Step $step -StatePath $StatePath -WhatIf:$WhatIfPreference
 $result
 
 # The titles the profile automation (step 8) selects, taken from the finished Keymaps.json.
 if ($result.Status -in 'Done', 'Skipped' -and -not $result.WhatIf) {
-    $titles = (Get-LightgunLayoutPlan -KeymapsDir $gunmote.Keymaps -RetroBatRoot $rb.Root -Mode $Mode).Titles
+    $titles = (Get-LightgunLayoutPlan -KeymapsDir $gunmote.Keymaps -RetroBatRoot $rb.Root -Mode $Mode -Connection $conn).Titles
     Set-KitStateValue -Path $StatePath -Key 'LayoutTitles' -Value ([pscustomobject]$titles)
+    Set-KitStateValue -Path $StatePath -Key 'WiimoteConnection' -Value $conn
     foreach ($k in $titles.Keys) { Write-KitLog (Get-KitText 'Lightgun.Layouts.Title' -f $k, $titles[$k]) }
 }
