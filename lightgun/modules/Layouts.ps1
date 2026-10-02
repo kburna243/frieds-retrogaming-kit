@@ -1,16 +1,18 @@
 ﻿# Layouts (step 6): the kit's own Gunmote layouts and the profile selection in Keymaps.json.
 #   Menu  (Default)   no pointer: RetroBat reads a deflected stick as a held direction. Trigger (B) -> Xbox A.
-#   Pad43             pointer on the left stick, 4:3 (MAME)
-#   Mouse43           lightgun mouse, 4:3, for everything that reads RawInput: DemulShooter (Naomi, Atomiswave,
-#                     Model 2), Supermodel (Model 3), Hypseus (Singe, Daphne). A pad layout gives these no
-#                     pointer at all (cabinet 27.09.). Plus/Minus -> Xbox Start/Back: Demul and Model 2 ignore
-#                     keyboard keys for coin and start.
+#   Pad43             pointer on the left stick, 4:3 (MAME; over Bluetooth also Demul/DemulShooter, Model 2,
+#                     Supermodel and Hypseus, which then read the Xbox pads - cabinet 01.10.2026)
+#   Mouse43           lightgun mouse, 4:3. Over the DolphinBar for everything that reads RawInput: DemulShooter
+#                     (Naomi, Atomiswave, Model 2), Supermodel (Model 3), Hypseus (Singe, Daphne); a pad layout
+#                     gave these no pointer at all (cabinet 27.09.). Over Bluetooth for DuckStation (GunCon).
+#                     Plus/Minus -> Xbox Start/Back: Demul and Model 2 ignore keyboard keys for coin and start.
 #   TP                pointer on the RIGHT stick (TeknoParrot profiles aim with the right stick)
 #   Mouse             lightgun mouse, only for RetroArch and PCSX2 (they only know a pointer)
 # Every layout sets ALL keys and the OffScreen state explicitly: Gunmote fills missing entries from the Default
 # layout, so a pad layout without its own OffScreen pointer inherited "pointer off" from the menu layout
-# (inheritance trap). Home is disabled in every layout (it opened the Xbox Game Bar); holding Home for five
-# seconds still opens Gunmote's layout chooser.
+# (inheritance trap). Home is disabled in every layout the kit writes (it opened the Xbox Game Bar); holding Home for
+# five seconds still opens Gunmote's layout chooser. An existing menu layout with Home on the Xbox Guide button is
+# kept (mode Keep): a cabinet may use it on purpose.
 # Keymaps.json: LayoutChooser (title -> file; the profile automation selects a layout by its title),
 # Applications (file per program path substring), Default (fallback on every window change).
 # Mode Keep: an existing entry whose layout already does the right thing (same pointer kind, explicit
@@ -42,21 +44,41 @@ $script:LightgunLayouts = [ordered]@{
 # Gunmote ships it with Plus on the keyboard (no start button in Demul/Model 2).
 $script:LightgunBuiltinLayouts = @{ 'default.json' = 'Mouse' }
 
-# Program (below the RetroBat folder) -> layout kind. DuckStation stays out on purpose: [W6] it is guided only.
-$script:LightgunApplications = @(
+# Program (below the RetroBat folder) -> layout kind, per Wiimote connection (see Hardware.ps1). The two differ for
+# the emulators that read RawInput over the DolphinBar but the Xbox pads over Bluetooth. Over the DolphinBar,
+# DuckStation stays out on purpose: [W6] it is guided only.
+$script:LightgunApplicationsShared = @(
     @{ Path = 'emulationstation\emulationstation.exe'; Kind = 'Menu' }
     @{ Path = 'emulators\mame\mame.exe'; Kind = 'Pad43' }
-    @{ Path = 'emulators\supermodel\supermodel.exe'; Kind = 'Mouse43' }
-    @{ Path = 'emulators\m2emulator\emulator_multicpu.exe'; Kind = 'Mouse43' }
-    @{ Path = 'emulators\demul\demul.exe'; Kind = 'Mouse43' }
-    @{ Path = 'emulators\hypseus\hypseus.exe'; Kind = 'Mouse43' }
     @{ Path = 'emulators\teknoparrot\TeknoParrotUi.exe'; Kind = 'TP' }
     @{ Path = 'emulators\retroarch\retroarch.exe'; Kind = 'Mouse' }
     @{ Path = 'emulators\pcsx2\pcsx2-qt.exe'; Kind = 'Mouse' }
 )
+$script:LightgunApplicationsByConnection = @{
+    DolphinBar = @(
+        @{ Path = 'emulators\supermodel\supermodel.exe'; Kind = 'Mouse43' }
+        @{ Path = 'emulators\m2emulator\emulator_multicpu.exe'; Kind = 'Mouse43' }
+        @{ Path = 'emulators\demul\demul.exe'; Kind = 'Mouse43' }
+        @{ Path = 'emulators\hypseus\hypseus.exe'; Kind = 'Mouse43' }
+    )
+    Bluetooth = @(
+        @{ Path = 'emulators\supermodel\supermodel.exe'; Kind = 'Pad43' }
+        @{ Path = 'emulators\m2emulator\emulator_multicpu.exe'; Kind = 'Pad43' }
+        @{ Path = 'emulators\demul\demul.exe'; Kind = 'Pad43' }
+        @{ Path = 'emulators\hypseus\hypseus.exe'; Kind = 'Pad43' }
+        @{ Path = 'emulators\duckstation\duckstation-qt-x64-ReleaseLTCG.exe'; Kind = 'Mouse43' }
+    )
+}
 
 # The program whose entry decides which existing layout counts for a kind (mode Keep).
-$script:LightgunKindAnchor = @{ Pad43 = 'emulators\mame\mame.exe'; TP = 'emulators\teknoparrot\TeknoParrotUi.exe'; Mouse = 'emulators\retroarch\retroarch.exe'; Mouse43 = 'emulators\supermodel\supermodel.exe' }
+$script:LightgunKindAnchor = @{ Pad43 = 'emulators\mame\mame.exe'; TP = 'emulators\teknoparrot\TeknoParrotUi.exe'; Mouse = 'emulators\retroarch\retroarch.exe' }
+$script:LightgunMouse43Anchor = @{ DolphinBar = 'emulators\supermodel\supermodel.exe'; Bluetooth = 'emulators\duckstation\duckstation-qt-x64-ReleaseLTCG.exe' }
+
+function Get-LightgunApplication {
+    [CmdletBinding()]
+    param([ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar')
+    @($script:LightgunApplicationsShared) + @($script:LightgunApplicationsByConnection[$Connection])
+}
 
 function Get-LightgunLayoutKind {
     [CmdletBinding()]
@@ -141,10 +163,12 @@ function Get-LightgunLayoutInfo {
     $offPointer = [string](Get-JsonProperty $off 'Pointer')
     $b = [string](Get-JsonProperty $on 'B')
     $wantB = if ($kind -eq 'Menu') { '360.a' } else { '360.b' }
+    $homeKey = [string](Get-JsonProperty $on 'Home')
+    $homeOk = $homeKey -eq 'disable' -or ($kind -eq 'Menu' -and $homeKey -eq '360.guide')
     $correct = if ($kind -eq 'Mouse') { $true }
         elseif ($kind -eq 'Mouse43') { $offPointer -eq $pointer -and [string](Get-JsonProperty $on 'Plus') -eq '360.start' -and [string](Get-JsonProperty $on 'Minus') -eq '360.back' }
         else {
-        $kind -and $offPointer -eq $pointer -and $b -eq $wantB -and [string](Get-JsonProperty $off 'B') -eq $wantB -and [string](Get-JsonProperty $on 'Home') -eq 'disable'
+        $kind -and $offPointer -eq $pointer -and $b -eq $wantB -and [string](Get-JsonProperty $off 'B') -eq $wantB -and $homeOk
     }
     [pscustomobject]@{ Kind = $kind; Correct = [bool]$correct }
 }
@@ -156,7 +180,8 @@ function Get-LightgunLayoutPlan {
     param(
         [Parameter(Mandatory)] [string] $KeymapsDir,
         [Parameter(Mandatory)] [string] $RetroBatRoot,
-        [ValidateSet('Keep', 'Replace')] [string] $Mode = 'Keep'
+        [ValidateSet('Keep', 'Replace')] [string] $Mode = 'Keep',
+        [ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar'
     )
     $keymapsJson = Join-Path $KeymapsDir 'Keymaps.json'
     if (-not (Test-Path -LiteralPath $keymapsJson -PathType Leaf)) { throw (Get-KitText 'Lightgun.Layouts.NoKeymaps' -f $keymapsJson) }
@@ -173,7 +198,8 @@ function Get-LightgunLayoutPlan {
     $kept = @{}
     foreach ($kind in $script:LightgunLayouts.Keys) {
         $current = if ($kind -eq 'Menu') { [string](Get-JsonProperty $km 'Default') } else {
-            $anchor = "$root\$($script:LightgunKindAnchor[$kind])"
+            $rel = if ($kind -eq 'Mouse43') { $script:LightgunMouse43Anchor[$Connection] } else { $script:LightgunKindAnchor[$kind] }
+            $anchor = "$root\$rel"
             $hit = @($apps | Where-Object { [string]::Equals([string]$_.Search, $anchor, [StringComparison]::OrdinalIgnoreCase) }) | Select-Object -First 1
             if ($hit) { [string]$hit.Keymap } else { '' }
         }
@@ -215,7 +241,7 @@ function Get-LightgunLayoutPlan {
         $null = $changes.Add((Get-KitText 'Lightgun.Layouts.SetDefault' -f ([string](Get-JsonProperty $km 'Default')), $chosen['Menu']))
         $km | Add-Member -NotePropertyName 'Default' -NotePropertyValue $chosen['Menu'] -Force
     }
-    foreach ($a in $script:LightgunApplications) {
+    foreach ($a in Get-LightgunApplication -Connection $Connection) {
         $search = "$root\$($a.Path)"
         $want = $chosen[$a.Kind]
         $hit = @($apps | Where-Object { [string]::Equals([string]$_.Search, $search, [StringComparison]::OrdinalIgnoreCase) }) | Select-Object -First 1

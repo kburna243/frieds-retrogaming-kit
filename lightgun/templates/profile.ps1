@@ -54,14 +54,25 @@ if (-not ('RetroCabinetKit.ProfileNative' -as [type])) {
     Add-Type -Namespace RetroCabinetKit -Name ProfileNative -MemberDefinition @'
 [DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow();
 [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr window, out uint processId);
+[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr window);
 '@
+}
+
+# This task's hidden console takes the foreground for a moment, and RetroBat only reads controllers while it is in
+# front: back in the menu, RetroBat gets the focus back (cabinet 01.10.2026).
+function Restore-RetroBatFocus {
+    foreach ($i in 1..10) {
+        $es = Get-Process -Name 'emulationstation' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Select-Object -First 1
+        if ($es) { [void][RetroCabinetKit.ProfileNative]::SetForegroundWindow($es.MainWindowHandle); Write-ProfileLog 'focus back to RetroBat'; return }
+        Start-Sleep -Milliseconds 300
+    }
 }
 
 $run = [guid]::NewGuid().ToString()
 Set-Content -LiteralPath $current -Value $run -Encoding ASCII # a running older watcher sees this and ends
 Write-ProfileLog "START layout='$Layout' once=$([bool]$Once)"
 if (-not (Get-Process -Name 'Gunmote' -ErrorAction SilentlyContinue)) { Write-ProfileLog 'END Gunmote is not running'; return }
-if ($Once) { Send-Layout 'once'; Write-ProfileLog 'END once'; return }
+if ($Once) { Send-Layout 'once'; Restore-RetroBatFocus; Write-ProfileLog 'END once'; return }
 
 # Windows that come and go around a start (this script's own console, the task scheduler, Dolphin which
 # takes the Wiimotes over itself) do not count as leaving RetroBat.

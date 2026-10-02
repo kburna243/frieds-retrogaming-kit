@@ -7,7 +7,10 @@
       logged-on user, each starting profile.ps1 with the layout title recorded in step 6;
     - RetroBat hooks scripts\game-start\ and scripts\game-end\rck-gunmote-profile.bat that ONLY run
       "schtasks /run /tn ..." (teknoparrot -> TP, mame/psx/model2/model3 -> Pad43, naomi/atomiswave -> Naomi,
-      RetroArch light gun systems and PCSX2 -> Mouse; game end -> Menu).
+      RetroArch light gun systems and PCSX2 -> Mouse; game end -> Menu). The mapping follows the Wiimote connection
+      recorded in step 6 (DolphinBar or Bluetooth);
+    - next to them rck-game-helper.bat, which starts the kit's GameHelper.ps1 at the user's own rights (DemulShooter,
+      FFBBlaster network outputs, Wiimote player order).
     Needs administrator rights; run step 6 first.
 .PARAMETER AutomationDir
     Folder for profile.ps1 (default: %ProgramData%\RetroCabinetKit\lightgun). Tests use TEMP.
@@ -21,6 +24,8 @@
 .PARAMETER Approve
     { param($text) ... } returning $true for the plan: every task with the script and arguments it starts, and
     profile.ps1 with SHA256. The wizard passes its dialog; without it the console asks.
+.PARAMETER Connection
+    DolphinBar or Bluetooth (default: the one step 6 recorded, else detected).
 .PARAMETER TrustedOwner
     Owners accepted for an existing automation folder (default: Administrators, SYSTEM). Tests add their own.
 #>
@@ -31,6 +36,7 @@ param(
     [scriptblock] $Approve,
     [string[]] $TrustedOwner = @('S-1-5-32-544', 'S-1-5-18'),
     [string] $TaskPrefix = 'RetroCabinetKit Gunmote Profile',
+    [ValidateSet('', 'DolphinBar', 'Bluetooth')] [string] $Connection,
     [object[]] $Tasks,
     [string] $KitUserSid,
     [string] $StatePath,
@@ -45,15 +51,16 @@ if (-not $StatePath) { $StatePath = Get-LightgunDefaultStatePath }
 if (-not $AutomationDir) { $AutomationDir = Get-LightgunAutomationDir }
 
 $rb = Resolve-LightgunRetroBat -Root $RetroBatRoot -StatePath $StatePath
+$conn = Resolve-LightgunConnection -Connection $Connection -StatePath $StatePath
 $titles = Get-KitStateValue -Path $StatePath -Key 'LayoutTitles'
 $plan = $null
 if (-not $titles) { Write-KitLog (Get-KitText 'Lightgun.Auto.RunLayoutsFirst') -Level Warn }
 else {
-    try { $plan = @(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir $AutomationDir -TaskPrefix $TaskPrefix) }
+    try { $plan = @(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir $AutomationDir -TaskPrefix $TaskPrefix -Connection $conn) }
     catch { Write-KitLog $_.Exception.Message -Level Warn }
 }
 foreach ($t in @($plan)) { if ($t) { Write-KitLog (Get-KitText 'Lightgun.Auto.TaskPlan' -f $t.TaskName, $t.Argument) } }
-foreach ($s in (Get-LightgunSystemProfile).GetEnumerator()) { Write-KitLog (Get-KitText 'Lightgun.Auto.Map' -f $s.Key, $s.Value) }
+foreach ($s in (Get-LightgunSystemProfile -Connection $conn).GetEnumerator()) { Write-KitLog (Get-KitText 'Lightgun.Auto.Map' -f $s.Key, $s.Value) }
 
 $userSid = Get-KitStartUserSid -OriginalSid $KitUserSid
 $admin = Test-KitAdmin
@@ -69,17 +76,18 @@ $step = New-KitStep -Name 'lightgun-8-profile-automation' `
         $exe = Get-LightgunPowerShellPath
         $template = Get-KitFilePlan -Path (Get-LightgunTemplatePath)
         $lines = @($plan | ForEach-Object { Get-KitText 'Lightgun.Task.Plan' -f $_.TaskName, $exe, $_.Argument, (ConvertTo-LightgunUserName $userSid) })
+        $lines += @(Get-LightgunHookFile -RetroBatRoot $rb.Root -TaskPrefix $TaskPrefix -Connection $conn | ForEach-Object { Get-KitText 'Lightgun.Auto.HookPlan' -f $_.File })
         if (-not (Confirm-KitPlan -Lines $lines -FilePlan @($template) -Approve $Approve)) { throw (Get-KitText 'Plan.Declined') }
         Install-LightgunAutomationFile -AutomationDir $AutomationDir -TrustedOwner $TrustedOwner -Confirm:$false
         # The installed copy must be the confirmed script.
         if ((Get-FileHash -LiteralPath (Join-Path $AutomationDir 'profile.ps1') -Algorithm SHA256).Hash -ne $template.Sha256) { throw (Get-KitText 'Plan.Changed' -f $template.Path) }
         Register-LightgunProfileTask -Plan $plan -UserSid $userSid -Confirm:$false
-        Install-LightgunHook -RetroBatRoot $rb.Root -TaskPrefix $TaskPrefix -Confirm:$false
+        Install-LightgunHook -RetroBatRoot $rb.Root -TaskPrefix $TaskPrefix -Connection $conn -Confirm:$false
         Set-KitStateValue -Path $StatePath -Key 'AutomationInstalledAt' -Value ((Get-Date).ToString('o'))
         Set-KitStateValue -Path $StatePath -Key 'AutomationDir' -Value $AutomationDir
     } `
     -Verify {
         -not $rb.Problem -and [bool]$plan -and (Test-LightgunAutomationFile -AutomationDir $AutomationDir) -and
-        (Test-LightgunProfileTask -Plan $plan @taskProbe) -and (Test-LightgunHook -RetroBatRoot $rb.Root -TaskPrefix $TaskPrefix)
+        (Test-LightgunProfileTask -Plan $plan @taskProbe) -and (Test-LightgunHook -RetroBatRoot $rb.Root -TaskPrefix $TaskPrefix -Connection $conn)
     }
 Invoke-KitStep -Step $step -StatePath $StatePath -WhatIf:$WhatIfPreference

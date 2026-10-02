@@ -7,7 +7,8 @@
       without BOM as ANSI, so umlauts, dashes and emoji would be garbled or break string parsing)
     - every *.psd1 loads as data (Import-LocalizedData, like the kit loads its texts; Import-PowerShellDataFile
       refuses large files such as the i18n tables)
-    - network APIs appear only in core/modules/Download.ps1 (no telemetry, no hidden downloads)
+    - network APIs appear only in core/modules/Download.ps1 (no telemetry, no hidden downloads) and in
+      core/modules/Loopback.ps1 (fixed to 127.0.0.1: local programs such as the hotwm relay)
     - every *.xaml (gui views and themes) is well-formed XML
     - the module manifests (core, pinball, lightgun, arcade, output, gui, api) carry the version from the VERSION file
     Runs on Windows PowerShell 5.1 and on PowerShell 7.
@@ -66,9 +67,10 @@ foreach ($rel in $files | Sort-Object -Unique) {
 
 # --- local only: network access exists in exactly one place ---------------------------------------------------
 # The kit has no telemetry. Downloads go through core/modules/Download.ps1 (HTTPS, allowlisted hosts, signature
-# and hash checks); any other network API in the shipped engine is a finding.
+# and hash checks); Loopback.ps1 only talks to 127.0.0.1 (the address is fixed there, not a parameter). Any other
+# network API in the shipped engine is a finding.
 $networkApi = '\b(Invoke-WebRequest|Invoke-RestMethod|Start-BitsTransfer|Send-MailMessage|Net\.WebClient|Net\.WebRequest|Net\.HttpWebRequest|Net\.Http\.HttpClient|Net\.Sockets\.|Net\.Mail\.|iwr|irm|wget|curl)\b'
-$networkAllowed = @('core/modules/Download.ps1')
+$networkAllowed = @('core/modules/Download.ps1', 'core/modules/Loopback.ps1')
 foreach ($rel in $files | Sort-Object -Unique) {
     if ($rel -notmatch '^(core|pinball|lightgun|arcade|output|pads|gui|api)/.+\.ps(m?)1$' -or $networkAllowed -contains $rel) { continue }
     $full = Join-Path $Root $rel

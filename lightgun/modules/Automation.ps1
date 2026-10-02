@@ -3,46 +3,49 @@
 #                                                         Administrators and SYSTEM (users may read the log)
 #   tasks "RetroCabinetKit Gunmote Profile <Name>"        highest rights, the logged-on user, start profile.ps1
 #   RetroBat scripts\game-start\ and game-end\            .bat hooks that ONLY run "schtasks /run /tn ..."
+#   ...\rck-game-helper.bat                                a second pair of hooks that starts the kit's game helper
+#                                                         (GameHelper.ps1) at the user's own rights, no task
 # Nothing with administrator rights ever runs from the RetroBat folder: a user can change the hooks, but they
-# can only start the fixed tasks, which run the admin-only script with a checked layout title.
+# can only start the fixed tasks, which run the admin-only script with a checked layout title, or start work
+# the user may do anyway (DemulShooter, FFBBlaster settings, asking the kit for the Wiimote order).
 
 $script:LightgunTaskPrefix = 'RetroCabinetKit Gunmote Profile'
 $script:LightgunHookName = 'rck-gunmote-profile.bat'
 
-# RetroBat system -> profile. Naomi/Atomiswave get their own task (DemulShooter joins in P3b), aiming like Mouse43.
-# Everything whose emulator or DemulShooter reads RawInput needs the mouse, not a pad (cabinet 27.09.).
-$script:LightgunSystemProfiles = [ordered]@{
-    teknoparrot  = 'TP'
-    naomi        = 'Naomi'
-    atomiswave   = 'Naomi'
-    mame         = 'Pad43'
-    psx          = 'Pad43'
-    model2       = 'Mouse43'
-    model3       = 'Mouse43'
-    singe        = 'Mouse43'
-    daphne       = 'Mouse43'
-    dreamcast    = 'Mouse'
-    nes          = 'Mouse'
-    snes         = 'Mouse'
-    megadrive    = 'Mouse'
-    mastersystem = 'Mouse'
-    ps2          = 'Mouse'
+# RetroBat system -> profile, per Wiimote connection (see Hardware.ps1). Over the DolphinBar everything whose emulator
+# or DemulShooter reads RawInput needs the mouse, not a pad (cabinet 27.09.). Over Bluetooth those read the Xbox pads
+# and DuckStation aims with the mouse (cabinet 01.10.2026). Naomi/Atomiswave keep their own task.
+$script:LightgunSystemProfilesByConnection = @{
+    DolphinBar = [ordered]@{
+        teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Pad43'
+        model2 = 'Mouse43'; model3 = 'Mouse43'; singe = 'Mouse43'; daphne = 'Mouse43'
+        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'
+    }
+    Bluetooth = [ordered]@{
+        teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Mouse43'
+        model2 = 'Pad43'; model3 = 'Pad43'; singe = 'Pad43'; daphne = 'Pad43'
+        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'
+    }
 }
 
 # Profile -> layout kind (step 6 recorded one title per kind).
-$script:LightgunProfileKinds = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Mouse43'; Mouse = 'Mouse'; Mouse43 = 'Mouse43' }
+$script:LightgunProfileKindsByConnection = @{
+    DolphinBar = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Mouse43'; Mouse = 'Mouse'; Mouse43 = 'Mouse43' }
+    Bluetooth  = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Pad43'; Mouse = 'Mouse'; Mouse43 = 'Mouse43' }
+}
 
 function Get-LightgunSystemProfile {
     [CmdletBinding()]
-    param()
-    $script:LightgunSystemProfiles
+    param([ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar')
+    $script:LightgunSystemProfilesByConnection[$Connection]
 }
 
 function Get-LightgunProfileFor {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $System)
+    param([Parameter(Mandatory)] [string] $System, [ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar')
+    $map = $script:LightgunSystemProfilesByConnection[$Connection]
     $key = $System.ToLowerInvariant()
-    if ($script:LightgunSystemProfiles.Contains($key)) { $script:LightgunSystemProfiles[$key] }
+    if ($map.Contains($key)) { $map[$key] }
 }
 
 function Get-LightgunAutomationDir {
@@ -63,8 +66,10 @@ function New-LightgunHookText {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [ValidateSet('Start', 'End')] [string] $Kind,
-        [string] $TaskPrefix = $script:LightgunTaskPrefix
+        [string] $TaskPrefix = $script:LightgunTaskPrefix,
+        [ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar'
     )
+    $map = $script:LightgunSystemProfilesByConnection[$Connection]
     $lines = New-Object Collections.Generic.List[string]
     $lines.Add('@echo off')
     $lines.Add('rem retro-cabinet-kit: selects the Gunmote profile. Only starts the kit''s scheduled tasks; the scripts')
@@ -76,8 +81,8 @@ function New-LightgunHookText {
         $lines.Add('set "ROM=%~1"')
         $lines.Add('if not defined ROM goto :eof')
         $lines.Add('set "PROFILE="')
-        foreach ($s in $script:LightgunSystemProfiles.Keys) {
-            $lines.Add(('if not defined PROFILE if not "%ROM:\roms\{0}\=%"=="%ROM%" set "PROFILE={1}"' -f $s, $script:LightgunSystemProfiles[$s]))
+        foreach ($s in $map.Keys) {
+            $lines.Add(('if not defined PROFILE if not "%ROM:\roms\{0}\=%"=="%ROM%" set "PROFILE={1}"' -f $s, $map[$s]))
         }
         $lines.Add("if defined PROFILE schtasks /run /tn `"$TaskPrefix %PROFILE%`" >nul 2>&1")
         $lines.Add('endlocal')
@@ -175,11 +180,13 @@ function Get-LightgunProfileTaskPlan {
     param(
         [Parameter(Mandatory)] [psobject] $Titles,
         [string] $AutomationDir = (Get-LightgunAutomationDir),
-        [string] $TaskPrefix = $script:LightgunTaskPrefix
+        [string] $TaskPrefix = $script:LightgunTaskPrefix,
+        [ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar'
     )
     $script = Join-Path $AutomationDir 'profile.ps1'
-    foreach ($p in $script:LightgunProfileKinds.Keys) {
-        $kind = $script:LightgunProfileKinds[$p]
+    $kinds = $script:LightgunProfileKindsByConnection[$Connection]
+    foreach ($p in $kinds.Keys) {
+        $kind = $kinds[$p]
         $title = if ($Titles -is [Collections.IDictionary]) { $Titles[$kind] } else { $Titles.$kind }
         if (-not (Test-LightgunLayoutTitle $title)) { throw (Get-KitText 'Lightgun.Auto.BadTitle' -f $kind, $title) }
         $arg = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Layout "{1}"' -f $script, $title
@@ -218,32 +225,83 @@ function Test-LightgunProfileTask {
     $true
 }
 
-# Writes the two hooks into RetroBat (no administrator rights needed); other hooks are only reported.
-function Install-LightgunHook {
-    [CmdletBinding(SupportsShouldProcess)]
-    param([Parameter(Mandatory)] [string] $RetroBatRoot, [string] $TaskPrefix = $script:LightgunTaskPrefix)
+$script:LightgunHelperHookName = 'rck-game-helper.bat'
+
+function Get-LightgunGameHelperPath {
+    [CmdletBinding()]
+    param()
+    Join-Path $script:LightgunDir 'tools\GameHelper.ps1'
+}
+
+# The game helper hook: starts the kit's GameHelper.ps1 with the user's own rights. "start /b" runs it in the hook's
+# own hidden console (no window, RetroBat keeps the focus) and returns at once (the game does not wait). The ROM path
+# is passed quoted, so & ^ and spaces stay text. The kit's path is fixed at installation; a path cmd would expand
+# (% or ") is refused.
+function New-LightgunGameHelperHookText {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [ValidateSet('Start', 'End')] [string] $Kind,
+        [ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar',
+        [string] $HelperPath = (Get-LightgunGameHelperPath)
+    )
+    if ($HelperPath -match '[%"]') { throw (Get-KitText 'Lightgun.Auto.BadHelperPath' -f $HelperPath) }
+    $lines = @(
+        '@echo off'
+        'rem retro-cabinet-kit: game helper at the user''s own rights (no task, no administrator rights): DemulShooter for'
+        'rem Naomi/Atomiswave/Model 2, FFBBlaster network outputs for TeknoParrot, Wiimote player order. Argument 1 = ROM path.'
+        ('start "" /b "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -Phase {1} -Connection {2} -Rom "%~1"' -f $HelperPath, $Kind, $Connection)
+    )
+    ($lines -join "`r`n") + "`r`n"
+}
+
+# Every hook file the kit owns: the profile hook and the game helper hook, at game start and game end.
+function Get-LightgunHookFile {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $RetroBatRoot,
+        [string] $TaskPrefix = $script:LightgunTaskPrefix,
+        [ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar'
+    )
     $p = Get-LightgunRetroBatPath -Root $RetroBatRoot
     foreach ($h in @(@($p.HookStart, 'Start'), @($p.HookEnd, 'End'))) {
-        $file = Join-Path $h[0] $script:LightgunHookName
-        $text = New-LightgunHookText -Kind $h[1] -TaskPrefix $TaskPrefix
-        foreach ($other in Get-ChildItem -LiteralPath $h[0] -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne $script:LightgunHookName }) {
+        [pscustomobject]@{ Dir = $h[0]; File = Join-Path $h[0] $script:LightgunHookName; Text = New-LightgunHookText -Kind $h[1] -TaskPrefix $TaskPrefix -Connection $Connection }
+        [pscustomobject]@{ Dir = $h[0]; File = Join-Path $h[0] $script:LightgunHelperHookName; Text = New-LightgunGameHelperHookText -Kind $h[1] -Connection $Connection }
+    }
+}
+
+# Writes the kit's hooks into RetroBat (no administrator rights needed); other hooks are only reported.
+function Install-LightgunHook {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)] [string] $RetroBatRoot,
+        [string] $TaskPrefix = $script:LightgunTaskPrefix,
+        [ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar'
+    )
+    $own = @($script:LightgunHookName, $script:LightgunHelperHookName)
+    $hooks = @(Get-LightgunHookFile -RetroBatRoot $RetroBatRoot -TaskPrefix $TaskPrefix -Connection $Connection)
+    foreach ($dir in @($hooks | ForEach-Object { $_.Dir } | Select-Object -Unique)) {
+        foreach ($other in Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue | Where-Object { $own -notcontains $_.Name }) {
             Write-KitLog (Get-KitText 'Lightgun.Auto.OtherHook' -f $other.FullName) -Level Warn
         }
-        if ((Test-Path -LiteralPath $file) -and [IO.File]::ReadAllText($file) -ceq $text) { continue }
-        if (-not $PSCmdlet.ShouldProcess($file, 'Write hook')) { continue }
-        New-Item -ItemType Directory -Path $h[0] -Force | Out-Null
-        [IO.File]::WriteAllText($file, $text, [Text.Encoding]::ASCII)
-        Write-KitLog (Get-KitText 'Lightgun.Auto.Hook' -f $file)
+    }
+    foreach ($h in $hooks) {
+        if ((Test-Path -LiteralPath $h.File) -and [IO.File]::ReadAllText($h.File) -ceq $h.Text) { continue }
+        if (-not $PSCmdlet.ShouldProcess($h.File, 'Write hook')) { continue }
+        New-Item -ItemType Directory -Path $h.Dir -Force | Out-Null
+        [IO.File]::WriteAllText($h.File, $h.Text, [Text.Encoding]::ASCII)
+        Write-KitLog (Get-KitText 'Lightgun.Auto.Hook' -f $h.File)
     }
 }
 
 function Test-LightgunHook {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $RetroBatRoot, [string] $TaskPrefix = $script:LightgunTaskPrefix)
-    $p = Get-LightgunRetroBatPath -Root $RetroBatRoot
-    foreach ($h in @(@($p.HookStart, 'Start'), @($p.HookEnd, 'End'))) {
-        $file = Join-Path $h[0] $script:LightgunHookName
-        if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or [IO.File]::ReadAllText($file) -cne (New-LightgunHookText -Kind $h[1] -TaskPrefix $TaskPrefix)) { return $false }
+    param(
+        [Parameter(Mandatory)] [string] $RetroBatRoot,
+        [string] $TaskPrefix = $script:LightgunTaskPrefix,
+        [ValidateSet('DolphinBar', 'Bluetooth')] [string] $Connection = 'DolphinBar'
+    )
+    foreach ($h in Get-LightgunHookFile -RetroBatRoot $RetroBatRoot -TaskPrefix $TaskPrefix -Connection $Connection) {
+        if (-not (Test-Path -LiteralPath $h.File -PathType Leaf) -or [IO.File]::ReadAllText($h.File) -cne $h.Text) { return $false }
     }
     $true
 }

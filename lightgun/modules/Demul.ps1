@@ -37,8 +37,15 @@ $script:LightgunDemulKnownRoms = @(
     'rangero',
     'seawolf',
     'xtrmhunt',
-    'xtrmhnt2'
+    'xtrmhnt2',
+    # found on the cabinet (01.10.2026), started with DemulShooter -target=demul07a
+    'deathcox',
+    'rangrmsn',
+    'sprtshot'
 )
+
+# Model 2 gun ROMs for DemulShooter -target=model2m (the cabinet's set, 01.10.2026).
+$script:LightgunModel2KnownRoms = @('bel', 'gunblade', 'hotd', 'rchase2', 'vcop', 'vcop2')
 
 function Get-LightgunDemulShooterReleaseUrl {
     [CmdletBinding()]
@@ -275,8 +282,9 @@ function Start-LightgunDemulShooter {
         [Parameter(Mandatory)] [string] $DemulShooterExe,
         [Parameter(Mandatory)] [ValidateSet('demul07a', 'model2m', 'model2')] [string] $Target,
         [Parameter(Mandatory)] [string] $Rom,
-        [string[]] $Allowlist = $script:LightgunDemulKnownRoms
+        [string[]] $Allowlist
     )
+    if (-not $Allowlist) { $Allowlist = if ($Target -like 'model2*') { $script:LightgunModel2KnownRoms } else { $script:LightgunDemulKnownRoms } }
     Assert-LightgunDemulRomName -Rom $Rom -Allowlist $Allowlist
     if (-not (Test-Path -LiteralPath $DemulShooterExe -PathType Leaf)) {
         throw (Get-KitText 'Lightgun.Demul.DsNotFound' -f $DemulShooterExe)

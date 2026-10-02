@@ -7,6 +7,24 @@ that matches it.
 
 ## [Unreleased]
 
+### Added
+
+- Two Wiimote connections: **DolphinBar** (Mayflash, Mode 4) and **Bluetooth** (each Wiimote paired on its own, with an
+  IR bar). The kit detects which one is in use (with the Wiimotes switched off: the one used last), steps 6 and 8 take
+  `-Connection` to set it, and step 6 records it. Step 2 now passes with Bluetooth Wiimotes and no DolphinBar.
+- Layouts and profiles follow the connection. DolphinBar keeps the measured mouse route for the emulators that read
+  RawInput (Demul/DemulShooter, Model 2, Supermodel, Hypseus). Over Bluetooth they get the Xbox pad layout and
+  DuckStation gets mouse 4:3 (cabinet, 01.10.2026). An existing menu layout with Home on the Xbox Guide button is kept.
+- Step 8 game helper: a second RetroBat hook `rck-game-helper.bat` starts `lightgun\tools\GameHelper.ps1` at the user's
+  own rights (no task, no elevation). It starts DemulShooter for known Naomi/Atomiswave/Model 2 gun ROMs and ends it
+  with the game, switches TeknoParrot's FFBBlaster.ini to network outputs on port 8002 (hotwm relay), and over
+  Bluetooth checks the Wiimote player order at game start: when it is swapped, the relay makes each Wiimote rumble and
+  blink the player it should be. Log: `logs\game-helper.log`. This replaces the cabinet's hand-made bridge
+  (`gunmote-profil`), whose admin tasks ran scripts from the user-writable RetroBat folder.
+- Back in the menu, the profile watcher gives RetroBat the focus back (its hidden console takes it for a moment).
+- DemulShooter ROM list: `deathcox`, `rangrmsn`, `sprtshot`, and the Model 2 set (`bel`, `gunblade`, `hotd`,
+  `rchase2`, `vcop`, `vcop2`) for `-target=model2m`.
+
 ### Changed
 
 - The API and the kit tools load `pinball\` only when it is there. A kit built without it (the hotwm distribution:
