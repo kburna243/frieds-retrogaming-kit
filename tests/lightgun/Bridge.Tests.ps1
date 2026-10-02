@@ -46,9 +46,8 @@ Describe 'Wiimote connection' {
 }
 
 Describe 'Profiles and layouts per connection' {
-    It 'over Bluetooth gives the RawInput emulators the pad and DuckStation the mouse' {
-        foreach ($s in 'model2', 'model3', 'singe', 'daphne', 'mame') { Get-LightgunProfileFor $s -Connection Bluetooth | Should Be 'Pad43' }
-        Get-LightgunProfileFor 'psx' -Connection Bluetooth | Should Be 'Mouse43'
+    It 'over Bluetooth gives the RawInput emulators and DuckStation the pad' {
+        foreach ($s in 'model2', 'model3', 'singe', 'daphne', 'mame', 'psx') { Get-LightgunProfileFor $s -Connection Bluetooth | Should Be 'Pad43' }
         Get-LightgunProfileFor 'naomi' -Connection Bluetooth | Should Be 'Naomi'
         Get-LightgunProfileFor 'teknoparrot' -Connection Bluetooth | Should Be 'TP'
         # DolphinBar keeps the measured mouse route (27.09.)
@@ -62,14 +61,14 @@ Describe 'Profiles and layouts per connection' {
         (@(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir 'C:\x' -Connection DolphinBar) | Where-Object Name -eq 'Naomi').Argument | Should Match '-Layout "M43"$'
     }
 
-    It 'the Bluetooth hook selects the pad for Model 3 and the mouse for PSX (schtasks replaced by echo)' {
+    It 'the Bluetooth hook selects the pad for Model 3 and PSX (schtasks replaced by echo)' {
         $bat = Join-Path $TestDrive 'bt-start.bat'
         [IO.File]::WriteAllText($bat, ((New-LightgunHookText -Kind 'Start' -TaskPrefix 'T' -Connection Bluetooth) -replace 'schtasks /run /tn ("[^"]+") >nul 2>&1', 'echo TASK=$1'), [Text.Encoding]::ASCII)
         (& cmd.exe /d /c "`"$bat`" `"X:\RetroBat\roms\model3\lostwsga.zip`"" 2>&1 | Out-String).Trim() | Should BeExactly 'TASK="T Pad43"'
-        (& cmd.exe /d /c "`"$bat`" `"X:\RetroBat\roms\psx\A & B.chd`"" 2>&1 | Out-String).Trim() | Should BeExactly 'TASK="T Mouse43"'
+        (& cmd.exe /d /c "`"$bat`" `"X:\RetroBat\roms\psx\A & B.chd`"" 2>&1 | Out-String).Trim() | Should BeExactly 'TASK="T Pad43"'
     }
 
-    It 'step 6 over Bluetooth puts Supermodel, Model 2, Demul and Hypseus on the pad layout and DuckStation on mouse 4:3' {
+    It 'step 6 over Bluetooth puts Supermodel, Model 2, Demul, Hypseus and DuckStation on the pad layout' {
         $g = Join-Path $TestDrive 'GBT'
         & $newGunmote -Gunmote $g
         $plan = Get-LightgunLayoutPlan -KeymapsDir "$g\Keymaps" -RetroBatRoot 'X:\RetroBat' -Connection Bluetooth
@@ -77,7 +76,7 @@ Describe 'Profiles and layouts per connection' {
         foreach ($exe in 'supermodel\supermodel.exe', 'm2emulator\emulator_multicpu.exe', 'demul\demul.exe', 'hypseus\hypseus.exe') {
             ($apps | Where-Object { $_.Search -eq "X:\RetroBat\emulators\$exe" }).Keymap | Should Be 'rck_pad43.json'
         }
-        ($apps | Where-Object { $_.Search -eq 'X:\RetroBat\emulators\duckstation\duckstation-qt-x64-ReleaseLTCG.exe' }).Keymap | Should Be 'rck_mouse43.json'
+        ($apps | Where-Object { $_.Search -eq 'X:\RetroBat\emulators\duckstation\duckstation-qt-x64-ReleaseLTCG.exe' }).Keymap | Should Be 'rck_pad43.json'
         $db = Get-LightgunLayoutPlan -KeymapsDir "$g\Keymaps" -RetroBatRoot 'X:\RetroBat' -Connection DolphinBar
         ($db.Keymaps.Applications | Where-Object { $_.Search -eq 'X:\RetroBat\emulators\supermodel\supermodel.exe' }).Keymap | Should Be 'rck_mouse43.json'
         @($db.Keymaps.Applications | Where-Object { $_.Search -like '*duckstation*' }).Count | Should Be 0

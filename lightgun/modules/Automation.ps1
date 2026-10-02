@@ -14,7 +14,7 @@ $script:LightgunHookName = 'rck-gunmote-profile.bat'
 
 # RetroBat system -> profile, per Wiimote connection (see Hardware.ps1). Over the DolphinBar everything whose emulator
 # or DemulShooter reads RawInput needs the mouse, not a pad (cabinet 27.09.). Over Bluetooth those read the Xbox pads
-# and DuckStation aims with the mouse (cabinet 01.10.2026). Naomi/Atomiswave keep their own task.
+# and DuckStation aims with the left stick (cabinet 02.10.2026). Naomi/Atomiswave keep their own task.
 $script:LightgunSystemProfilesByConnection = @{
     DolphinBar = [ordered]@{
         teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Pad43'
@@ -22,7 +22,7 @@ $script:LightgunSystemProfilesByConnection = @{
         dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'
     }
     Bluetooth = [ordered]@{
-        teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Mouse43'
+        teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Pad43'
         model2 = 'Pad43'; model3 = 'Pad43'; singe = 'Pad43'; daphne = 'Pad43'
         dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'
     }
