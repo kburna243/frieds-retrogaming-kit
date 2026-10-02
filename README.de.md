@@ -33,16 +33,18 @@
 ---
 
 > [!NOTE]
-> **Status: v1.4.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Der gemeinsame Kern (`core\`), die Virtual-Pinball-Suite (`pinball\`, Schritte 1–9) und die Wiimote-Lightgun-Suite (`lightgun\`, Schritte 1–15 inklusive TeknoParrot, Demul + DemulShooter, Model 2 / Supermodel, geführter DuckStation-/PCSX2-Prüfung und USB-Adaptern für Gun4IR, OpenFIRE, AimTrak, Retro Shooter und **Sinden**) sind einsatzbereit, dazu die Pakete Arcade, Output und Pads. Neu in v0.4.0: genau diese vier Suiten, die PinballY-Prüf- und Retarget-Operationen (API 1.3) und das Desktop-Dashboard über die API. v0.4.1 behebt den fehlenden Zeiger bei Model 2/3, Naomi, Atomiswave und Dreamcast (neues Layout `Mouse 4:3`). Rumble ist geplant. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
+> **Status: v1.4.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Zehn Pakete für den kompletten Arcade-Kabinett-Stack: `core`, `pinball`, `lightgun`, `arcade`, `pads`, `output`, `displays`, `enhancements`, `library`, `emulators` (15 Adapter: MAME … PinballFX3) und `frontends` (5 Adapter: RetroBat, PinballY, Playnite, LaunchBox, PinUP). 35+ API-Operationen über den MCP-Server. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
 
 ---
 
-## ✨ Neu in v1.3.0
+## ✨ Neu in v1.4.0
 
 Seit v1.0.0 (Details im [CHANGELOG](CHANGELOG.md)):
 
 | | Was du bekommst |
 | :--- | :--- |
+| 🔢 **Wiimote-Spielerreihenfolge** (1.4) | Gunmote nummeriert die Wiimotes in der Reihenfolge, in der sie sich verbinden. Das Kit speichert, welche Wiimote welcher Spieler ist, und sagt vor dem Spiel, ob die Reihenfolge stimmt, vertauscht oder unklar ist. API `controllers.wiimote_order`, `controllers.wiimote_bind`. |
+| 🕹️ **XInput-Slots & Steuerungs-Karte** (1.4) | `controllers.xinput_slots`: die vier XInput-Slots mit Geräteart und MAME-Nummerierung `JOY<n>`. Neue Dashboard-Karte **Steuerung & Rumble**: Geräte, Wiimote-Ausgabekette, Spielerreihenfolge und Eingabeprofile. |
 | 🎮 **Universelles Button-Setup** (1.3) | Ein Eingabeprofil für das ganze Kabinett ordnet Aktionen (`START1`, `COIN1`, `P1_BUTTON1` …) dem zu, was das Panel sendet — Tasten, Pad-Knöpfe, Maustasten, mehrere pro Knopf. Geschrieben als eigene MAME-ctrlr-Datei des Kits; eine selbst gebaute Datei wie die Gun-Belegung `custom1.cfg` wird nie überschrieben. API `controllers.input_profiles`, `controllers.input_apply`. |
 | 🎚️ **Setup-Stufen & Presets** (1.1) | Easy / Custom / NerdExtreme und vier fertige Presets plus eigene (`setup.set_mode`, `presets.list`, `presets.apply`). |
 | 🛡️ **Deine Einstellungen bleiben** (1.1) | Neben jede `config.ini` darf eine `config.override.ini`: deine Werte gewinnen immer, Kit-Updates überschreiben sie nie. |

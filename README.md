@@ -37,12 +37,14 @@
 
 ---
 
-## ✨ New in v1.3.0
+## ✨ New in v1.4.0
 
 Since v1.0.0 (details in the [CHANGELOG](CHANGELOG.md)):
 
 | | What you get |
 | :--- | :--- |
+| 🔢 **Wiimote player order** (1.4) | Gunmote numbers the Wiimotes in the order they connect. The kit saves which Wiimote is which player and says before a game whether the order is right, swapped or unclear. API `controllers.wiimote_order`, `controllers.wiimote_bind`. |
+| 🕹️ **XInput slots & Controls card** (1.4) | `controllers.xinput_slots`: the four XInput slots with device kind and MAME `JOY<n>` numbering. New dashboard card **Controls & rumble**: devices, Wiimote output chain, player order and input profiles. |
 | 🎮 **Universal button setup** (1.3) | One input profile for the whole cabinet maps actions (`START1`, `COIN1`, `P1_BUTTON1` …) to what the panel sends — keys, pad buttons, mouse buttons, several per button. Written as a MAME ctrlr file of the kit's own; a hand-made file like the gun layout `custom1.cfg` is never overwritten. API `controllers.input_profiles`, `controllers.input_apply`. |
 | 🎚️ **Setup levels & presets** (1.1) | Easy / Custom / NerdExtreme and four built-in presets plus your own (`setup.set_mode`, `presets.list`, `presets.apply`). |
 | 🛡️ **Your settings stay yours** (1.1) | Put a `config.override.ini` next to any `config.ini`: your values always win, kit updates never overwrite them. |
