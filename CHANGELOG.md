@@ -7,6 +7,13 @@ that matches it.
 
 ## [Unreleased]
 
+### Changed
+
+- The API and the kit tools load `pinball\` only when it is there. A kit built without it (the hotwm distribution:
+  core, lightgun, output) used to fail every operation, even `outputs.wiimote_hook`, because the import broke. Now
+  the pinball operations and steps are listed as not available ("not installed in this kit"), `components` has no
+  pinball rows, and doctor, backups and restores cover the packages that are there. Only `pinball\` is optional so far.
+
 ## [1.4.0] - 2026-10-02
 
 ### Added

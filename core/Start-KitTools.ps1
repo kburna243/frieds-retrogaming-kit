@@ -39,7 +39,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $kitRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $PSScriptRoot 'RetroCabinetKit.Core.psd1')
-Import-Module (Join-Path $kitRoot 'pinball\RetroCabinetKit.Pinball.psd1')
+# pinball\ is optional (see PinballAbsent.ps1).
+if (Test-Path -LiteralPath (Join-Path $kitRoot 'pinball\RetroCabinetKit.Pinball.psd1')) { Import-Module (Join-Path $kitRoot 'pinball\RetroCabinetKit.Pinball.psd1') }
+else { . (Join-Path $PSScriptRoot 'PinballAbsent.ps1') }
 Import-Module (Join-Path $kitRoot 'lightgun\RetroCabinetKit.Lightgun.psd1')
 if ($Culture) { Set-KitCulture -Culture $Culture }
 
