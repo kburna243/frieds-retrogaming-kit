@@ -4,7 +4,7 @@
 #                     Supermodel and Hypseus, which then read the Xbox pads - cabinet 01.10.2026)
 #   Mouse43           lightgun mouse, 4:3. Over the DolphinBar for everything that reads RawInput: DemulShooter
 #                     (Naomi, Atomiswave, Model 2), Supermodel (Model 3), Hypseus (Singe, Daphne); a pad layout
-#                     gave these no pointer at all (cabinet 27.09.). Over Bluetooth for DuckStation (GunCon).
+#                     gave these no pointer at all (cabinet 27.09.). Over Bluetooth no emulator needs it (DuckStation aims with the stick).
 #                     Plus/Minus -> Xbox Start/Back: Demul and Model 2 ignore keyboard keys for coin and start.
 #   TP                pointer on the RIGHT stick (TeknoParrot profiles aim with the right stick)
 #   Mouse             lightgun mouse, only for RetroArch and PCSX2 (they only know a pointer)
@@ -66,13 +66,14 @@ $script:LightgunApplicationsByConnection = @{
         @{ Path = 'emulators\m2emulator\emulator_multicpu.exe'; Kind = 'Pad43' }
         @{ Path = 'emulators\demul\demul.exe'; Kind = 'Pad43' }
         @{ Path = 'emulators\hypseus\hypseus.exe'; Kind = 'Pad43' }
-        @{ Path = 'emulators\duckstation\duckstation-qt-x64-ReleaseLTCG.exe'; Kind = 'Mouse43' }
+        @{ Path = 'emulators\duckstation\duckstation-qt-x64-ReleaseLTCG.exe'; Kind = 'Pad43' }
     )
 }
 
 # The program whose entry decides which existing layout counts for a kind (mode Keep).
 $script:LightgunKindAnchor = @{ Pad43 = 'emulators\mame\mame.exe'; TP = 'emulators\teknoparrot\TeknoParrotUi.exe'; Mouse = 'emulators\retroarch\retroarch.exe' }
-$script:LightgunMouse43Anchor = @{ DolphinBar = 'emulators\supermodel\supermodel.exe'; Bluetooth = 'emulators\duckstation\duckstation-qt-x64-ReleaseLTCG.exe' }
+$script:LightgunMouse43Anchor = @{ DolphinBar = 'emulators\supermodel\supermodel.exe'; Bluetooth = $null }
+# Without an anchor program (Mouse43 over Bluetooth) a correct existing layout of the kind in the LayoutChooser is kept.
 
 function Get-LightgunApplication {
     [CmdletBinding()]
@@ -201,8 +202,13 @@ function Get-LightgunLayoutPlan {
             $rel = if ($kind -eq 'Mouse43') { $script:LightgunMouse43Anchor[$Connection] } else { $script:LightgunKindAnchor[$kind] }
             $anchor = "$root\$rel"
             $hit = @($apps | Where-Object { [string]::Equals([string]$_.Search, $anchor, [StringComparison]::OrdinalIgnoreCase) }) | Select-Object -First 1
-            if ($hit) { [string]$hit.Keymap } else { '' }
+            if ($hit) { [string]$hit.Keymap }
+            elseif (-not $rel) {
+                @($chooser | Where-Object { $i = Get-LightgunLayoutInfo -KeymapsDir $KeymapsDir -File ([string]$_.Keymap); $i.Kind -eq $kind -and $i.Correct } |
+                    ForEach-Object { [string]$_.Keymap }) | Select-Object -First 1
+            } else { '' }
         }
+        if (-not $current) { $current = '' }
         $keep = $false
         if ($Mode -eq 'Keep' -and $current) {
             $info = Get-LightgunLayoutInfo -KeymapsDir $KeymapsDir -File $current

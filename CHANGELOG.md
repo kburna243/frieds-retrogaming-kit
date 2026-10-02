@@ -7,6 +7,14 @@ that matches it.
 
 ## [Unreleased]
 
+### Fixed
+
+- Bluetooth route: PSX aims with the left stick (DuckStation GunCon on `XInput-n` stick, measured 24.09.), so step 8
+  sends the pad 4:3 layout and step 6 gives DuckStation the pad layout; the first cabinet test showed no aim with the
+  mouse layout. Without an anchor program, step 6 keeps a correct existing layout of the kind (no new file).
+- Step 7 also sets `model2.use_demulshooter=0`: with `model2.use_guns=1` RetroBat rewrote DemulShooter's
+  `config.ini` to Gunmote's mice at a Model 2 start, which broke aiming in Naomi too.
+
 ### Added
 
 - Two Wiimote connections: **DolphinBar** (Mayflash, Mode 4) and **Bluetooth** (each Wiimote paired on its own, with an
