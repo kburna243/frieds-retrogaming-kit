@@ -1,4 +1,4 @@
-# Kit API (v1.6)
+# Kit API (v1.7)
 
 One stable entry point for every client of the kit — the WPF dashboard, the command line, scripts, tests and
 external tools such as an agent harness. The API is a thin, versioned facade over the engine modules; it adds no
