@@ -163,3 +163,81 @@ powershell -ExecutionPolicy Bypass -File pinball\steps\07-FpBamSetup.ps1
 powershell -ExecutionPolicy Bypass -File pinball\steps\08-Screens.ps1 -Mode Keep
 powershell -ExecutionPolicy Bypass -File pinball\steps\09-Finish.ps1
 ```
+
+---
+
+## 🌐 Tische von VPForums per Browser-Session herunterladen (bsk-Methode)
+
+`bsk` ist die Kommandozeile von *browser-skill*, die einen angemeldeten Chromium-Browser fernsteuert; sie gehört nicht
+zum Kit. Das Kit lädt selbst keine Tische herunter — Tische, ROMs und Medien bringt jeder selbst mit, und nur von der
+offiziellen Seite ihres Autors. Wenn `bsk download` bei großen Dateien (> ~5 MB) einen Timeout meldet, funktioniert
+dieser Weg:
+
+### Voraussetzung
+
+- `bsk` Daemon läuft, Session aktiv, Tab auf der `confirm_download`-Seite
+  (nach dem "Agree & Download"-Klick auf der VPForums-Showfile-Seite)
+
+### Ablauf
+
+**1. Tab auf confirm_download-Seite navigieren** (`?do=confirm_download&hash=...`)
+
+**2. Direkten Download-Link holen:**
+
+```powershell
+bsk evaluate --session <sid> "document.querySelector('a.download_button').href"
+# Gibt: https://www.vpforums.org/index.php?do=do_download&hash=...&id=XXXXX
+# Bei mehreren Dateien: querySelectorAll('a.download_button')[1].href usw.
+```
+
+**3. In-Browser Fetch starten:**
+
+```javascript
+window.__dl = { status: 'starting', total: 0, buffer: null };
+fetch('<direct_url>')
+  .then(r => { window.__dl.total = parseInt(r.headers.get('content-length')||'0',10); return r.arrayBuffer(); })
+  .then(buf => { window.__dl.buffer = new Uint8Array(buf); window.__dl.status = 'done'; })
+  .catch(e => { window.__dl.status = 'error: '+e.message; });
+window.getChunk = function(offset, len) {
+  const sub = window.__dl.buffer.subarray(offset, Math.min(offset+len, window.__dl.buffer.length));
+  let bin=''; const CHUNK=32768;
+  for(let i=0;i<sub.length;i+=CHUNK) bin+=String.fromCharCode.apply(null,sub.subarray(i,Math.min(i+CHUNK,sub.length)));
+  return btoa(bin);
+};
+```
+
+**4. Pollen bis Status "done":**
+
+```powershell
+bsk evaluate --session <sid> "JSON.stringify({status:window.__dl.status,total:window.__dl.total,hasBuffer:!!window.__dl.buffer})"
+# Wiederholen bis hasBuffer=true
+```
+
+**5. Python-Extraktor (2-MB-Chunks):**
+
+```python
+import subprocess, json, base64, os
+
+SESSION = "<sid>"; OUT_FILE = "download.zip"; CHUNK_SIZE = 2 * 1024 * 1024
+
+def bsk_eval(expr):
+    r = subprocess.run(["bsk","evaluate","--session",SESSION,expr], capture_output=True, text=True, timeout=60)
+    return r.stdout.strip()
+
+total = json.loads(bsk_eval("JSON.stringify({total:window.__dl.total})"))["total"]
+offset = 0
+with open(OUT_FILE, "wb") as f:
+    while offset < total:
+        chunk = base64.b64decode(bsk_eval(f"window.getChunk({offset},{CHUNK_SIZE})"))
+        f.write(chunk); offset += len(chunk)
+        print(f"{offset/1024/1024:.1f}/{total/1024/1024:.1f} MB", end="\r")
+print(f"\nFertig: {os.path.getsize(OUT_FILE)} Bytes")
+```
+
+### Bekannte Stolperfallen
+
+- **Hash kurzlebig:** Nicht navigieren, bis der Download komplett ist. Neuen Hash über die Showfile-Seite holen.
+- **`bsk evaluate` blockiert** mit „previous session command still running“, wenn ein Promise noch läuft — erst pollen.
+- **VPUniverse** erfordert Login; anonyme Fetches → Login-Redirect. Nur VPForums funktioniert anonym.
+- **Dateiname im ZIP ≠ GameFileName** in PUPDatabase — nach dem Entpacken manuell prüfen.
+- **Richtwerte:** 63 MB ≈ 45 s, 83 MB ≈ 80 s (lokales WLAN).
