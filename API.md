@@ -40,7 +40,7 @@ another process (stdin/stdout, no network port).
 
 | Field | Type | Meaning |
 | :--- | :--- | :--- |
-| `ApiVersion` | string | `1.6`; a new major version is a breaking change |
+| `ApiVersion` | string | `1.7`; a new major version is a breaking change |
 | `KitVersion` | string | the kit's version (`VERSION` file), e.g. `0.3.0`; empty if the file is missing |
 | `Operation` | string | the operation name as called |
 | `Kind` | string | `Read` or `Change` |
@@ -70,6 +70,8 @@ Change operations built from steps also carry `Data.Steps`: one entry per step r
 | `components` | Read | — | `Components[]` (`Name`, `Present`, `Version`, `Path`, `Detail`) |
 | `pinbally.detect` | Read | `Path` | `Root`, `Version`, `Encoding`, `SettingsLine`, `Setting`, `System[]`, `SystemEnabled`, `Reference[]` (`Line`, `Key`, `Value`, `Kind`, `Status`, `TokenName`, `Anchor`, `Resolved`), `ReferenceAbsolute`, `ReferenceToken`, `ReferenceMissing[]`, `ReferenceForeign[]`, `Database[]`, `Game`, `Companion[]`, `Running[]`, `WriteSafe` |
 | `pinbally.retarget` | Change | `Path`; `Map` (string[], pairs `Old=New`); `BackupDir` (optional) | `Root`, `Pair[]`, `Plan[]` (`File`, `FileKind`, `Line`, `Key`, `Old`, `New`, `Pair`, `Target`, `Status`, `Reason`), `Ready[]`, `Pending[]`, `Written[]`, `Backup` |
+| `pinball.dmd_audit` | Read | `Root` (optional; default: the build root of the pinball setup) | `Root`, `DmdDevice`, `Tables`, `PupVideos`, `TableCount`, `Unreadable[]` (`Table`, `Error`), `Count` (`Ok`, `NoPup`, `Mixed`, `Orphan`, `Unclear`), `Section[]` (`Section`, `Kind`, `Position`, `Lines[]`, `Verdict`, `Reason`, `Tables[]` (`Table`, `PupState`, `PupSwitch`, `Pack[]`, `DisabledPack[]`, `PDmdStartUp`, `Verdict`, `Reason`)) |
+| `pinball.dmd_repair` | Change | `Root` (optional); `Section` (string[], optional); `BackupDir` (optional) | `Root`, `DmdDevice`, `Ready[]` (the audit's `Section` rows), `Pending[]` (`Section`, `Verdict`, `Reason`), `Removed[]` (`Section`, `Text`), `Backup` |
 | `backups.list` | Read | `Root` (string[], optional) | `Backups[]` (`Kind`, `Path`, `Created`, `Purpose`, `Original`, `Files`, `Registry`, `SizeBytes`) |
 | `backup.check` | Read | `Path` | `Ok`, `Differs`, `Problems[]` |
 | `backup.restore` | Change | `Path`; `AllowedRoot` (string[]) for zip backups | `Target`, `SavedCurrent` |
@@ -112,6 +114,28 @@ arrives refuses the whole file rather than writing a line nobody approved: Pinba
 between the shown plan and the yes. Values the map does not cover, or that lead to a folder that does not exist
 here, stay in `Pending` and are reported as `Warnings` — never silently changed and never silently dropped. The
 second run answers `Skipped`: the paths resolve now, so there is nothing left to plan.
+
+`pinball.dmd_audit` checks the **table sections of VPinMAME's `DmdDevice.ini`** (`[<cGameName>]`) that move the
+virtual DMD (`virtualdmd left/top/width/height`) or switch it off (`virtualdmd enabled = false`). Either is right only
+when the table really loads a PuP pack; otherwise the front end's menu video stays on screen around the strip (or
+alone). It is a Read: it opens every `.vpx` of the table folder read-only through OLE (storage `GameStg`, stream
+`GameData`), takes `cGameName`, the pack name (`pGameName`), the first PuP switch and the use of `PuPlayer` /
+`pDMDStartUP` from the script, and lists the folder names under `PUPVideos`. A switch declared `Const` is the table's
+setting; a variable assigned `True` *and* `False` is detected at run time and counts as `auto` (then the PuP code and
+the pack decide). A pack folder whose name ends in dashes is switched off. Verdicts: `Ok`, `NoPup` (strip or DMD off
+without an active pack), `Mixed` (tables sharing one name with different answers), `Orphan` (no table carries the
+name: no effect), `Unclear` (DMD off while the active PuP pack never draws the score).
+`NoPup`, `Mixed` and `Unclear` sections come back in `Warnings`. A table file that is no OLE storage or is held open
+by another program is listed in `Unreadable` and never stops the audit.
+
+`pinball.dmd_repair` is the write that belongs to it, under rule 2 like `pinbally.retarget`: without `-Apply` the
+plan (`WhatIf`), `-Apply` alone `NeedsUser` with one approval text per section, `-Apply -Approved` writes. Only
+`NoPup` sections are ever planned; a section named in `Section` with another verdict lands in `Pending` and in
+`Warnings`. The write removes only the `virtualdmd` lines of those sections (a section left without lines loses its
+header), keeps every other line, the byte order mark and the line endings, and is refused while a pinball program is
+running. The file goes into a `New-KitBackup` ZIP (`dmd-repair_<time>.zip`) first, and the planned lines are compared
+with the file again right before the write: a section that changed in between refuses the whole write. The second
+run answers `Skipped`.
 
 ## In-process (PowerShell)
 
@@ -176,3 +200,4 @@ operation changes meaning or disappears. The contract tests in `tests\api\` pin 
 | `1.4` | 1.2.0 | operations `setup.set_mode`, `presets.list`, `presets.apply` (setup levels Easy / Custom / NerdExtreme and presets), `status.health` (fast health snapshot: USB hardware, storage reachability, interfering processes, vitals; reads only), `auto.detect` (a plain-language description mapped to kit settings by keyword scoring; reads only), `backups.snapshot`, `backups.rollback` (named rollback points), `outputs.wiimote_hook` (the Wiimote output chain; reads only). The full list with parameters is what `operations` returns |
 | `1.5` | 1.3.0 | operations `controllers.input_profiles` (the input profiles: one button layout for the whole cabinet; reads only) and `controllers.input_apply` (a profile written as a MAME ctrlr file of the kit's own; never a file the kit did not write, never `retrobat_auto.cfg`; the plan warns about every RetroBat setting that would keep MAME from loading it) |
 | `1.6` | 1.4.0 | operation `controllers.xinput_slots` (the four XInput slots: in use or not, device kind, the MAME joystick number `JOY<n>` — MAME counts connected slots only — and the source names of the buttons as MAME numbers them, triggers as buttons 5/6 on arcade sticks; reads only); operations `controllers.wiimote_order` (which Wiimote is player 1, 2 in Gunmote now — Gunmote numbers them in the order they connect, Windows keeps that as LastArrivalDate, the Bluetooth address comes from the HID entry's parent — and whether that matches the saved binding: `Ok`, `Swapped`, `Unbound`, `Unclear`, `NoGunmote`, `NoWiimote`; reads only) and `controllers.wiimote_bind` (save the current order as the binding in `%USERPROFILE%\RetroCabinet\wiimotes.json`, old file kept as `.bak_<time>`) |
+| `1.7` | unreleased | operations `pinball.dmd_audit` (the table sections of VPinMAME's `DmdDevice.ini` against the tables they are meant for: is a DMD strip or DMD-off backed by an active PuP pack; reads the table scripts out of the `.vpx` read-only) and `pinball.dmd_repair` (removes the `virtualdmd` lines of `NoPup` sections after a ZIP backup, gated by rule 2) |

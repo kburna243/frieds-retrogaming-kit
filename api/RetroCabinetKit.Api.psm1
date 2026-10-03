@@ -5,7 +5,7 @@
 
 Set-StrictMode -Version 2.0
 
-$script:ApiVersion = '1.6'
+$script:ApiVersion = '1.7'
 $script:ApiDir     = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 # The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
@@ -108,6 +108,9 @@ function Get-KitOperation {
         # The second front end is not part of a build, so its folder is asked for, not derived from the state.
         @{ Name = 'pinbally.detect'; Kind = 'Read'; Description = 'Inspect a PinballY installation: version, systems, table databases and which path references do not resolve on this machine. Reads only.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }); Module = 'pinball' }
         @{ Name = 'pinbally.retarget'; Kind = 'Change'; Description = 'Give the dead absolute paths of a PinballY installation the targets of this machine, following pairs written as Old=New (the same folder under another drive is the usual case). Only path values that do not resolve here are planned, and only when the new path exists; comments, [TOKEN] values, relative paths, DefaultSettings.txt and the own copies of the program are never touched. Dry run without -Apply; the plan needs -Approved.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'Map'; Type = 'String[]'; Mandatory = $true }, [pscustomobject]@{ Name = 'BackupDir'; Type = 'String'; Mandatory = $false }); Module = 'pinball' }
+        # The table sections of VPinMAME's DmdDevice.ini against the tables they are meant for (pinball\modules\DmdAudit.ps1).
+        @{ Name = 'pinball.dmd_audit'; Kind = 'Read'; Description = 'Check every table section of VPinMAME''s DmdDevice.ini that moves the virtual DMD to a strip or switches it off: does the table really load a PuP pack? Reads the table scripts out of the .vpx files (read only) and the PUPVideos folder names. Verdicts: Ok, NoPup, Mixed, Orphan, Unclear. Root defaults to the build root of the pinball setup.'; Parameters = @([pscustomobject]@{ Name = 'Root'; Type = 'String'; Mandatory = $false }); Module = 'pinball' }
+        @{ Name = 'pinball.dmd_repair'; Kind = 'Change'; Description = 'Remove the virtualdmd lines of the table sections the audit calls NoPup (a strip or DMD-off without an active PuP pack leaves the front end''s video on screen). Never touches Ok, Mixed, Orphan or Unclear sections; Section limits the repair to named sections. Dry run without -Apply; the plan needs -Approved; ZIP backup before the write.'; Parameters = @([pscustomobject]@{ Name = 'Root'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'Section'; Type = 'String[]'; Mandatory = $false }, [pscustomobject]@{ Name = 'BackupDir'; Type = 'String'; Mandatory = $false }); Module = 'pinball' }
         @{ Name = 'backups.list'; Kind = 'Read'; Description = 'The kit''s backups, newest first.'; Parameters = @([pscustomobject]@{ Name = 'Root'; Type = 'String[]'; Mandatory = $false }); Module = 'core' }
         @{ Name = 'backup.check'; Kind = 'Read'; Description = 'Checks a backup against its checksums (zip) or its original (file copy).'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }); Module = 'core' }
         @{ Name = 'backup.restore'; Kind = 'Change'; Description = 'Restores a backup; the current file is saved first. Zip backups need AllowedRoot.'; Parameters = @([pscustomobject]@{ Name = 'Path'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'AllowedRoot'; Type = 'String[]'; Mandatory = $false }); Module = 'core' }
@@ -394,6 +397,63 @@ function Invoke-KitOperation {
                         Root = $done.Root; Pair = $done.Pair; Plan = $done.Plan; Ready = @($done.Ready)
                         Pending = @($done.Pending); Written = $written; Backup = $done.Backup
                     })
+            }
+            'pinball.dmd_audit' {
+                # Reads only: the tables, the ini and the pack folder names. -Apply changes nothing here either.
+                $root = Resolve-PinballDmdAuditRoot -Root $(if ($p.ContainsKey('Root')) { $p.Root } else { '' }) -StatePath $PinballStatePath
+                $audit = Get-PinballDmdAudit -Root $root
+                $c = $audit.Count
+                $warnings = @(foreach ($s in @($audit.Section | Where-Object { $_.Verdict -in 'NoPup', 'Mixed', 'Unclear' })) {
+                    Get-KitText 'Pinball.DmdAudit.Finding' -f $s.Section, $s.Verdict, $s.Reason
+                })
+                return New-KitOperationResult -Operation $Name -Kind Read -Status Ok `
+                    -Message (Get-KitText 'Pinball.DmdAudit.Summary' -f @($audit.Section).Count, $audit.TableCount, $c.Ok, $c.NoPup, $c.Mixed, $c.Orphan, $c.Unclear) `
+                    -Warnings $warnings -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                    -Data ([pscustomobject]@{
+                        Root = $root; DmdDevice = $audit.DmdDevice; Tables = $audit.Tables; PupVideos = $audit.PupVideos
+                        TableCount = $audit.TableCount; Unreadable = @($audit.Unreadable); Count = $c
+                        Section = @($audit.Section)
+                    })
+            }
+            'pinball.dmd_repair' {
+                # Change, rule 2: the plan first, a person's yes (-Approved) before the write. Only NoPup sections
+                # are ever planned; the write checks the planned lines again against the file as it is then.
+                $root = Resolve-PinballDmdAuditRoot -Root $(if ($p.ContainsKey('Root')) { $p.Root } else { '' }) -StatePath $PinballStatePath
+                $sections = @(if ($p.ContainsKey('Section')) { $p.Section | ForEach-Object { [string]$_ } })
+                $backupDir = if ($p.ContainsKey('BackupDir')) { $p.BackupDir } else { '' }
+                $audit = Get-PinballDmdAudit -Root $root
+                $plan = Invoke-PinballDmdRepair -Audit $audit -Section $sections
+                $ready = @($plan.Ready); $pending = @($plan.Pending)
+                $left = @(foreach ($x in $pending) { $x.Reason })
+                $approvals = @(foreach ($r in $ready) {
+                    Get-KitText 'Pinball.DmdAudit.Repair.Approve' -f $r.Section, @($r.Lines).Count, $r.Reason
+                })
+                $planData = [pscustomobject]@{ Root = $root; DmdDevice = $plan.DmdDevice; Ready = $ready; Pending = $pending; Removed = @(); Backup = '' }
+                if (-not $ready.Count) {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status $(if ($apply) { 'Skipped' } else { 'WhatIf' }) `
+                        -Message (Get-KitText 'Pinball.DmdAudit.Repair.None') -Warnings $left `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $planData
+                }
+                if (-not $apply) {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status WhatIf `
+                        -Message (Get-KitText 'Pinball.DmdAudit.Repair.Plan' -f $ready.Count, $pending.Count) `
+                        -Warnings $left -Approvals $approvals `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $planData
+                }
+                if (-not $Approved) {
+                    return New-KitOperationResult -Operation $Name -Kind Change -Status NeedsUser `
+                        -Message (Get-KitText 'Pinball.DmdAudit.Repair.NeedsApproval' -f $ready.Count) `
+                        -Warnings $left -Approvals $approvals `
+                        -Duration $clock.Elapsed.TotalSeconds -StartedAt $started -Data $planData
+                }
+                $done = Invoke-PinballDmdRepair -Audit $audit -Section $sections -Apply -BackupDir $backupDir
+                $removed = @($done.Removed)
+                $changes = @(foreach ($x in $removed) { [pscustomobject]@{ Kind = 'File'; Target = $done.DmdDevice; Detail = ('[{0}] {1}' -f $x.Section, $x.Text) } })
+                return New-KitOperationResult -Operation $Name -Kind Change -Status Done -Applied $true `
+                    -Message (Get-KitText 'Pinball.DmdAudit.Repair.Done' -f @($done.Ready).Count, $removed.Count, (Split-Path -Leaf $done.Backup)) `
+                    -Warnings $left -Changes $changes -Backups @($done.Backup) `
+                    -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                    -Data ([pscustomobject]@{ Root = $root; DmdDevice = $done.DmdDevice; Ready = @($done.Ready); Pending = @($done.Pending); Removed = $removed; Backup = $done.Backup })
             }
             'backups.list' {
                 $roots = if ($p.ContainsKey('Root')) { @($p.Root) } else { @(@(Get-PinballBackupRoot -StatePath $PinballStatePath) + @(Get-LightgunBackupRoot -StatePath $LightgunStatePath) | Sort-Object -Unique) }

@@ -124,6 +124,7 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 | **Pads-Paket** (8BitDo, Xbox, PlayStation, Switch Pro) | ✅ Automatisiert | Dritte Eingabeklasse; enge VID/PID- plus BTHENUM-Erkennung, schreibt nur retrobat.ini `[Controllers]`, nie auf der Steam-Blacklist, immer hinter Guns und Arcade |
 | **Haptik-Middleware** (MAMEHooker, qMameHook, Hook of the Reaper, DirectOutput, DMD Extensions) | ⚠️ Automatisiert · Middleware selbst mitgebracht | `output\adapters\` erkennt per Prozess, Port und unterstütztem Board; schreibt mame.ini `output=`, konfiguriert die Middleware, Solenoid-Schutz (HotR `0x53` / 200 ms); installiert keine Dienste, killt keine Prozesse |
 | **PinballY** | ✅ Automatisiert | Prüf- und Retarget-Operation über die API (`pinbally.detect`, `pinbally.retarget`), erst Probelauf, dann Änderung |
+| **DMD-Sektionen des Pinball-Builds** (`DmdDevice.ini`) | ✅ Prüfung nur lesend · abgesicherte Reparatur | `pinball.dmd_audit` prüft jeden DMD-Streifen und jedes abgeschaltete DMD gegen Tischskript und PuP-Pack; `pinball.dmd_repair` entfernt nur die Sektionen ohne aktives Pack, erst Probelauf |
 | **Flycast** | ⛔ Nicht abgedeckt | — |
 | **Doctor, Backups, Support-Paket** | ✅ Nur lesend / abgesichert | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
 | **Kabinett-Umzug (A → B)** | ✅ Erst Probelauf, Backup vor jedem Schreiben | Dashboard *Umziehen*, `Start-Kit.cmd -ExportProfile` / `-ImportProfile` |

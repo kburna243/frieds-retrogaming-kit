@@ -12,7 +12,7 @@ Import-Module (Join-Path $script:KitRoot 'core\RetroCabinetKit.Core.psd1')
 
 # Order matters only for what one module calls: Common first (roots, Join-PinballPath), PinballY before
 # Doctor so the doctor can ask the second front end about itself.
-foreach ($name in 'Common', 'Build', 'Dependencies', 'Copy', 'Relocate', 'Register', 'FpBam', 'Screens', 'Finish', 'PinballY', 'PinballYRetarget', 'Doctor') {
+foreach ($name in 'Common', 'Build', 'Dependencies', 'Copy', 'Relocate', 'Register', 'FpBam', 'Screens', 'Finish', 'PinballY', 'PinballYRetarget', 'DmdAudit', 'Doctor') {
     . (Join-Path $PSScriptRoot "modules\$name.ps1")
 }
 
