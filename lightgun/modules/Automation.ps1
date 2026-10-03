@@ -19,12 +19,12 @@ $script:LightgunSystemProfilesByConnection = @{
     DolphinBar = [ordered]@{
         teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Pad43'
         model2 = 'Mouse43'; model3 = 'Mouse43'; singe = 'Mouse43'; daphne = 'Mouse43'
-        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'
+        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'; chihiro = 'Mouse'
     }
     Bluetooth = [ordered]@{
         teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Pad43'
         model2 = 'Pad43'; model3 = 'Pad43'; singe = 'Pad43'; daphne = 'Pad43'
-        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'
+        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'; chihiro = 'Mouse'
     }
 }
 

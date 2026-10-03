@@ -30,7 +30,7 @@ Describe 'System to profile' {
         foreach ($s in 'mame', 'psx') { Get-LightgunProfileFor $s | Should Be 'Pad43' }
         foreach ($s in 'model2', 'model3', 'singe', 'daphne') { Get-LightgunProfileFor $s | Should Be 'Mouse43' }
         foreach ($s in 'naomi', 'atomiswave') { Get-LightgunProfileFor $s | Should Be 'Naomi' }
-        foreach ($s in 'dreamcast', 'nes', 'snes', 'megadrive', 'mastersystem', 'ps2') { Get-LightgunProfileFor $s | Should Be 'Mouse' }
+        foreach ($s in 'dreamcast', 'nes', 'snes', 'megadrive', 'mastersystem', 'ps2', 'chihiro') { Get-LightgunProfileFor $s | Should Be 'Mouse' }
         Get-LightgunProfileFor 'MAME' | Should Be 'Pad43'
         Get-LightgunProfileFor 'wii' | Should BeNullOrEmpty
     }
