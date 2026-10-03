@@ -115,6 +115,33 @@ Jeder Schritt folgt dem Prinzip **Test → Invoke → Verify**. Ein Schritt wird
 - **Optionaler Autostart**: Ermöglicht die Aktivierung des PinUP Popper Autostarts via `RunWindowsStartup.bat`.
 - **Abschlusshinweis**: Empfiehlt einen Neustart von Windows, damit COM-Caches und Anzeigehandles sauber initialisiert werden.
 
+### Prüfung: DMD-Sektionen, die nicht zum Tisch passen (`pinball.dmd_audit`)
+- **Warum**: Eine Tisch-Sektion in der `DmdDevice.ini` von VPinMAME (`[<cGameName>]`) kann das virtuelle DMD auf einen
+  schmalen Streifen legen oder abschalten. Richtig ist das nur, wenn der Tisch wirklich ein PuP-Pack lädt: Dann füllt
+  das Pack den FullDMD-Bildschirm um den Streifen oder zeichnet den Punktestand selbst. Aus einem anderen Build
+  übernommen, bleibt bei Tischen ohne PuP das Menü-Video des Frontends um den Streifen stehen (oder allein, wenn das
+  DMD aus ist).
+- **Was gelesen wird** (nur gelesen): die Tisch-Sektionen der `DmdDevice.ini`, das Skript jedes Tisches direkt aus der
+  `.vpx` (nur lesend geöffnet; es wird nie eine `.vbs` neben einen Tisch geschrieben, VPX würde sie sonst laden) und die
+  Ordnernamen unter `PUPVideos`. Ein Pack-Ordner, dessen Name auf Striche endet (`pack-----`), ist abgeschaltet und
+  zählt nicht.
+- **Ergebnis pro Sektion**: `Ok` (Pack aktiv; DMD aus nur, wenn PuP den Punktestand zeichnet), `NoPup` (Streifen oder
+  DMD aus ohne aktives Pack), `Mixed` (ein Name, Tische mit unterschiedlichem Ergebnis), `Orphan` (kein Tisch trägt den
+  Namen; wirkungslos), `Unclear` (braucht einen Menschen, z. B. DMD aus, obwohl PuP nie den Punktestand zeichnet).
+- **PuP-Schalter im Skript**: Eine `Const` ist die Einstellung des Tisches; eine Variable, die `True` *und* `False`
+  bekommt, wird zur Laufzeit erkannt (`bUsePUPDMD = False ... = True`), dann entscheiden PuP-Code und Pack.
+- **Reparatur** (`pinball.dmd_repair`): entfernt nur die `virtualdmd`-Zeilen der `NoPup`-Sektionen (eine leer
+  gewordene Sektion verliert auch ihre Überschrift). Erst Probelauf, `-Apply -Approved` schreibt nach einer
+  ZIP-Sicherung, und die geplanten Zeilen werden direkt vor dem Schreiben noch einmal gegen die Datei geprüft.
+  `Mixed`, `Orphan` und `Unclear` werden nie angefasst.
+
+```powershell
+Import-Module .\api\RetroCabinetKit.Api.psd1
+Invoke-KitOperation -Name pinball.dmd_audit -Parameters @{ Root = 'D:\Pinball' }
+Invoke-KitOperation -Name pinball.dmd_repair -Parameters @{ Root = 'D:\Pinball' }                     # Plan
+Invoke-KitOperation -Name pinball.dmd_repair -Parameters @{ Root = 'D:\Pinball' } -Apply -Approved    # schreiben
+```
+
 ---
 
 ## 🛠️ CLI-Kurzanleitung

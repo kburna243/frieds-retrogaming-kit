@@ -124,6 +124,7 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 | **Pads package** (8BitDo, Xbox, PlayStation, Switch Pro) | ✅ Automated | Third input class; tight VID/PID plus BTHENUM detection, writes only retrobat.ini `[Controllers]`, never on the Steam blacklist, always behind guns and arcade |
 | **Haptic middleware** (MAMEHooker, qMameHook, Hook of the Reaper, DirectOutput, DMD Extensions) | ⚠️ Automated · middleware user-supplied | `output\adapters\` detects by process, port and supported board; writes mame.ini `output=`, configures the middleware, solenoid guard (HotR `0x53` / 200 ms); never installs services, never kills processes |
 | **PinballY** | ✅ Automated | Inspect and retarget operations over the API (`pinbally.detect`, `pinbally.retarget`), dry run before every change |
+| **DMD sections of the pinball build** (`DmdDevice.ini`) | ✅ Read-only check · guarded repair | `pinball.dmd_audit` checks every DMD strip / DMD-off against the table script and its PuP pack; `pinball.dmd_repair` removes only the sections without an active pack, dry run first |
 | **Flycast** | ⛔ Not covered | — |
 | **Doctor, backups, support bundle** | ✅ Read-only / guarded | `Start-Kit.cmd -Doctor`, `-Backups`, `-SupportBundle` |
 | **Cabinet migration (A → B)** | ✅ Dry run first, backup before every write | Dashboard *migrate*, `Start-Kit.cmd -ExportProfile` / `-ImportProfile` |

@@ -115,6 +115,30 @@ Every step follows the **Test → Invoke → Verify** design pattern. A step onl
 - **Optional Autostart**: Allows enabling PinUP Popper autostart via `RunWindowsStartup.bat`.
 - **Final Note**: Recommends a system reboot so Windows COM cache and display handles refresh cleanly.
 
+### Check: DMD sections that do not fit their table (`pinball.dmd_audit`)
+- **Why**: A table section in VPinMAME's `DmdDevice.ini` (`[<cGameName>]`) can move the virtual DMD to a small strip
+  or switch it off. That is right only when the table really loads a PuP pack: then the pack fills the FullDMD
+  screen around the strip, or draws the score itself. Copied from another build, the same section leaves the front
+  end's menu video on screen around the strip (or alone, with the DMD off) for tables without PuP.
+- **What it reads** (and only reads): the table sections of `DmdDevice.ini`, every table's script straight out of the
+  `.vpx` (opened read-only; no `.vbs` is ever written next to a table, VPX would load it instead), and the folder
+  names under `PUPVideos`. A pack folder whose name ends in dashes (`pack-----`) is switched off and does not count.
+- **Verdicts per section**: `Ok` (the pack is active; DMD off only when PuP draws the score), `NoPup` (strip or DMD
+  off without an active pack), `Mixed` (one name, tables with different answers), `Orphan` (no table carries the
+  name; no effect), `Unclear` (needs a person, e.g. DMD off while PuP never draws the score).
+- **PuP switch in the script**: a `Const` is the table's setting; a variable that gets `True` *and* `False` is detected
+  at run time (`bUsePUPDMD = False ... = True`), then the PuP code and the pack decide.
+- **Repair** (`pinball.dmd_repair`): removes only the `virtualdmd` lines of `NoPup` sections (a section left empty
+  loses its header). Dry run first, `-Apply -Approved` writes after a ZIP backup, and the planned lines are checked
+  again against the file at that moment. `Mixed`, `Orphan` and `Unclear` are never touched.
+
+```powershell
+Import-Module .\api\RetroCabinetKit.Api.psd1
+Invoke-KitOperation -Name pinball.dmd_audit -Parameters @{ Root = 'D:\Pinball' }
+Invoke-KitOperation -Name pinball.dmd_repair -Parameters @{ Root = 'D:\Pinball' }                     # plan
+Invoke-KitOperation -Name pinball.dmd_repair -Parameters @{ Root = 'D:\Pinball' } -Apply -Approved    # write
+```
+
 ---
 
 ## 🛠️ CLI Quickstart Example

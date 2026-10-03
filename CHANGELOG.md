@@ -17,6 +17,16 @@ that matches it.
 
 ### Added
 
+- DMD check for the pinball build (API 1.7): `pinball.dmd_audit` reads the table sections of VPinMAME's
+  `DmdDevice.ini` that put the virtual DMD on a strip or switch it off, and checks each against the table it is meant
+  for: the table script straight out of the `.vpx` (read-only, OLE storage `GameStg/GameData`, no `.vbs` written)
+  and the `PUPVideos` folder names. A strip or DMD-off is right only with an active PuP pack; without one the front
+  end's menu video stays on screen (found on a cabinet: 40 of 96 strip sections, among them The Goonies). Verdicts
+  `Ok`, `NoPup`, `Mixed`, `Orphan`, `Unclear`; a `Const` PuP switch is a setting, one set to `True` and `False` is
+  detected at run time, a pack folder ending in dashes is switched off. `pinball.dmd_repair` removes the `virtualdmd`
+  lines of `NoPup` sections only, dry run first, `-Apply -Approved` after a ZIP backup, re-checked against the file
+  right before the write. Module `pinball\modules\DmdAudit.ps1`; tests build real OLE tables
+  (`tests\pinball\New-PinballVpxTestTable.ps1`).
 - Two Wiimote connections: **DolphinBar** (Mayflash, Mode 4) and **Bluetooth** (each Wiimote paired on its own, with an
   IR bar). The kit detects which one is in use (with the Wiimotes switched off: the one used last), steps 6 and 8 take
   `-Connection` to set it, and step 6 records it. Step 2 now passes with Bluetooth Wiimotes and no DolphinBar.
