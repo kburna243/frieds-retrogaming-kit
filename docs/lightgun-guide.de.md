@@ -133,7 +133,7 @@ Die Schritte 10–13 fassen nur Emulatoren an, die du wirklich hast; fehlende we
 - `lightgun-12-demul-gamelist`: Meldet fest verdrahtete Flycast-/libretro-Emulatoren bei Gun-Spielen in den Naomi-/Atomiswave-Spielelisten; `-RemoveHardwired` entfernt sie.
 
 ### Schritt 13: Model 2 & Supermodel (`13-Model2Supermodel.ps1`)
-- `lightgun-13-model2`: Prüft deinen **selbst mitgebrachten** Model-2-Emulator (`EMULATOR.EXE`, `emulator_multicpu.exe`, `Emulator.ini`). Closed Source — kein Download. DemulShooter hängt sich über `-target=model2m` ein.
+- `lightgun-13-model2`: Prüft deinen **selbst mitgebrachten** Model-2-Emulator (`EMULATOR.EXE`, `emulator_multicpu.exe`, `Emulator.ini`). Closed Source — kein Download. DemulShooter hängt sich über `-target=model2` ein.
 - `lightgun-13-supermodel`: Prüft und konfiguriert Supermodel (Model 3): Fadenkreuz an, XInput-Gun-Belegung. Offizielle Releases von trzy/Supermodel.
 - `lightgun-13-model-settings`: `model2.use_guns=0`, `model3.use_guns=0`, `disableautocontrollers=1` für beide.
 
@@ -160,7 +160,7 @@ Die Lightgun-Basisinfrastruktur (DolphinBar Modus 4, ViGEmBus, Gunmote und Retro
 | **MAME (Arcade Classics)** | :white_check_mark: Automatisiert | 7 | MAME64 + virtuelles XInput-Pad (`use_guns=0`) |
 | **TeknoParrot (Moderne Arcade)** | :white_check_mark: Automatisiert | 10–11 | XInput-Gun-Belegung, rechter Stick zielt, Spielelisten |
 | **Demul & DemulShooter** | :warning: Automatisiert, Demul selbst mitgebracht | 12 | DemulShooter-Raw-Input auf den Gunmote-Xbox-Pads |
-| **Sega Model 2** | :warning: Automatisiert, Emulator selbst mitgebracht | 13 | DemulShooter (`-target=model2m`) |
+| **Sega Model 2** | :warning: Automatisiert, Emulator selbst mitgebracht | 13 | DemulShooter (`-target=model2`) |
 | **Supermodel (Model 3)** | :white_check_mark: Automatisiert | 13 | XInput-Gun-Belegung, Fadenkreuz |
 | **DuckStation (PS1) / PCSX2 (PS2)** | :mag: Geführte Prüfung | 14 | Automatic Mapping auf `XInput-0`, GunCon-/Justifier-Hinweise |
 | **Flycast** | :no_entry: Nicht abgedeckt | — | — |

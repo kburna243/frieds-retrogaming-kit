@@ -11,6 +11,9 @@ that matches it.
 
 ### Fixed
 
+- Model 2: the game helper started DemulShooter with `-target=model2m`, a target DemulShooter does not have (its
+  target table knows only `model2` = Nebula Model2Emulator v1.1a), so Model 2 gun games got no input. Now
+  `-target=model2`.
 - Bluetooth route: PSX aims with the left stick (DuckStation GunCon on `XInput-n` stick, measured 24.09.), so step 8
   sends the pad 4:3 layout and step 6 gives DuckStation the pad layout; the first cabinet test showed no aim with the
   mouse layout. Without an anchor program, step 6 keeps a correct existing layout of the kind (no new file).
@@ -52,7 +55,7 @@ that matches it.
   (`gunmote-profil`), whose admin tasks ran scripts from the user-writable RetroBat folder.
 - Back in the menu, the profile watcher gives RetroBat the focus back (its hidden console takes it for a moment).
 - DemulShooter ROM list: `deathcox`, `rangrmsn`, `sprtshot`, and the Model 2 set (`bel`, `gunblade`, `hotd`,
-  `rchase2`, `vcop`, `vcop2`) for `-target=model2m`.
+  `rchase2`, `vcop`, `vcop2`) for `-target=model2`.
 
 ### Changed
 

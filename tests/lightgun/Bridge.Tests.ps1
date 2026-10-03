@@ -130,7 +130,7 @@ Describe 'Game helper plan' {
         $p = Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\naomi\hotd2.zip'
         $p.DemulShooter.Target | Should Be 'demul07a'; $p.DemulShooter.Rom | Should Be 'hotd2'
         (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\atomiswave\sprtshot.zip').DemulShooter.Target | Should Be 'demul07a'
-        (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\model2\vcop.zip').DemulShooter.Target | Should Be 'model2m'
+        (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\model2\vcop.zip').DemulShooter.Target | Should Be 'model2'
         (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\naomi\unknown.zip').DemulShooter | Should BeNullOrEmpty
         (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\naomi\a & calc.zip').DemulShooter | Should BeNullOrEmpty
         (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\mame\hotd2.zip').DemulShooter | Should BeNullOrEmpty

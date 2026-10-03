@@ -133,7 +133,7 @@ Steps 10–13 only touch emulators you actually have; missing ones are reported,
 - `lightgun-12-demul-gamelist`: Reports hard-wired Flycast/libretro emulators on gun games in the Naomi/Atomiswave game lists; `-RemoveHardwired` removes them.
 
 ### Step 13: Model 2 & Supermodel (`13-Model2Supermodel.ps1`)
-- `lightgun-13-model2`: Checks your **user-supplied** Model 2 emulator (`EMULATOR.EXE`, `emulator_multicpu.exe`, `Emulator.ini`). Closed source — no download. DemulShooter hooks it via `-target=model2m`.
+- `lightgun-13-model2`: Checks your **user-supplied** Model 2 emulator (`EMULATOR.EXE`, `emulator_multicpu.exe`, `Emulator.ini`). Closed source — no download. DemulShooter hooks it via `-target=model2`.
 - `lightgun-13-supermodel`: Checks and configures Supermodel (Model 3): crosshairs on, XInput gun bindings. Official releases from trzy/Supermodel.
 - `lightgun-13-model-settings`: `model2.use_guns=0`, `model3.use_guns=0`, `disableautocontrollers=1` for both.
 
@@ -160,7 +160,7 @@ The core lightgun infrastructure (DolphinBar Mode 4, ViGEmBus, Gunmote, and Retr
 | **MAME (Arcade Classics)** | :white_check_mark: Automated | 7 | MAME64 + XInput virtual pad (`use_guns=0`) |
 | **TeknoParrot (Modern Arcade)** | :white_check_mark: Automated | 10–11 | XInput gun bindings, right stick aims, game lists |
 | **Demul & DemulShooter** | :warning: Automated, Demul user-supplied | 12 | DemulShooter raw input on the Gunmote Xbox pads |
-| **Sega Model 2** | :warning: Automated, emulator user-supplied | 13 | DemulShooter (`-target=model2m`) |
+| **Sega Model 2** | :warning: Automated, emulator user-supplied | 13 | DemulShooter (`-target=model2`) |
 | **Supermodel (Model 3)** | :white_check_mark: Automated | 13 | XInput gun bindings, crosshairs |
 | **DuckStation (PS1) / PCSX2 (PS2)** | :mag: Guided check | 14 | Automatic Mapping to `XInput-0`, GunCon / Justifier hints |
 | **Flycast** | :no_entry: Not covered | — | — |

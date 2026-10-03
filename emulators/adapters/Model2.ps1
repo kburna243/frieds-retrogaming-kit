@@ -18,7 +18,7 @@
       * Configuration targets EMULATOR.INI with lightgun crosshair settings (DrawCross=1)
         and routes through the core configuration system.
       * No shader support -- Model 2 does not expose a shader pipeline.
-      * DemulShooter integration uses -target=model2m for lightgun hooking.
+      * DemulShooter integration uses -target=model2 for lightgun hooking.
 #>
 
 function Test-Model2Emulator {
@@ -72,7 +72,7 @@ function Get-Model2EmulatorInfo {
         Links           = @{
             RetroBat = 'https://wiki.retrobat.org/emulators/arcade/model2'
         }
-        Notes           = 'Sega Model 2 emulator. Lightgun games: Virtua Cop 1/2, House of the Dead. DemulShooter hooks via -target=model2m. User must supply EMULATOR.EXE (closed source, Nebula-based).'
+        Notes           = 'Sega Model 2 emulator. Lightgun games: Virtua Cop 1/2, House of the Dead. DemulShooter hooks via -target=model2. User must supply EMULATOR.EXE (closed source, Nebula-based).'
     }
 }
 

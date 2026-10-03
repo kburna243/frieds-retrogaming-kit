@@ -3,7 +3,7 @@
     Lightgun step 13: Model 2 & Supermodel (Sega Model 2 and Model 3 lightgun setup).
     - lightgun-13-model2:          Model 2 emulator checks: user supplies Model 2 emulator (EMULATOR.EXE,
                                    emulator_multicpu.exe, Emulator.ini). Closed source, no download provided.
-                                   DemulShooter hooks via -target=model2m.
+                                   DemulShooter hooks via -target=model2.
     - lightgun-13-supermodel:      Supermodel checks and configuration (Crosshairs=1, XInput gun bindings).
                                    Official releases from trzy/Supermodel.
     - lightgun-13-model-settings:  RetroBat es_settings.cfg: model2.use_guns=0, model3.use_guns=0,
