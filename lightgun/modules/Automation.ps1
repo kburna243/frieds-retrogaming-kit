@@ -19,19 +19,19 @@ $script:LightgunSystemProfilesByConnection = @{
     DolphinBar = [ordered]@{
         teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Pad43'
         model2 = 'Mouse43'; model3 = 'Mouse43'; singe = 'Mouse43'; daphne = 'Mouse43'
-        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'; chihiro = 'Mouse'
+        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'; chihiro = 'MouseShoot'
     }
     Bluetooth = [ordered]@{
         teknoparrot = 'TP'; naomi = 'Naomi'; atomiswave = 'Naomi'; mame = 'Pad43'; psx = 'Pad43'
         model2 = 'Pad43'; model3 = 'Pad43'; singe = 'Pad43'; daphne = 'Pad43'
-        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'; chihiro = 'Mouse'
+        dreamcast = 'Mouse'; nes = 'Mouse'; snes = 'Mouse'; megadrive = 'Mouse'; mastersystem = 'Mouse'; ps2 = 'Mouse'; chihiro = 'MouseShoot'
     }
 }
 
 # Profile -> layout kind (step 6 recorded one title per kind).
 $script:LightgunProfileKindsByConnection = @{
-    DolphinBar = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Mouse43'; Mouse = 'Mouse'; Mouse43 = 'Mouse43' }
-    Bluetooth  = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Pad43'; Mouse = 'Mouse'; Mouse43 = 'Mouse43' }
+    DolphinBar = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Mouse43'; Mouse = 'Mouse'; Mouse43 = 'Mouse43'; MouseShoot = 'MouseShoot' }
+    Bluetooth  = [ordered]@{ Menu = 'Menu'; TP = 'TP'; Pad43 = 'Pad43'; Naomi = 'Pad43'; Mouse = 'Mouse'; Mouse43 = 'Mouse43'; MouseShoot = 'MouseShoot' }
 }
 
 function Get-LightgunSystemProfile {

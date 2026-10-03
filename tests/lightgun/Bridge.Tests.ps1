@@ -56,7 +56,7 @@ Describe 'Profiles and layouts per connection' {
     }
 
     It 'the Naomi task aims with the pad over Bluetooth and with the mouse over the DolphinBar' {
-        $titles = [pscustomobject]@{ Menu = 'M'; Pad43 = 'P43'; TP = 'T'; Mouse = 'Mo'; Mouse43 = 'M43' }
+        $titles = [pscustomobject]@{ Menu = 'M'; Pad43 = 'P43'; TP = 'T'; Mouse = 'Mo'; Mouse43 = 'M43'; MouseShoot = 'MS' }
         (@(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir 'C:\x' -Connection Bluetooth) | Where-Object Name -eq 'Naomi').Argument | Should Match '-Layout "P43"$'
         (@(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir 'C:\x' -Connection DolphinBar) | Where-Object Name -eq 'Naomi').Argument | Should Match '-Layout "M43"$'
     }
