@@ -27,6 +27,9 @@ that matches it.
   lines of `NoPup` sections only, dry run first, `-Apply -Approved` after a ZIP backup, re-checked against the file
   right before the write. Module `pinball\modules\DmdAudit.ps1`; tests build real OLE tables
   (`tests\pinball\New-PinballVpxTestTable.ps1`).
+- Pinball guide (English and German): downloading large tables from VPForums through a browser session with `bsk`
+  (browser-skill, not part of the kit) when `bsk download` times out — in-browser fetch, chunked base64 read-out,
+  known pitfalls. The kit itself still downloads no tables.
 - Two Wiimote connections: **DolphinBar** (Mayflash, Mode 4) and **Bluetooth** (each Wiimote paired on its own, with an
   IR bar). The kit detects which one is in use (with the Wiimotes switched off: the one used last), steps 6 and 8 take
   `-Connection` to set it, and step 6 records it. Step 2 now passes with Bluetooth Wiimotes and no DolphinBar.
