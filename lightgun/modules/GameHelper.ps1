@@ -12,7 +12,7 @@
 # Ported from the cabinet's hand-made bridge (gunmote-profil: pad43.ps1, ffbblaster-netoutputs.ps1, order-check.py),
 # without its admin tasks: none of this needs administrator rights.
 
-$script:LightgunDemulShooterTargets = @{ naomi = 'demul07a'; atomiswave = 'demul07a'; model2 = 'model2m' }
+$script:LightgunDemulShooterTargets = @{ naomi = 'demul07a'; atomiswave = 'demul07a'; model2 = 'model2' }
 $script:LightgunFfbNetPort = 8002
 $script:LightgunRelayPort = 8000
 
@@ -33,7 +33,7 @@ function Get-LightgunGameHelperPlan {
     if ($Phase -eq 'Start' -and $dsSystem) {
         $name = [IO.Path]::GetFileNameWithoutExtension($Rom)
         $target = $script:LightgunDemulShooterTargets[$system]
-        $allow = if ($target -eq 'model2m') { $script:LightgunModel2KnownRoms } else { $script:LightgunDemulKnownRoms }
+        $allow = if ($target -eq 'model2') { $script:LightgunModel2KnownRoms } else { $script:LightgunDemulKnownRoms }
         if (Test-LightgunDemulRomName -Rom $name -Allowlist $allow) { $ds = [pscustomobject]@{ Target = $target; Rom = $name } }
     }
     [pscustomobject]@{

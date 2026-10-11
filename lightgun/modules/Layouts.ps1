@@ -8,6 +8,8 @@
 #                     Plus/Minus -> Xbox Start/Back: Demul and Model 2 ignore keyboard keys for coin and start.
 #   TP                pointer on the RIGHT stick (TeknoParrot profiles aim with the right stick)
 #   Mouse             lightgun mouse, only for RetroArch and PCSX2 (they only know a pointer)
+#   MouseShoot        like Mouse, but B stays the left click OffScreen: Cxbx-Reloaded (Chihiro, Silent Scope) reloads
+#                     without shooting off screen, and a lost IR frame turned the shot into Grip = zoom (cabinet 03.10.2026)
 # Every layout sets ALL keys and the OffScreen state explicitly: Gunmote fills missing entries from the Default
 # layout, so a pad layout without its own OffScreen pointer inherited "pointer off" from the menu layout
 # (inheritance trap). Home is disabled in every layout the kit writes (it opened the Xbox Game Bar); holding Home for
@@ -38,6 +40,7 @@ $script:LightgunLayouts = [ordered]@{
     TP    = @{ File = 'rck_tp.json';    Title = 'RCK TeknoParrot' }
     Mouse = @{ File = 'rck_mouse.json'; Title = 'RCK Mouse' }
     Mouse43 = @{ File = 'rck_mouse43.json'; Title = 'RCK Mouse 4:3' }
+    MouseShoot = @{ File = 'rck_mouseshoot.json'; Title = 'RCK Mouse (shoot off screen)' }
 }
 
 # Gunmote's own layouts that the kit recognizes by name without reading them. mouse43.json is read and checked:
@@ -90,7 +93,7 @@ function Get-LightgunLayoutKind {
 # The kit's layout as an ordered dictionary (Title, All.OnScreen, All.OffScreen).
 function New-LightgunLayout {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [ValidateSet('Menu', 'Pad43', 'TP', 'Mouse', 'Mouse43')] [string] $Kind)
+    param([Parameter(Mandatory)] [ValidateSet('Menu', 'Pad43', 'TP', 'Mouse', 'Mouse43', 'MouseShoot')] [string] $Kind)
     $on = [ordered]@{}
     foreach ($k in $script:LightgunKeyNames) { $on[$k] = 'disable' }
     $pad = [ordered]@{
@@ -113,11 +116,12 @@ function New-LightgunLayout {
             } else { $on['Pointer'] = '360.stickr-light' } # the Nunchuk stick stays off: the right stick aims
             $off = [ordered]@{ 'A' = '360.a'; 'B' = '360.b'; 'Pointer' = $on['Pointer']; 'Home' = 'disable' }
         }
-        'Mouse' {
+        { $_ -in 'Mouse', 'MouseShoot' } {
             $on['Pointer'] = 'lightgunmouse'; $on['A'] = 'mouseright'; $on['B'] = 'mouseleft'
             $on['Left'] = 'left'; $on['Right'] = 'right'; $on['Up'] = 'up'; $on['Down'] = 'down'
             $on['Plus'] = 'vk_1'; $on['Minus'] = 'vk_5'; $on['One'] = 'mousemiddle'
-            $off = [ordered]@{ 'A' = 'mouseright'; 'B' = 'mouseright'; 'Pointer' = 'lightgunmouse'; 'Home' = 'disable' }
+            $offB = if ($Kind -eq 'MouseShoot') { 'mouseleft' } else { 'mouseright' }
+            $off = [ordered]@{ 'A' = 'mouseright'; 'B' = $offB; 'Pointer' = 'lightgunmouse'; 'Home' = 'disable' }
         }
         'Mouse43' {
             foreach ($k in 'Left', 'Right', 'Up', 'Down', 'Minus', 'Plus', 'One', 'Two') { $on[$k] = $pad[$k] }
@@ -139,7 +143,8 @@ function Get-JsonProperty($Object, [string] $Name) {
     if ($p) { $p.Value }
 }
 
-# Kind of an existing layout file by what it does: 'Menu', 'Pad43', 'Pad', 'TP', 'Mouse', 'Mouse43' or '' (unknown).
+# Kind of an existing layout file by what it does: 'Menu', 'Pad43', 'Pad', 'TP', 'Mouse', 'Mouse43', 'MouseShoot' or ''
+# (unknown; MouseShoot = full-screen mouse whose OffScreen B is the left click).
 # Correct = the OffScreen pointer and B are set explicitly and Home is off (Mouse: pointer only;
 # Mouse43: OffScreen pointer, Plus/Minus on Xbox Start/Back).
 function Get-LightgunLayoutInfo {
@@ -156,6 +161,7 @@ function Get-LightgunLayoutInfo {
     $pointer = [string](Get-JsonProperty $on 'Pointer')
     $kind = if ($pointer -eq 'disable') { 'Menu' }
             elseif ($pointer -eq 'lightgunmouse-4:3') { 'Mouse43' }
+            elseif ($pointer -eq 'lightgunmouse' -and [string](Get-JsonProperty $off 'B') -eq 'mouseleft') { 'MouseShoot' }
             elseif ($pointer -like 'lightgunmouse*') { 'Mouse' }
             elseif ($pointer -like '360.stickr-light*') { 'TP' }
             elseif ($pointer -eq '360.stickl-light-4:3') { 'Pad43' }
@@ -166,7 +172,7 @@ function Get-LightgunLayoutInfo {
     $wantB = if ($kind -eq 'Menu') { '360.a' } else { '360.b' }
     $homeKey = [string](Get-JsonProperty $on 'Home')
     $homeOk = $homeKey -eq 'disable' -or ($kind -eq 'Menu' -and $homeKey -eq '360.guide')
-    $correct = if ($kind -eq 'Mouse') { $true }
+    $correct = if ($kind -in 'Mouse', 'MouseShoot') { $true }
         elseif ($kind -eq 'Mouse43') { $offPointer -eq $pointer -and [string](Get-JsonProperty $on 'Plus') -eq '360.start' -and [string](Get-JsonProperty $on 'Minus') -eq '360.back' }
         else {
         $kind -and $offPointer -eq $pointer -and $b -eq $wantB -and [string](Get-JsonProperty $off 'B') -eq $wantB -and $homeOk

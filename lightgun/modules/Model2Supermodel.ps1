@@ -1,6 +1,6 @@
 ﻿# Model 2 & Supermodel (step 13): Sega Model 2 and Model 3 lightgun setup.
 #   Model 2:           User supplies Model 2 emulator (EMULATOR.EXE / emulator_multicpu.exe, Emulator.ini).
-#                      Closed-source emulator by ElSemi. DemulShooter hooks via -target=model2m (or -target=model2).
+#                      Closed-source emulator by ElSemi. DemulShooter hooks via -target=model2.
 #   Supermodel:        Official releases from trzy/Supermodel (GPL-3.0). Configured for XInput crosshairs and gun inputs.
 #   RetroBat settings: model2.use_guns=0, model3.use_guns=0, model2.disableautocontrollers=1, model3.disableautocontrollers=1.
 

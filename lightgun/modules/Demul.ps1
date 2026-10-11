@@ -44,7 +44,7 @@ $script:LightgunDemulKnownRoms = @(
     'sprtshot'
 )
 
-# Model 2 gun ROMs for DemulShooter -target=model2m (the cabinet's set, 01.10.2026).
+# Model 2 gun ROMs for DemulShooter -target=model2 (the cabinet's set, 01.10.2026).
 $script:LightgunModel2KnownRoms = @('bel', 'gunblade', 'hotd', 'rchase2', 'vcop', 'vcop2')
 
 function Get-LightgunDemulShooterReleaseUrl {
@@ -280,7 +280,7 @@ function Start-LightgunDemulShooter {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string] $DemulShooterExe,
-        [Parameter(Mandatory)] [ValidateSet('demul07a', 'model2m', 'model2')] [string] $Target,
+        [Parameter(Mandatory)] [ValidateSet('demul07a', 'model2')] [string] $Target,
         [Parameter(Mandatory)] [string] $Rom,
         [string[]] $Allowlist
     )

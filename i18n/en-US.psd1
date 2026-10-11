@@ -417,7 +417,7 @@
     'Lightgun.Model2.Missing'        = 'Model 2 emulator not found in {0}. Please supply Model 2 emulator (EMULATOR.EXE / emulator_multicpu.exe, Emulator.ini).'
     'Lightgun.Model2.UserSupplied'   = 'Model 2 emulator by ElSemi is closed source; the kit does not download it.'
     'Lightgun.Model2.Found'          = 'Model 2 emulator found: {0}'
-    'Lightgun.Model2.DsHint'         = 'Model 2 gun games hook through DemulShooter (-target=model2m).'
+    'Lightgun.Model2.DsHint'         = 'Model 2 gun games hook through DemulShooter (-target=model2).'
     'Lightgun.Model2.BadRom'         = 'Invalid or unknown Model 2 lightgun ROM name: "{0}". Safe launch rejected.'
     'Lightgun.Supermodel.Missing'    = 'Supermodel not found in {0}. Please install Supermodel from official releases.'
     'Lightgun.Supermodel.Download'   = 'Official Supermodel releases: {0}'
@@ -539,7 +539,7 @@
     'Lightgun.Ui.GameLists.Desc'     = 'Game lists: creates TeknoParrot gamelist from profiles, moves duplicate folders to _duplicates\, and hides unregistered folders.'
     'Lightgun.Ui.Demul.Desc'         = 'Demul 0.7a & DemulShooter: configures HID raw input for Naomi and Atomiswave gun games, removes hardwired flycast/libretro tags from gamelists.'
     'Lightgun.Ui.Demul.RemoveHardwired' = 'Remove hardwired flycast/libretro tags from gun games'
-    'Lightgun.Ui.Model2Supermodel.Desc' = 'Model 2 Emulator & Supermodel: checks Model 2 (closed source, DemulShooter hooks via -target=model2m) and configures Supermodel crosshairs and XInput gun inputs.'
+    'Lightgun.Ui.Model2Supermodel.Desc' = 'Model 2 Emulator & Supermodel: checks Model 2 (closed source, DemulShooter hooks via -target=model2) and configures Supermodel crosshairs and XInput gun inputs.'
     'Lightgun.Ui.DuckStationPcsx2.Desc' = 'DuckStation & PCSX2 guided check: guide for Automatic Mapping to XInput-0, audits existing settings, and checks Konami Justifier settings (Die Hard Trilogy, Crypt Killer).'
     # --- Doctor (read-only health check) ---------------------------------------------------------------
     'Doctor.Title'                  = "Fried's Retrogaming Kit - Doctor"

@@ -56,7 +56,7 @@ Describe 'Profiles and layouts per connection' {
     }
 
     It 'the Naomi task aims with the pad over Bluetooth and with the mouse over the DolphinBar' {
-        $titles = [pscustomobject]@{ Menu = 'M'; Pad43 = 'P43'; TP = 'T'; Mouse = 'Mo'; Mouse43 = 'M43' }
+        $titles = [pscustomobject]@{ Menu = 'M'; Pad43 = 'P43'; TP = 'T'; Mouse = 'Mo'; Mouse43 = 'M43'; MouseShoot = 'MS' }
         (@(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir 'C:\x' -Connection Bluetooth) | Where-Object Name -eq 'Naomi').Argument | Should Match '-Layout "P43"$'
         (@(Get-LightgunProfileTaskPlan -Titles $titles -AutomationDir 'C:\x' -Connection DolphinBar) | Where-Object Name -eq 'Naomi').Argument | Should Match '-Layout "M43"$'
     }
@@ -130,7 +130,7 @@ Describe 'Game helper plan' {
         $p = Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\naomi\hotd2.zip'
         $p.DemulShooter.Target | Should Be 'demul07a'; $p.DemulShooter.Rom | Should Be 'hotd2'
         (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\atomiswave\sprtshot.zip').DemulShooter.Target | Should Be 'demul07a'
-        (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\model2\vcop.zip').DemulShooter.Target | Should Be 'model2m'
+        (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\model2\vcop.zip').DemulShooter.Target | Should Be 'model2'
         (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\naomi\unknown.zip').DemulShooter | Should BeNullOrEmpty
         (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\naomi\a & calc.zip').DemulShooter | Should BeNullOrEmpty
         (Get-LightgunGameHelperPlan -Phase Start -Rom 'F:\RetroBat\roms\mame\hotd2.zip').DemulShooter | Should BeNullOrEmpty

@@ -135,13 +135,17 @@ Describe 'Gunmote layouts' {
         $m43.OnScreen['Plus'] | Should Be '360.start'
         $m43.OnScreen['Minus'] | Should Be '360.back'
         $m43.OffScreen['B'] | Should Be 'mouseright'
+        $ms = (New-LightgunLayout -Kind MouseShoot).All
+        $ms.OnScreen['Pointer'] | Should Be 'lightgunmouse'
+        $ms.OffScreen['B'] | Should Be 'mouseleft'
+        (New-LightgunLayout -Kind Mouse).All.OffScreen['B'] | Should Be 'mouseright'
     }
 
-    It 'fresh Gunmote: writes the five layouts, sets Default and the programs; second run changes nothing' {
+    It 'fresh Gunmote: writes the six layouts, sets Default and the programs; second run changes nothing' {
         $g = Join-Path $TestDrive 'G1'
         & $newGunmote -Gunmote $g
         $plan = Get-LightgunLayoutPlan -KeymapsDir "$g\Keymaps" -RetroBatRoot $rb
-        $plan.Files.Count | Should Be 5
+        $plan.Files.Count | Should Be 6
         $plan.Titles['Menu'] | Should Be 'RCK Menu (no pointer)'
         Invoke-LightgunLayoutPlan -Plan $plan -Confirm:$false | Should Be $plan.Count
         $km = [IO.File]::ReadAllText("$g\Keymaps\Keymaps.json") | ConvertFrom-Json

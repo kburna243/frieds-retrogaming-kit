@@ -7,6 +7,15 @@ that matches it.
 
 ## [Unreleased]
 
+### Fixed
+
+- Model 2: the game helper started DemulShooter with `-target=model2m`, a target DemulShooter does not have (its
+  target table in `Program.cs` knows only `model2` = Nebula Model2Emulator v1.1a), so Model 2 gun games got no input
+  in 1.5.0 and before. Now `-target=model2`; `model2m` is no longer accepted.
+- Chihiro (Cxbx-Reloaded, e.g. Silent Scope) gets a lightgun mouse profile of its own, `MouseShoot`: like `Mouse`,
+  but B stays the left click off screen, so reloading does not fire and a lost IR frame no longer turns the shot
+  into Grip = zoom (cabinet 03.10.2026). Step 6 writes `rck_mouseshoot.json` and recognizes the layout kind.
+
 ## [1.5.0] - 2026-10-11
 
 ### Fixed
