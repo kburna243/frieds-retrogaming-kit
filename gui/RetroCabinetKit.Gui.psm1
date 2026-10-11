@@ -513,8 +513,9 @@ function Invoke-KitGuiSaveOrder {
     param([Parameter(Mandatory)] [psobject] $Ui, [scriptblock] $Confirm = { param($text) Confirm-KitGuiAction -Text $text })
     $plan = Invoke-KitOperation -Name 'controllers.wiimote_bind'
     if ($plan.Status -eq 'Failed') { Write-KitGuiControlsLog -Ui $Ui -Text $plan.Message; return $null }
-    if (-not (& $Confirm (Get-KitText 'Gui.Order.ConfirmSave' -f (@($plan.Changes) -join ', ')))) { return $null }
-    $r = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Apply
+    if (-not (& $Confirm (Get-KitText 'Gui.Order.ConfirmSave' -f (@($plan.Changes | ForEach-Object Detail) -join ', ')))) { return $null }
+    # The plan's id: the apply writes only the binding the person just saw.
+    $r = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters @{ PlanId = [string]$plan.Data.PlanId } -Apply
     Write-KitGuiControlsLog -Ui $Ui -Text $r.Message
     $r
 }

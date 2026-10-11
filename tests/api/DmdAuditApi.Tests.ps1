@@ -24,7 +24,7 @@ Describe 'API 1.7 -- pinball.dmd_audit' {
         $op.Kind | Should Be 'Read'
         $op.Module | Should Be 'pinball'
         @($op.Parameters | ForEach-Object { $_.Name }) | Should Be @('Root')
-        (Get-KitApiVersion) | Should Be '1.7'
+        ([version](Get-KitApiVersion) -ge [version]'1.7') | Should Be $true
     }
 
     It 'reports every verdict with counts and warnings, and changes nothing (not even with -Apply)' {

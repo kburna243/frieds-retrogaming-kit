@@ -55,3 +55,47 @@ Describe 'API 1.6 -- Wiimote player order' {
         $after | Should Be $before
     }
 }
+
+# API 1.8: the binding by Bluetooth address, bound to its plan. The ledger is pointed into TestDrive; the connected
+# Wiimotes are injected, so no real wiimotes.json is read or written.
+Describe 'API 1.8 -- Wiimote binding by Bluetooth address' {
+    Set-KitCulture -Culture 'en-US'
+    $ledger = Join-Path $TestDrive 'home\RetroCabinet\wiimotes.json'
+    foreach ($m in @(Get-Module -All 'RetroCabinetKit.Arcade')) { & $m { $script:WiimoteLedgerPath = $args[0] } $ledger }
+    Mock -ModuleName RetroCabinetKit.Arcade Get-ArcadeWiimoteDevice { [pscustomobject]@{ Mac = '34AF2CD5795B'; Model = 'RVL-CNT-01-TR'; Arrived = Get-Date } }
+
+    It 'offers Binding and PlanId; the plan names the chosen players and writes nothing' {
+        $op = @(Get-KitOperation | Where-Object Name -eq 'controllers.wiimote_bind')[0]
+        @($op.Parameters | ForEach-Object Name) -join ',' | Should Be 'Binding,PlanId'
+        $plan = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters @{ Binding = '34:af:2c:d5:79:5b=1, 0017AB2CD0A0=2' }
+        $plan.Status | Should Be 'WhatIf'
+        $plan.Data.Source | Should Be 'Binding'
+        ($plan.Data.Wiimotes | ForEach-Object { "$($_.Player)=$($_.Mac)/$($_.Model)" }) -join ' ' | Should Be '1=34AF2CD5795B/RVL-CNT-01-TR 2=0017AB2CD0A0/'
+        $plan.Data.PlanId | Should Match '^[0-9a-f]{64}$'
+        $plan.Changes[0].Kind | Should Be 'File'
+        $plan.Changes[0].Detail | Should Be 'player 1 = 34AF2CD5795B'
+        Test-Path $ledger | Should Be $false
+    }
+
+    It 'applies with the PlanId of the plan, refuses a stale one and writes nothing then' {
+        $binding = @{ Binding = '34AF2CD5795B=1,0017AB2CD0A0=2' }
+        $plan = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters $binding
+        $done = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters @{ Binding = $binding.Binding; PlanId = $plan.Data.PlanId } -Apply
+        $done.Status | Should Be 'Done'
+        (Get-Content $ledger -Raw | ConvertFrom-Json).Wiimotes[1].Mac | Should Be '0017AB2CD0A0'
+        $before = Get-Content $ledger -Raw
+        # The same PlanId again: the file is now different, so it is a plan for a state that is gone.
+        $stale = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters @{ Binding = '34AF2CD5795B=2,0017AB2CD0A0=1'; PlanId = $plan.Data.PlanId } -Apply
+        $stale.Status | Should Be 'Failed'
+        $stale.Message | Should Match 'changed since this plan'
+        (Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters @{ Binding = $binding.Binding; PlanId = '' } -Apply).Status | Should Be 'Failed'
+        Get-Content $ledger -Raw | Should Be $before
+    }
+
+    It 'refuses a malformed binding, a player twice or a MAC twice' {
+        foreach ($bad in 'nonsense', '34AF2CD5795B=5', '34AF2CD5795B=1,0017AB2CD0A0=1', '34AF2CD5795B=1,34af2cd5795b=2') {
+            $r = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters @{ Binding = $bad }
+            $r.Status | Should Be 'Failed'
+        }
+    }
+}

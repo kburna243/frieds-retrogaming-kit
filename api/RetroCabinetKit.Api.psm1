@@ -5,7 +5,7 @@
 
 Set-StrictMode -Version 2.0
 
-$script:ApiVersion = '1.7'
+$script:ApiVersion = '1.8'
 $script:ApiDir     = $PSScriptRoot
 $script:KitRoot    = Split-Path -Parent $PSScriptRoot
 # The kit's own version (VERSION file), reported in every result so a client can name what it talks to.
@@ -121,7 +121,7 @@ function Get-KitOperation {
         @{ Name = 'controllers.input_profiles'; Kind = 'Read'; Description = 'List the input profiles (one button layout for the whole cabinet), or one profile with its mapping.'; Parameters = @([pscustomobject]@{ Name = 'Name'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
         @{ Name = 'controllers.xinput_slots'; Kind = 'Read'; Description = 'The four XInput slots: which is in use, by what kind of device, its MAME joystick number (JOY<n> counts connected slots only) and the source names of its buttons as MAME numbers them.'; Parameters = @(); Module = 'controllers' }
         @{ Name = 'controllers.wiimote_order'; Kind = 'Read'; Description = 'Which Wiimote is player 1, 2, ... in Gunmote right now (Gunmote numbers them in the order they connect) and whether that matches the saved binding: Ok, Swapped, Unbound, Unclear, NoGunmote, NoWiimote.'; Parameters = @(); Module = 'controllers' }
-        @{ Name = 'controllers.wiimote_bind'; Kind = 'Change'; Description = 'Save the current Wiimote order as the player binding (Bluetooth address -> player); the plan shows the binding, -Apply writes it.'; Parameters = @(); Module = 'controllers' }
+        @{ Name = 'controllers.wiimote_bind'; Kind = 'Change'; Description = 'Save the Wiimote player binding (Bluetooth address -> player): Binding "MAC=1,MAC=2" as chosen, without it the current connection order. The plan shows the binding and a PlanId; -Apply with that PlanId writes only if nothing changed since.'; Parameters = @([pscustomobject]@{ Name = 'Binding'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'PlanId'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
         @{ Name = 'controllers.input_apply'; Kind = 'Change'; Description = 'Write an input profile as a MAME ctrlr file of its own (never a hand-made one); the plan names the RetroBat settings that load it.'; Parameters = @([pscustomobject]@{ Name = 'Profile'; Type = 'String'; Mandatory = $true }, [pscustomobject]@{ Name = 'CtrlrName'; Type = 'String'; Mandatory = $false }, [pscustomobject]@{ Name = 'RetroBatRoot'; Type = 'String'; Mandatory = $false }); Module = 'controllers' }
         @{ Name = 'displays.detect'; Kind = 'Read'; Description = 'Detect all displays: monitors (EDID), virtual DMD, backglass, topper.'; Parameters = @(); Module = 'displays' }
         @{ Name = 'enhancements.detect'; Kind = 'Read'; Description = 'Detect all enhancements: GPU, shader presets, latency, upscaling, frame pacing, pinball visuals, ambient lighting, audio.'; Parameters = @(); Module = 'enhancements' }
@@ -599,14 +599,25 @@ function Invoke-KitOperation {
             }
             'controllers.wiimote_bind' {
                 # Rule 1: without -Apply the answer is the plan and nothing is written.
+                # Binding = the person's choice by Bluetooth address; without it the current connection order is saved.
+                # PlanId (from the dry run) on -Apply: written only if binding and file are still those of that plan.
                 try {
-                    $entries = @(Save-ArcadeWiimoteLedger -WhatIf:(-not $apply))
-                    $text = ($entries | ForEach-Object { 'player {0} = {1} ({2})' -f $_.Player, $_.Mac, $_.Model }) -join ', '
+                    $ledgerPath = Get-ArcadeWiimoteLedgerPath
+                    $source = if ($p.Binding) { 'Binding' } else { 'CurrentOrder' }
+                    $wanted = if ($p.Binding) { @(ConvertTo-ArcadeWiimoteBinding -Binding ([string]$p.Binding)) } else { @((Get-ArcadeWiimoteOrder).Wiimotes) }
+                    $planId = Get-ArcadeWiimoteBindingPlanId -Entries $wanted -Path $ledgerPath
+                    # An empty PlanId is a PlanId too: it never matches, so it never skips the check.
+                    # ponytail: check and write are two steps; one cabinet, one person at a time is the ceiling.
+                    if ($apply -and $p.ContainsKey('PlanId') -and [string]$p.PlanId -ne $planId) {
+                        throw 'The Wiimote binding or wiimotes.json changed since this plan was made: nothing written, make a new plan.'
+                    }
+                    $entries = @(Save-ArcadeWiimoteLedger -Wiimotes $wanted -Path $ledgerPath -WhatIf:(-not $apply) -Confirm:$false)
+                    $text = ($entries | ForEach-Object { 'player {0} = {1} ({2})' -f $_.Player, $_.Mac, $(if ($_.Model) { $_.Model } else { 'model unknown' }) }) -join ', '
                     $status = if ($apply) { 'Done' } else { 'WhatIf' }
                     $msg = if ($apply) { "Wiimote binding saved: $text" } else { "Plan: $text. Apply with -Apply." }
                     return New-KitOperationResult -Operation $Name -Kind Change -Status $status -Applied $apply -Message $msg `
-                        -Changes @($entries | ForEach-Object { "player $($_.Player) = $($_.Mac)" }) -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
-                        -Data ([pscustomobject]@{ Wiimotes = $entries })
+                        -Changes @($entries | ForEach-Object { [pscustomobject]@{ Kind = 'File'; Target = $ledgerPath; Detail = "player $($_.Player) = $($_.Mac)" } }) -Duration $clock.Elapsed.TotalSeconds -StartedAt $started `
+                        -Data ([pscustomobject]@{ Wiimotes = $entries; Source = $source; PlanId = $planId })
                 } catch {
                     return New-KitOperationResult -Operation $Name -Kind Change -Status Failed -Message $_.Exception.Message -Errors @($_.Exception.Message) `
                         -Duration $clock.Elapsed.TotalSeconds -StartedAt $started

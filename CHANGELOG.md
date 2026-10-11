@@ -7,6 +7,8 @@ that matches it.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-11
+
 ### Fixed
 
 - Bluetooth route: PSX aims with the left stick (DuckStation GunCon on `XInput-n` stick, measured 24.09.), so step 8
@@ -17,6 +19,12 @@ that matches it.
 
 ### Added
 
+- Wiimote binding by Bluetooth address (API 1.8): `controllers.wiimote_bind` takes `Binding` (`MAC=player,...`),
+  so an app such as Hotwm can save the players the person chose instead of the current connection order. The plan
+  returns a `PlanId` (hash of the binding and the file it replaces); `-Apply` with that id writes only if neither
+  changed since, so an approval cannot write over a newer binding. The kit's own GUI passes it. `-Anonymize` and the
+  support bundle now hide Bluetooth addresses as `<MAC>`. Its `Changes` are now contract objects (`Kind` File,
+  `Target`, `Detail`) instead of plain strings.
 - DMD check for the pinball build (API 1.7): `pinball.dmd_audit` reads the table sections of VPinMAME's
   `DmdDevice.ini` that put the virtual DMD on a strip or switch it off, and checks each against the table it is meant
   for: the table script straight out of the `.vpx` (read-only, OLE storage `GameStg/GameData`, no `.vbs` written)
@@ -528,7 +536,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.0...v1.3.1
