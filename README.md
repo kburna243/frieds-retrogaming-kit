@@ -37,22 +37,19 @@
 
 ---
 
-## ✨ New in v1.5.0
+## ✨ New in v1.5.1
 
-Since v1.0.0 (details in the [CHANGELOG](CHANGELOG.md)):
+Since v1.4.0 (details in the [CHANGELOG](CHANGELOG.md)):
 
 | | What you get |
 | :--- | :--- |
+| 🔫 **Chihiro Lightgun Profile** (1.5.1) | Dedicated `MouseShoot` profile for Cxbx-Reloaded without unwanted off-screen reloading. |
 | 🔗 **Wiimote players by Bluetooth address** (1.5) | `controllers.wiimote_bind` takes `Binding` (`MAC=player`) so an app such as [Hook of the Wiimote](https://github.com/kburna243/frieds-hotwm) saves the players you chose. The plan carries a `PlanId`; the apply writes only that plan. Bluetooth addresses are hidden as `<MAC>` in anonymized answers and support bundles (API 1.8). |
 | 🎯 **DMD check for pinball tables** (1.5) | `pinball.dmd_audit` / `pinball.dmd_repair`: is a DMD strip or DMD-off in `DmdDevice.ini` backed by an active PuP pack (API 1.7)? |
+| 📶 **Two Wiimote connections** (1.5) | DolphinBar (Mayflash, Mode 4) and Bluetooth (each Wiimote paired on its own, with an IR bar) are now both supported. Steps 6 and 8 take `-Connection` to set it. |
+| 🎮 **Game helper** (1.5) | A second RetroBat hook `rck-game-helper.bat` starts games with DemulShooter and hotwm relay integration without background tasks. |
 | 🔢 **Wiimote player order** (1.4) | Gunmote numbers the Wiimotes in the order they connect. The kit saves which Wiimote is which player and says before a game whether the order is right, swapped or unclear. API `controllers.wiimote_order`, `controllers.wiimote_bind`. |
 | 🕹️ **XInput slots & Controls card** (1.4) | `controllers.xinput_slots`: the four XInput slots with device kind and MAME `JOY<n>` numbering. New dashboard card **Controls & rumble**: devices, Wiimote output chain, player order and input profiles. |
-| 🎮 **Universal button setup** (1.3) | One input profile for the whole cabinet maps actions (`START1`, `COIN1`, `P1_BUTTON1` …) to what the panel sends — keys, pad buttons, mouse buttons, several per button. Written as a MAME ctrlr file of the kit's own; a hand-made file like the gun layout `custom1.cfg` is never overwritten. API `controllers.input_profiles`, `controllers.input_apply`. |
-| 🎚️ **Setup levels & presets** (1.1) | Easy / Custom / NerdExtreme and four built-in presets plus your own (`setup.set_mode`, `presets.list`, `presets.apply`). |
-| 🛡️ **Your settings stay yours** (1.1) | Put a `config.override.ini` next to any `config.ini`: your values always win, kit updates never overwrite them. |
-| 🩺 **Health check in about 2 s** (1.2) | `status.health`: USB hardware, reachable ROM folders (NAS shares with a 1 s timeout), interfering programs, vitals. |
-| ⏪ **Rollback points** (1.2) | `backups.snapshot` / `backups.rollback`: named points before bigger changes. |
-| 🔫 **Wiimote output chain** (1.2) | `outputs.wiimote_hook`: DolphinBar, Gunmote, recoil relay and rumble limits at a glance — the base for Hook of the Wiimote. |
 
 ---
 
@@ -84,7 +81,7 @@ Created by **Fried ([@kburna243](https://github.com/kburna243))** — built by a
 
 ### 2. 🎯 Wiimote Lightgun Suite (`lightgun\`)
 - **Turnkey RetroBat Integration**: Transforms RetroBat into an authentic arcade shooting cabinet using Nintendo Wiimotes and the Mayflash DolphinBar.
-- **Hardware Mode 4 Enforced**: Guarantees ultra-low latency direct IR tracking and pairing without Windows Bluetooth PIN prompts.
+- **Dual Connection Modes**: Guarantees ultra-low latency direct IR tracking and pairing via DolphinBar Mode 4, or supports direct Windows Bluetooth pairing.
 - **Virtual Xbox 360 Gamepads**: Leverages signed **ViGEmBus** drivers to present lightguns as standard XInput controllers, avoiding chaotic Windows raw-mouse conflicts.
 - **Intelligent Interference Shield**: Neutralizes Steam Desktop Configuration captures and disables colliding background mouse guards.
 - **Automated Profile Switching**: Background watchers automatically switch Gunmote input mappings upon launching games (e.g. MAME, DuckStation, TeknoParrot, Naomi) and return to a stable D-Pad menu profile on exit.
@@ -113,7 +110,7 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 | :--- | :--- | :--- |
 | **Core** (backup, state, logging, downloads, i18n) | ✅ Stable | Shared engine for all steps |
 | **Pinball** relocation, COM registration, screens | ✅ Automated | Steps 1–9, wizard `Start-Pinball.cmd` |
-| **Lightgun base** (DolphinBar, ViGEmBus, Gunmote, RetroBat) | ✅ Automated | Steps 1–9, wizard `Start-Lightgun.cmd` |
+| **Lightgun base** (DolphinBar, Bluetooth, ViGEmBus, Gunmote, RetroBat) | ✅ Automated | Steps 1–9, wizard `Start-Lightgun.cmd` |
 | **MAME** | ✅ Automated | RetroBat settings (`use_guns=0`, XInput pads), step 7 |
 | **TeknoParrot** | ✅ Automated | Profile paths, XInput gun bindings, game lists, steps 10–11 |
 | **Demul + DemulShooter** (Naomi, Atomiswave) | ⚠️ Automated · Demul user-supplied | Checks, DemulShooter config, RetroBat settings, step 12 |
@@ -144,7 +141,7 @@ What "supported" means: **Automated** = the kit tests, changes and verifies it; 
 | **PowerShell** | Windows PowerShell 5.1 (Built-in) | PowerShell 5.1 or PowerShell 7+ |
 | **Pinball Displays** | 2 Screens (Playfield + Backglass) | 3 Screens (4K Playfield 120Hz + 1080p Backglass + DMD) |
 | **Display Scaling** | 100% DPI Scaling (Required) | 100% DPI Scaling across all screens |
-| **Lightgun Sensor** | Mayflash DolphinBar (Firmware v09+) | Mayflash DolphinBar placed top/bottom of screen |
+| **Lightgun Sensor** | Mayflash DolphinBar (Firmware v09+) or USB IR Bar | Mayflash DolphinBar placed top/bottom of screen |
 | **Lightgun Controllers** | 1x Original Nintendo Wiimote | 2x Nintendo Wiimotes with MotionPlus & Gun Shells |
 | **Free Storage** | Build Size + 10% Headroom Buffer | Fast NVMe SSD (`D:\Pinball` or `C:\RetroBat`) |
 
