@@ -17,6 +17,12 @@ that matches it.
 
 ### Added
 
+- Wiimote binding by Bluetooth address (API 1.8): `controllers.wiimote_bind` takes `Binding` (`MAC=player,...`),
+  so an app such as Hotwm can save the players the person chose instead of the current connection order. The plan
+  returns a `PlanId` (hash of the binding and the file it replaces); `-Apply` with that id writes only if neither
+  changed since, so an approval cannot write over a newer binding. The kit's own GUI passes it. `-Anonymize` and the
+  support bundle now hide Bluetooth addresses as `<MAC>`. Its `Changes` are now contract objects (`Kind` File,
+  `Target`, `Detail`) instead of plain strings.
 - DMD check for the pinball build (API 1.7): `pinball.dmd_audit` reads the table sections of VPinMAME's
   `DmdDevice.ini` that put the virtual DMD on a strip or switch it off, and checks each against the table it is meant
   for: the table script straight out of the `.vpx` (read-only, OLE storage `GameStg/GameData`, no `.vbs` written)

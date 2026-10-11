@@ -318,10 +318,14 @@ Describe 'Controls view' {
 
             $ui = . $guiScript -NoShow -Culture 'en-US' -DoctorResult @()
             try {
-                Mock -ModuleName 'RetroCabinetKit.Gui' Invoke-KitOperation { [pscustomobject]@{ Status = $(if ($Apply) { 'Done' } else { 'WhatIf' }); Message = "saved=$([bool]$Apply)"; Changes = @('player 1 = 0017AB2CD0A0') } }
-                Invoke-KitGuiSaveOrder -Ui $ui -Confirm { $false } | Should BeNullOrEmpty
+                Mock -ModuleName 'RetroCabinetKit.Gui' Invoke-KitOperation { [pscustomobject]@{ Status = $(if ($Apply) { 'Done' } else { 'WhatIf' }); Message = "saved=$([bool]$Apply)"; Changes = @([pscustomobject]@{ Kind = 'File'; Target = 'wiimotes.json'; Detail = 'player 1 = 0017AB2CD0A0' }); Data = [pscustomobject]@{ PlanId = 'p1' } } }
+                $script:shownText = $null
+                Invoke-KitGuiSaveOrder -Ui $ui -Confirm { param($text) $script:shownText = $text; $false } | Should BeNullOrEmpty
+                $script:shownText | Should Match 'player 1 = 0017AB2CD0A0'
                 Assert-MockCalled -ModuleName 'RetroCabinetKit.Gui' Invoke-KitOperation -Times 1 -Exactly -ParameterFilter { -not $Apply }
                 (Invoke-KitGuiSaveOrder -Ui $ui -Confirm { $true }).Status | Should Be 'Done'
+                # The apply carries the id of the plan that was shown.
+                Assert-MockCalled -ModuleName 'RetroCabinetKit.Gui' Invoke-KitOperation -Times 1 -Exactly -ParameterFilter { $Apply -and $Parameters.PlanId -eq 'p1' }
                 $ui.Controls.ControlsLog.Text | Should Match 'saved=True'
             } finally { $ui.Window.Close() }
         }

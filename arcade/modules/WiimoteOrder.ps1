@@ -24,6 +24,8 @@ function Get-ArcadeWiimoteDevice {
     }
 }
 
+function Get-ArcadeWiimoteLedgerPath { $script:WiimoteLedgerPath }
+
 function Get-ArcadeWiimoteLedger {
     [CmdletBinding()]
     param([string] $Path = $script:WiimoteLedgerPath)
@@ -60,6 +62,44 @@ function Get-ArcadeWiimoteOrder {
     # The order to switch them on in, from the binding: player 1 first.
     $fix = @($rows | Where-Object { $null -ne $_.Expected } | Sort-Object Expected | ForEach-Object { '{0} ({1})' -f $_.Mac, $_.Model })
     [pscustomobject]@{ State = $state; Wiimotes = $rows; GunmoteStart = $GunmoteStart; SwitchOnOrder = $fix }
+}
+
+# A binding the person chose, by Bluetooth address: 'MAC=player,MAC=player' (MAC with or without : or -).
+# Returns entries Player, Mac, Model sorted by player; the model comes from a connected Wiimote or the saved binding.
+# Throws on a malformed entry, a player outside 1..4, or a MAC or player named twice: nothing is guessed.
+function ConvertTo-ArcadeWiimoteBinding {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Binding,
+        [AllowEmptyCollection()] [object[]] $Device = @(Get-ArcadeWiimoteDevice),
+        [AllowEmptyCollection()] [object[]] $Ledger = @(Get-ArcadeWiimoteLedger)
+    )
+    $entries = @(foreach ($part in @($Binding -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+        if ($part -notmatch '^((?:[0-9A-Fa-f]{2}[:-]?){5}[0-9A-Fa-f]{2})\s*=\s*([1-4])$') {
+            throw "Binding entry '$part' is not MAC=player (player 1 to 4), e.g. 0017AB2CD0A0=1"
+        }
+        $mac = ($Matches[1] -replace '[:-]', '').ToUpperInvariant()
+        $player = [int]$Matches[2]
+        $known = @(@($Device) + @($Ledger) | Where-Object { $_ -and $_.Mac -eq $mac -and $_.Model }) | Select-Object -First 1
+        [pscustomobject]@{ Player = $player; Mac = $mac; Model = $(if ($known) { [string]$known.Model } else { $null }) }
+    })
+    if (-not $entries.Count) { throw 'Binding is empty: name at least one Wiimote as MAC=player' }
+    foreach ($key in 'Mac', 'Player') {
+        $twice = @($entries | Group-Object $key | Where-Object Count -gt 1 | ForEach-Object Name)
+        if ($twice.Count) { throw "Binding names $key $($twice -join ', ') more than once" }
+    }
+    $entries | Sort-Object Player
+}
+
+# Identifies one plan: the binding to write plus the file it replaces. A changed file or binding gives another id,
+# so an apply that brings the id of the plan the person saw fails instead of writing over a newer state.
+function Get-ArcadeWiimoteBindingPlanId {
+    [CmdletBinding()]
+    param([AllowEmptyCollection()] [object[]] $Entries, [string] $Path = $script:WiimoteLedgerPath)
+    $before = if (Test-Path -LiteralPath $Path -PathType Leaf) { [IO.File]::ReadAllText($Path) } else { '' }
+    $text = $before + '|' + (@($Entries | Sort-Object Player | ForEach-Object { '{0}={1}' -f $_.Player, $_.Mac }) -join ',')
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { -join ($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($text)) | ForEach-Object { $_.ToString('x2') }) } finally { $sha.Dispose() }
 }
 
 # Saves the current order as the binding (player = position now); an existing file is copied to .bak_<time> first.

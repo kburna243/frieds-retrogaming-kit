@@ -27,6 +27,12 @@ Describe 'Support text anonymization' {
         $out | Should BeExactly "<USERPROFILE>\x | <USER> on <COMPUTER> | <IP> | <IP> | <EMAIL> | $d\Users\<USER>\y | 8.8.8.8"
     }
 
+    It 'hides Bluetooth addresses (Wiimotes), keeps hashes and plain numbers' {
+        $text = 'player 1 = 0017AB2CD0A0 | 00:17:ab:2c:d0:a0 | BTHENUM\{00001124}_VID&0002057E&34AF2CD5795B_C00000000 | ' + ('ab' * 32) + ' | 202610021234'
+        $out = ConvertTo-KitSupportText -Text $text -UserName 'nobody' -ComputerName '' -UserProfile ''
+        $out | Should BeExactly ('player 1 = <MAC> | <MAC> | BTHENUM\{00001124}_VID&0002057E&<MAC>_C00000000 | ' + ('ab' * 32) + ' | 202610021234')
+    }
+
     It 'hides a second account''s profile folder but keeps Public and Default' {
         $c = 'C:'; $d = 'D:'
         $out = ConvertTo-KitSupportText -Text "$d\Users\Max Muster\a | $c\Users\Public\b | $c\Users\Default\c" -UserName 'nobody' -ComputerName '' -UserProfile ''

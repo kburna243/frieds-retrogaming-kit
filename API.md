@@ -1,4 +1,4 @@
-# Kit API (v1.7)
+# Kit API (v1.8)
 
 One stable entry point for every client of the kit — the WPF dashboard, the command line, scripts, tests and
 external tools such as an agent harness. The API is a thin, versioned facade over the engine modules; it adds no
@@ -40,7 +40,7 @@ another process (stdin/stdout, no network port).
 
 | Field | Type | Meaning |
 | :--- | :--- | :--- |
-| `ApiVersion` | string | `1.7`; a new major version is a breaking change |
+| `ApiVersion` | string | `1.8`; a new major version is a breaking change |
 | `KitVersion` | string | the kit's version (`VERSION` file), e.g. `0.3.0`; empty if the file is missing |
 | `Operation` | string | the operation name as called |
 | `Kind` | string | `Read` or `Change` |
@@ -137,6 +137,17 @@ running. The file goes into a `New-KitBackup` ZIP (`dmd-repair_<time>.zip`) firs
 with the file again right before the write: a section that changed in between refuses the whole write. The second
 run answers `Skipped`.
 
+`controllers.wiimote_bind` saves which Wiimote is which player, by Bluetooth address, in
+`%USERPROFILE%\RetroCabinet\wiimotes.json` (old file kept as `.bak_<time>`). `Binding` names the players as chosen,
+`MAC=player` separated by commas (`0017AB2CD0A0=1,34AF2CD5795B=2`; the MAC with or without `:` or `-`, players 1
+to 4); a malformed entry or a MAC or player named twice is `Failed`, nothing is guessed. Without `Binding` the
+current connection order is saved, as in 1.6. The plan (`WhatIf`) returns `Data.Wiimotes`, `Data.Source`
+(`Binding` or `CurrentOrder`) and `Data.PlanId`, a hash of the binding and the file it replaces. `-Apply` with that
+`PlanId` writes only if both are still the same, otherwise `Failed` and nothing is written: an approval given for
+one plan cannot write over a binding that changed since. `-Apply` without `PlanId` writes as before. Binding by
+address does not change how Gunmote numbers the Wiimotes (connection order); `controllers.wiimote_order` says
+whether they match and in which order to switch them on.
+
 ## In-process (PowerShell)
 
 ```powershell
@@ -201,3 +212,4 @@ operation changes meaning or disappears. The contract tests in `tests\api\` pin 
 | `1.5` | 1.3.0 | operations `controllers.input_profiles` (the input profiles: one button layout for the whole cabinet; reads only) and `controllers.input_apply` (a profile written as a MAME ctrlr file of the kit's own; never a file the kit did not write, never `retrobat_auto.cfg`; the plan warns about every RetroBat setting that would keep MAME from loading it) |
 | `1.6` | 1.4.0 | operation `controllers.xinput_slots` (the four XInput slots: in use or not, device kind, the MAME joystick number `JOY<n>` — MAME counts connected slots only — and the source names of the buttons as MAME numbers them, triggers as buttons 5/6 on arcade sticks; reads only); operations `controllers.wiimote_order` (which Wiimote is player 1, 2 in Gunmote now — Gunmote numbers them in the order they connect, Windows keeps that as LastArrivalDate, the Bluetooth address comes from the HID entry's parent — and whether that matches the saved binding: `Ok`, `Swapped`, `Unbound`, `Unclear`, `NoGunmote`, `NoWiimote`; reads only) and `controllers.wiimote_bind` (save the current order as the binding in `%USERPROFILE%\RetroCabinet\wiimotes.json`, old file kept as `.bak_<time>`) |
 | `1.7` | unreleased | operations `pinball.dmd_audit` (the table sections of VPinMAME's `DmdDevice.ini` against the tables they are meant for: is a DMD strip or DMD-off backed by an active PuP pack; reads the table scripts out of the `.vpx` read-only) and `pinball.dmd_repair` (removes the `virtualdmd` lines of `NoPup` sections after a ZIP backup, gated by rule 2) |
+| `1.8` | unreleased | `controllers.wiimote_bind` takes `Binding` (Bluetooth address -> player as chosen) and `PlanId` (the apply writes only the plan that was shown); `-Anonymize` and the support bundle hide Bluetooth addresses as `<MAC>` |
