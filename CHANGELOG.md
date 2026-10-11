@@ -7,13 +7,19 @@ that matches it.
 
 ## [Unreleased]
 
+### Fixed
+
+- Model 2: the game helper started DemulShooter with `-target=model2m`, a target DemulShooter does not have (its
+  target table in `Program.cs` knows only `model2` = Nebula Model2Emulator v1.1a), so Model 2 gun games got no input
+  in 1.5.0 and before. Now `-target=model2`; `model2m` is no longer accepted.
+- Chihiro (Cxbx-Reloaded, e.g. Silent Scope) gets a lightgun mouse profile of its own, `MouseShoot`: like `Mouse`,
+  but B stays the left click off screen, so reloading does not fire and a lost IR frame no longer turns the shot
+  into Grip = zoom (cabinet 03.10.2026). Step 6 writes `rck_mouseshoot.json` and recognizes the layout kind.
+
 ## [1.5.0] - 2026-10-11
 
 ### Fixed
 
-- Model 2: the game helper started DemulShooter with `-target=model2m`, a target DemulShooter does not have (its
-  target table knows only `model2` = Nebula Model2Emulator v1.1a), so Model 2 gun games got no input. Now
-  `-target=model2`.
 - Bluetooth route: PSX aims with the left stick (DuckStation GunCon on `XInput-n` stick, measured 24.09.), so step 8
   sends the pad 4:3 layout and step 6 gives DuckStation the pad layout; the first cabinet test showed no aim with the
   mouse layout. Without an anchor program, step 6 keeps a correct existing layout of the kind (no new file).
@@ -55,7 +61,7 @@ that matches it.
   (`gunmote-profil`), whose admin tasks ran scripts from the user-writable RetroBat folder.
 - Back in the menu, the profile watcher gives RetroBat the focus back (its hidden console takes it for a moment).
 - DemulShooter ROM list: `deathcox`, `rangrmsn`, `sprtshot`, and the Model 2 set (`bel`, `gunblade`, `hotd`,
-  `rchase2`, `vcop`, `vcop2`) for `-target=model2`.
+  `rchase2`, `vcop`, `vcop2`) for `-target=model2m`.
 
 ### Changed
 

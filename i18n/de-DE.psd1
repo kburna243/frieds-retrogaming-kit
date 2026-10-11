@@ -417,7 +417,7 @@
     'Lightgun.Model2.Missing'        = 'Model 2 Emulator in {0} nicht gefunden. Bitte Model 2 Emulator bereitstellen (EMULATOR.EXE / emulator_multicpu.exe, Emulator.ini).'
     'Lightgun.Model2.UserSupplied'   = 'Der Model 2 Emulator von ElSemi ist Closed Source; das Kit lädt ihn nicht herunter.'
     'Lightgun.Model2.Found'          = 'Model 2 Emulator gefunden: {0}'
-    'Lightgun.Model2.DsHint'         = 'Model 2 Gun-Spiele werden über DemulShooter eingebunden (-target=model2m).'
+    'Lightgun.Model2.DsHint'         = 'Model 2 Gun-Spiele werden über DemulShooter eingebunden (-target=model2).'
     'Lightgun.Model2.BadRom'         = 'Ungültiger oder unbekannter Model 2 Lightgun-ROM-Name: „{0}“. Sicherer Start verweigert.'
     'Lightgun.Supermodel.Missing'    = 'Supermodel in {0} nicht gefunden. Bitte Supermodel aus den offiziellen Releases installieren.'
     'Lightgun.Supermodel.Download'   = 'Offizielle Supermodel-Releases: {0}'
@@ -539,7 +539,7 @@
     'Lightgun.Ui.GameLists.Desc'     = 'Spielelisten: erzeugt TeknoParrot-Gamelist aus Profilen, verschiebt Doubletten nach _duplicates\ und versteckt unregistrierte Ordner.'
     'Lightgun.Ui.Demul.Desc'         = 'Demul 0.7a & DemulShooter: konfiguriert HID-RawInput für Naomi- und Atomiswave-Gun-Spiele, entfernt fest verdrahtete Flycast/Libretro-Tags aus Gamelists.'
     'Lightgun.Ui.Demul.RemoveHardwired' = 'Fest verdrahtete Flycast/Libretro-Tags bei Gun-Spielen entfernen'
-    'Lightgun.Ui.Model2Supermodel.Desc' = 'Model 2 Emulator & Supermodel: prüft Model 2 (Closed Source, DemulShooter-Einbindung via -target=model2m) und konfiguriert Supermodel-Fadenkreuze und XInput-Gun-Eingaben.'
+    'Lightgun.Ui.Model2Supermodel.Desc' = 'Model 2 Emulator & Supermodel: prüft Model 2 (Closed Source, DemulShooter-Einbindung via -target=model2) und konfiguriert Supermodel-Fadenkreuze und XInput-Gun-Eingaben.'
     'Lightgun.Ui.DuckStationPcsx2.Desc' = 'DuckStation & PCSX2 geführte Prüfung: Anleitung für Automatisches Mapping auf XInput-0, prüft vorhandene Einstellungen und Konami-Justifier-Einstellungen (Die Hard Trilogy, Crypt Killer).'
     # --- Doctor (reine Prüfung) --------------------------------------------------------------------------
     'Doctor.Title'                  = "Fried's Retrogaming Kit - Doctor"
