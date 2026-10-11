@@ -37,22 +37,19 @@
 
 ---
 
-## ✨ Neu in v1.5.0
+## ✨ Neu in v1.5.1
 
-Seit v1.0.0 (Details im [CHANGELOG](CHANGELOG.md)):
+Seit v1.4.0 (Details im [CHANGELOG](CHANGELOG.md)):
 
 | | Was du bekommst |
 | :--- | :--- |
+| 🔫 **Chihiro Lightgun-Profil** (1.5.1) | Eigenes `MouseShoot`-Profil für Cxbx-Reloaded ohne ungewolltes Nachladen abseits des Bildschirms. |
 | 🔗 **Wiimote-Spieler per Bluetooth-Adresse** (1.5) | `controllers.wiimote_bind` nimmt `Binding` (`MAC=Spieler`), damit eine App wie [Hook of the Wiimote](https://github.com/kburna243/frieds-hotwm) die gewählten Spieler speichert. Der Plan trägt eine `PlanId`; das Apply schreibt nur genau diesen Plan. Bluetooth-Adressen erscheinen in anonymisierten Antworten und Support-Bundles als `<MAC>` (API 1.8). |
 | 🎯 **DMD-Prüfung für Flippertische** (1.5) | `pinball.dmd_audit` / `pinball.dmd_repair`: Ist ein DMD-Streifen oder DMD-aus in der `DmdDevice.ini` durch ein aktives PuP-Pack gedeckt (API 1.7)? |
+| 📶 **Zwei Wiimote-Verbindungen** (1.5) | DolphinBar (Mayflash, Modus 4) und Bluetooth (jede Wiimote einzeln gekoppelt, mit einer IR-Leiste) werden nun beide unterstützt. Schritte 6 und 8 nehmen `-Connection` entgegen. |
+| 🎮 **Game Helper** (1.5) | Ein zweiter RetroBat-Hook `rck-game-helper.bat` startet Spiele mit DemulShooter- und hotwm-Relais-Integration ohne Hintergrundaufgaben. |
 | 🔢 **Wiimote-Spielerreihenfolge** (1.4) | Gunmote nummeriert die Wiimotes in der Reihenfolge, in der sie sich verbinden. Das Kit speichert, welche Wiimote welcher Spieler ist, und sagt vor dem Spiel, ob die Reihenfolge stimmt, vertauscht oder unklar ist. API `controllers.wiimote_order`, `controllers.wiimote_bind`. |
 | 🕹️ **XInput-Slots & Steuerungs-Karte** (1.4) | `controllers.xinput_slots`: die vier XInput-Slots mit Geräteart und MAME-Nummerierung `JOY<n>`. Neue Dashboard-Karte **Steuerung & Rumble**: Geräte, Wiimote-Ausgabekette, Spielerreihenfolge und Eingabeprofile. |
-| 🎮 **Universelles Button-Setup** (1.3) | Ein Eingabeprofil für das ganze Kabinett ordnet Aktionen (`START1`, `COIN1`, `P1_BUTTON1` …) dem zu, was das Panel sendet — Tasten, Pad-Knöpfe, Maustasten, mehrere pro Knopf. Geschrieben als eigene MAME-ctrlr-Datei des Kits; eine selbst gebaute Datei wie die Gun-Belegung `custom1.cfg` wird nie überschrieben. API `controllers.input_profiles`, `controllers.input_apply`. |
-| 🎚️ **Setup-Stufen & Presets** (1.1) | Easy / Custom / NerdExtreme und vier fertige Presets plus eigene (`setup.set_mode`, `presets.list`, `presets.apply`). |
-| 🛡️ **Deine Einstellungen bleiben** (1.1) | Neben jede `config.ini` darf eine `config.override.ini`: deine Werte gewinnen immer, Kit-Updates überschreiben sie nie. |
-| 🩺 **Schnell-Check in ca. 2 s** (1.2) | `status.health`: USB-Hardware, erreichbare ROM-Ordner (NAS-Freigaben mit 1 s Timeout), störende Programme, Systemwerte. |
-| ⏪ **Rücksprungpunkte** (1.2) | `backups.snapshot` / `backups.rollback`: benannte Punkte vor größeren Änderungen. |
-| 🔫 **Wiimote-Ausgabekette** (1.2) | `outputs.wiimote_hook`: DolphinBar, Gunmote, Rückstoß-Relais und Rumble-Grenzen auf einen Blick — die Basis für Hook of the Wiimote. |
 
 ---
 
@@ -84,7 +81,7 @@ Entwickelt von **Fried ([@kburna243](https://github.com/kburna243))** — von Ar
 
 ### 2. 🎯 Wiimote Lightgun Suite (`lightgun\`)
 - **Schlüsselfertige RetroBat-Integration**: Verwandelt RetroBat mithilfe von Nintendo Wiimotes und der Mayflash DolphinBar in ein echtes Lightgun-Arcade-Gehäuse.
-- **Erzwungener Hardware-Modus 4**: Garantiert latenzarmes Infrarot-Tracking und Kopplung ohne lästige Windows-Bluetooth-PIN-Abfragen.
+- **Zwei Verbindungsmodi**: Garantiert latenzarmes Infrarot-Tracking und Kopplung per DolphinBar Modus 4 oder unterstützt direkte Windows Bluetooth-Kopplung.
 - **Virtuelle Xbox 360 Controller**: Nutzt signierte **ViGEmBus**-Treiber, um Lightguns als Standard-XInput-Pads bereitzustellen – Schluss mit chaotischen Windows-Mauskonflikten.
 - **Intelligenter Schutz vor Störquellen**: Schaltet störende Steam-Desktop-Konfigurationen ab und deaktiviert kollidierende Maustreiber im Hintergrund.
 - **Automatischer Profilwechsel**: Hintergrund-Dienste schalten Gunmote-Belegungen beim Spielstart automatisch um (MAME, DuckStation, TeknoParrot, Naomi) und kehren beim Beenden zu einem stabilen Menü-Pad zurück.
@@ -113,7 +110,7 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 | :--- | :--- | :--- |
 | **Kern** (Backup, Zustand, Log, Downloads, i18n) | ✅ Stabil | Gemeinsame Engine für alle Schritte |
 | **Pinball** Umzug, COM-Registrierung, Bildschirme | ✅ Automatisiert | Schritte 1–9, Assistent `Start-Pinball.cmd` |
-| **Lightgun-Basis** (DolphinBar, ViGEmBus, Gunmote, RetroBat) | ✅ Automatisiert | Schritte 1–9, Assistent `Start-Lightgun.cmd` |
+| **Lightgun-Basis** (DolphinBar, Bluetooth, ViGEmBus, Gunmote, RetroBat) | ✅ Automatisiert | Schritte 1–9, Assistent `Start-Lightgun.cmd` |
 | **MAME** | ✅ Automatisiert | RetroBat-Einstellungen (`use_guns=0`, XInput-Pads), Schritt 7 |
 | **TeknoParrot** | ✅ Automatisiert | Profilpfade, XInput-Gun-Belegung, Spielelisten, Schritte 10–11 |
 | **Demul + DemulShooter** (Naomi, Atomiswave) | ⚠️ Automatisiert · Demul selbst mitgebracht | Prüfungen, DemulShooter-Konfiguration, RetroBat-Einstellungen, Schritt 12 |
@@ -144,7 +141,7 @@ Was „unterstützt" bedeutet: **Automatisiert** = das Kit prüft, ändert und v
 | **PowerShell** | Windows PowerShell 5.1 (Vorinstalliert) | PowerShell 5.1 oder PowerShell 7+ |
 | **Pinball-Monitore** | 2 Bildschirme (Playfield + Backglass) | 3 Bildschirme (4K Playfield 120Hz + 1080p Backglass + DMD) |
 | **Windows-Skalierung**| 100 % Skalierung (Zwingend erforderlich)| 100 % Skalierung auf allen Bildschirmen |
-| **Lightgun-Sensor** | Mayflash DolphinBar (Firmware v09+) | Mayflash DolphinBar oben oder unten am Monitor |
+| **Lightgun-Sensor** | Mayflash DolphinBar (Firmware v09+) oder USB-IR-Leiste | Mayflash DolphinBar oben oder unten am Monitor |
 | **Lightgun-Controller**| 1x Original Nintendo Wiimote | 2x Nintendo Wiimotes mit MotionPlus & Gun-Gehäuse |
 | **Freier Speicher** | Build-Größe + 10 % Sicherheitspuffer | Schnelle NVMe-SSD (`D:\Pinball` oder `C:\RetroBat`) |
 
