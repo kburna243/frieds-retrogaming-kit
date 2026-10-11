@@ -2,7 +2,7 @@ const de = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v1.4.0.",
+      "Geführte Installer für Virtual-Pinball- und Lightgun-Setups, Desktop-Dashboard, Kabinett-Umzug und eine lokale API für Agenten. Open Source, v1.5.0.",
   },
   nav: {
     home: "Start",
@@ -98,6 +98,7 @@ const de = {
     download: "DOWNLOAD v{v}",
     changelog: "WAS IST NEU",
     features: [
+      { title: "Wiimote-Zuordnung per Bluetooth-Adresse", text: "Welche Wiimote Spieler 1 ist, wird an ihrer Adresse festgemacht. Du siehst zuerst den Plan; geschrieben wird nur genau dieser — hat sich etwas geändert, schreibt das Kit nichts." },
       { title: "Universelles Button-Setup", text: "Ein Profil sagt, welche Taste am Panel Start, Münze oder Feuer ist — das Kit schreibt daraus die MAME-Belegung. Panel getauscht? Ein Profil ändern. Deine Gun-Belegung wird nie überschrieben." },
       { title: "Setup-Stufen & Presets", text: "Easy, Custom oder NerdExtreme: so viel Autopilot oder Detail, wie du willst. Vier fertige Presets, eigene dazu." },
       { title: "Deine Einstellungen bleiben", text: "Neben jede config.ini darf eine config.override.ini: deine Werte gewinnen immer, Kit-Updates überschreiben sie nie." },

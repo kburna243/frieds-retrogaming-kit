@@ -33,16 +33,18 @@
 ---
 
 > [!NOTE]
-> **Status: v1.4.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Zehn Pakete für den kompletten Arcade-Kabinett-Stack: `core`, `pinball`, `lightgun`, `arcade`, `pads`, `output`, `displays`, `enhancements`, `library`, `emulators` (15 Adapter: MAME … PinballFX3) und `frontends` (5 Adapter: RetroBat, PinballY, Playnite, LaunchBox, PinUP). 35+ API-Operationen über den MCP-Server. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
+> **Status: v1.5.0** ([Download](https://github.com/kburna243/frieds-retrogaming-kit/releases/latest)). Zehn Pakete für den kompletten Arcade-Kabinett-Stack: `core`, `pinball`, `lightgun`, `arcade`, `pads`, `output`, `displays`, `enhancements`, `library`, `emulators` (15 Adapter: MAME … PinballFX3) und `frontends` (5 Adapter: RetroBat, PinballY, Playnite, LaunchBox, PinUP). 35+ API-Operationen über den MCP-Server. Siehe [Funktionsstatus](#-funktionsstatus), [CHANGELOG](CHANGELOG.md) und [ROADMAP](ROADMAP.md).
 
 ---
 
-## ✨ Neu in v1.4.0
+## ✨ Neu in v1.5.0
 
 Seit v1.0.0 (Details im [CHANGELOG](CHANGELOG.md)):
 
 | | Was du bekommst |
 | :--- | :--- |
+| 🔗 **Wiimote-Spieler per Bluetooth-Adresse** (1.5) | `controllers.wiimote_bind` nimmt `Binding` (`MAC=Spieler`), damit eine App wie [Hook of the Wiimote](https://github.com/kburna243/frieds-hotwm) die gewählten Spieler speichert. Der Plan trägt eine `PlanId`; das Apply schreibt nur genau diesen Plan. Bluetooth-Adressen erscheinen in anonymisierten Antworten und Support-Bundles als `<MAC>` (API 1.8). |
+| 🎯 **DMD-Prüfung für Flippertische** (1.5) | `pinball.dmd_audit` / `pinball.dmd_repair`: Ist ein DMD-Streifen oder DMD-aus in der `DmdDevice.ini` durch ein aktives PuP-Pack gedeckt (API 1.7)? |
 | 🔢 **Wiimote-Spielerreihenfolge** (1.4) | Gunmote nummeriert die Wiimotes in der Reihenfolge, in der sie sich verbinden. Das Kit speichert, welche Wiimote welcher Spieler ist, und sagt vor dem Spiel, ob die Reihenfolge stimmt, vertauscht oder unklar ist. API `controllers.wiimote_order`, `controllers.wiimote_bind`. |
 | 🕹️ **XInput-Slots & Steuerungs-Karte** (1.4) | `controllers.xinput_slots`: die vier XInput-Slots mit Geräteart und MAME-Nummerierung `JOY<n>`. Neue Dashboard-Karte **Steuerung & Rumble**: Geräte, Wiimote-Ausgabekette, Spielerreihenfolge und Eingabeprofile. |
 | 🎮 **Universelles Button-Setup** (1.3) | Ein Eingabeprofil für das ganze Kabinett ordnet Aktionen (`START1`, `COIN1`, `P1_BUTTON1` …) dem zu, was das Panel sendet — Tasten, Pad-Knöpfe, Maustasten, mehrere pro Knopf. Geschrieben als eigene MAME-ctrlr-Datei des Kits; eine selbst gebaute Datei wie die Gun-Belegung `custom1.cfg` wird nie überschrieben. API `controllers.input_profiles`, `controllers.input_apply`. |

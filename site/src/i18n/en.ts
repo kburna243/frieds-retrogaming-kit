@@ -4,7 +4,7 @@ const en: Dict = {
   meta: {
     title: "Fried's Retro Cabinet Kit",
     description:
-      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v1.4.0.",
+      "Guided installers for virtual pinball and lightgun setups, a desktop dashboard, cabinet migration and a local API for agents. Open source, v1.5.0.",
   },
   nav: {
     home: "Home",
@@ -100,6 +100,7 @@ const en: Dict = {
     download: "DOWNLOAD v{v}",
     changelog: "WHAT'S NEW",
     features: [
+      { title: "Wiimote players by Bluetooth address", text: "Which Wiimote is player 1 is tied to its address. You see the plan first, and only that plan is written — if anything changed in between, the kit writes nothing." },
       { title: "Universal button setup", text: "One profile says which panel button is start, coin or fire — the kit writes the MAME layout from it. New panel? Change one profile. Your gun layout is never overwritten." },
       { title: "Setup levels & presets", text: "Easy, Custom or NerdExtreme: as much autopilot or detail as you like. Four ready presets, plus your own." },
       { title: "Your settings stay yours", text: "Next to any config.ini you may put a config.override.ini: your values always win, kit updates never overwrite them." },
