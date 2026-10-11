@@ -606,7 +606,9 @@ function Invoke-KitOperation {
                     $source = if ($p.Binding) { 'Binding' } else { 'CurrentOrder' }
                     $wanted = if ($p.Binding) { @(ConvertTo-ArcadeWiimoteBinding -Binding ([string]$p.Binding)) } else { @((Get-ArcadeWiimoteOrder).Wiimotes) }
                     $planId = Get-ArcadeWiimoteBindingPlanId -Entries $wanted -Path $ledgerPath
-                    if ($apply -and $p.PlanId -and [string]$p.PlanId -ne $planId) {
+                    # An empty PlanId is a PlanId too: it never matches, so it never skips the check.
+                    # ponytail: check and write are two steps; one cabinet, one person at a time is the ceiling.
+                    if ($apply -and $p.ContainsKey('PlanId') -and [string]$p.PlanId -ne $planId) {
                         throw 'The Wiimote binding or wiimotes.json changed since this plan was made: nothing written, make a new plan.'
                     }
                     $entries = @(Save-ArcadeWiimoteLedger -Wiimotes $wanted -Path $ledgerPath -WhatIf:(-not $apply) -Confirm:$false)

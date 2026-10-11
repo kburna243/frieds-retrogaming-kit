@@ -88,6 +88,7 @@ Describe 'API 1.8 -- Wiimote binding by Bluetooth address' {
         $stale = Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters @{ Binding = '34AF2CD5795B=2,0017AB2CD0A0=1'; PlanId = $plan.Data.PlanId } -Apply
         $stale.Status | Should Be 'Failed'
         $stale.Message | Should Match 'changed since this plan'
+        (Invoke-KitOperation -Name 'controllers.wiimote_bind' -Parameters @{ Binding = $binding.Binding; PlanId = '' } -Apply).Status | Should Be 'Failed'
         Get-Content $ledger -Raw | Should Be $before
     }
 

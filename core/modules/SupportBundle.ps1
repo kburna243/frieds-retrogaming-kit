@@ -21,9 +21,10 @@ function ConvertTo-KitSupportText {
     $t = [regex]::Replace($t, "(?<![\d.])(?:10\.$octet|172\.(?:1[6-9]|2\d|3[01])|192\.168|169\.254|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7]))\.$octet\.$octet(?![\d.])", '<IP>')
     $t = [regex]::Replace($t, '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b', '<EMAIL>')
     # Bluetooth addresses (Wiimotes): 00:17:AB:.. and the bare upper-case form the kit uses, also inside instance ids.
-    # ponytail: the bare form is any 12 upper-case hex digits with a letter and a digit; lower-case hashes stay.
+    # ponytail: the bare form is any 12 upper-case hex digits (Nintendo OUIs can be digits only), not a GUID's tail;
+    # lower-case hashes such as a PlanId stay. A 12-digit number is masked too: safe side for anything leaving the PC.
     $t = [regex]::Replace($t, '(?i)(?<![0-9A-F:-])(?:[0-9A-F]{2}[:-]){5}[0-9A-F]{2}(?![0-9A-F:-])', '<MAC>')
-    $t = [regex]::Replace($t, '(?<![0-9A-Za-z])(?=[0-9A-F]{0,11}[A-F])(?=[0-9A-F]{0,11}[0-9])[0-9A-F]{12}(?![0-9A-Za-z])', '<MAC>')
+    $t = [regex]::Replace($t, '(?<![0-9A-Za-z-])[0-9A-F]{12}(?![0-9A-Za-z])', '<MAC>')
     # Other accounts' profile folders (a second user, an old build's creator): keep the drive, hide the name.
     $t = [regex]::Replace($t, '(?i)\b([A-Z]:\\(?:Users|Dokumente und Einstellungen|Documents and Settings)\\)(?!<USER|Public\\|Default\\|All Users\\)[^\\/:*?"<>|\r\n]+', '$1<OTHERUSER>')
     $t
