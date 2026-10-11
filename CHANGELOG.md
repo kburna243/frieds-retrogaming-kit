@@ -7,6 +7,8 @@ that matches it.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-10-11
+
 ### Fixed
 
 - Model 2: the game helper started DemulShooter with `-target=model2m`, a target DemulShooter does not have (its
@@ -545,7 +547,8 @@ First public release.
   game lists, Demul + DemulShooter, Model 2 / Supermodel, guided DuckStation / PCSX2 check; wizard.
 - Bilingual documentation, website and depersonalization scanner.
 
-[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/kburna243/frieds-retrogaming-kit/compare/v1.3.1...v1.3.2
